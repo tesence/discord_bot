@@ -1,7 +1,6 @@
 import abc
 import asyncio
 import collections
-import json
 import logging
 import time
 
@@ -77,7 +76,7 @@ class SpeedrunData:
         begin = time.time()
         body, status_code = await utils.request(url, headers=HEADERS)
         if status_code == 200:
-            data = json.loads(body)['data']
+            data = body['data']
             LOG.debug("Request to {} successful ({:02.3f}s)".format(url, time.time() - begin))
             return data
         else:

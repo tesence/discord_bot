@@ -1,7 +1,6 @@
 import asyncio
 from datetime import datetime
 import logging
-import json
 import os
 
 from discord.ext import commands
@@ -91,7 +90,7 @@ class StreamManager:
                                                                 usernames=",".join(usernames))
         body, status_code = await utils.request(url, headers=HEADERS)
         try:
-            users = json.loads(body)['users']
+            users = body['users']
             LOG.debug("API data for {usernames}: {data} ({url})"
                       .format(usernames=usernames, data=users, url=url))
         except:
@@ -112,7 +111,7 @@ class StreamManager:
         )
         body, status_code = await utils.request(url, headers=HEADERS)
         try:
-            streams = json.loads(body)['streams']
+            streams = body['streams']
         except:
             LOG.exception("Cannot retrieve stream data for {twitch_ids}({status_code})".format(twitch_ids=twitch_ids,
                                                                                                status_code=status_code))

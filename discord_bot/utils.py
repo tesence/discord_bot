@@ -58,7 +58,7 @@ async def request(url, headers):
     async with aiohttp.ClientSession() as session:
         async with session.get(url, headers=headers) as resp:
             status_code = resp.status
-            response = await resp.text()
+            response = await resp.json()
             return response, status_code
 
 
