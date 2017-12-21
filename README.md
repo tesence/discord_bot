@@ -119,7 +119,7 @@ None
 ```
  The bot then has to handle both of these case separately in order not to tag all the streams as offline. Otherwise, the bot will notify every stream again on the next successful API request.
 
-#### Fake API responses
+##### Fake API responses
 
 The Twitch API isn't implemented on an unique server. Depending on which server the bot requests, the response can differ.
 
