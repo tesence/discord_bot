@@ -65,7 +65,7 @@ class StreamManager:
         :param loop: event loop
         """
         if self.streams:
-            await asyncio.gather(self._enrich_data(), loop=loop)
+            await asyncio.ensure_future(self._enrich_data(), loop=loop)
         await asyncio.ensure_future(self._poll_streams(), loop=loop)
 
     def _get_discord_channels_by_stream(self):
