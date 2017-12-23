@@ -5,6 +5,7 @@ import os
 
 import aiohttp
 
+
 LOG = logging.getLogger('debug')
 
 
@@ -54,14 +55,6 @@ def load_json_file(filename):
         LOG.error("'%s' is not a json file", filename)
 
 
-async def request(url, headers):
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url, headers=headers) as resp:
-            status_code = resp.status
-            response = await resp.json()
-            return response, status_code
-
-
 def ordinal(num):
     num = int(num)
     SUFFIXES = {1: 'st', 2: 'nd', 3: 'rd'}
@@ -85,3 +78,18 @@ def underline(message):
 
 def bold(message):
     return "**" + str(message) + "**"
+
+
+async def request(url, headers):
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers) as resp:
+                status_code = resp.status
+                if status_code == 200:
+                    return await resp.json()
+                elif 400 < status_code < 500:
+                    LOG.error("Bad request {url} (status_code)".format(url=url, status_code=status_code))
+                elif 500 < status_code < 600:
+                    LOG.error("The request didn't succeed {url} (status_code)".format(url=url, status_code=status_code))
+    except aiohttp.client_exceptions.ClientError as e:
+        LOG.error("An error has occured while requesting the url {url}".format(url=url))

@@ -73,14 +73,14 @@ class SpeedrunData:
 
     @classmethod
     async def get_data(cls, url):
-        begin = time.time()
-        body, status_code = await utils.request(url, headers=HEADERS)
-        if status_code == 200:
+        body = await utils.request(url, headers=HEADERS)
+        try:
             data = body['data']
-            LOG.debug("Request to {} successful ({:02.3f}s)".format(url, time.time() - begin))
-            return data
+        except (KeyError, TypeError) as e:
+            LOG.error("Cannot parse data for url {url} (message)".format(url=url, message=e.args))
+            raise
         else:
-            LOG.error("Cannot retrieve %ss: %s (http status %s)", cls.RESOURCE_NAME, status_code)
+            return data
 
     @classmethod
     async def _get_game_name(cls, game_id):

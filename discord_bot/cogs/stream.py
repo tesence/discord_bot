@@ -1,3 +1,4 @@
+from aiohttp import client_exceptions
 import asyncio
 from datetime import datetime
 import logging
@@ -88,16 +89,16 @@ class StreamManager:
         """""
         url = "{twitch_api_url}/users?login={usernames}".format(twitch_api_url=cfg.TWITCH_API_URL,
                                                                 usernames=",".join(usernames))
-        body, status_code = await utils.request(url, headers=HEADERS)
         try:
+            body = await utils.request(url, headers=HEADERS)
             users = body['users']
-            LOG.debug("API data for {usernames}: {data} ({url})"
-                      .format(usernames=usernames, data=users, url=url))
-        except:
-            LOG.exception("Cannot retrieve channel data for {usernames} ({status_code})"
-                          .format(usernames=usernames, status_code=status_code))
+        except (KeyError, TypeError) as e:
+            LOG.error("Cannot parse retrieved ids for {usernames} ({message})".format(usernames=usernames,
+                                                                                      message=e.args))
         else:
-            return {user['name']: user['_id'] for user in users}
+            result = {user['name']: user['_id'] for user in users}
+            LOG.debug("API data for {usernames}: {data} ({url})".format(usernames=usernames, data=result, url=url))
+            return result
 
     @staticmethod
     async def _get_status(*twitch_ids):
@@ -109,12 +110,12 @@ class StreamManager:
             twitch_api_url=cfg.TWITCH_API_URL,
             twitch_ids=",".join([str(twitch_id) for twitch_id in twitch_ids])
         )
-        body, status_code = await utils.request(url, headers=HEADERS)
+        body = await utils.request(url, headers=HEADERS)
         try:
             streams = body['streams']
-        except:
-            LOG.exception("Cannot retrieve stream data for {twitch_ids}({status_code})".format(twitch_ids=twitch_ids,
-                                                                                               status_code=status_code))
+        except (KeyError, TypeError) as e:
+            LOG.error("Cannot retrieve stream data for {twitch_ids} ({message})".format(twitch_ids=twitch_ids,
+                                                                                        message=e.args))
         else:
             return {stream['channel']['_id']: stream for stream in streams}
 
@@ -239,9 +240,7 @@ class StreamManager:
                 else:
                     LOG.warning("Cannot retrieve status for {usernames}, the polling iteration has been skipped."
                                 .format(usernames=[stream.username for stream in discord_channels_by_stream]))
-                await asyncio.sleep(10)
-            else:
-                await asyncio.sleep(10)
+            await asyncio.sleep(10)
 
     # COMMANDS
 
