@@ -170,6 +170,8 @@ class Speedrun:
     async def sr(self, ctx, username, game=None):
         url = PersonalBest.get_url(username, game)
         personal_bests = await PersonalBest.get_data(url)
+        LOG.debug("{count} {resource_name}s successfuly retrieved for {username}"
+                  .format(count=len(personal_bests), resource_name=PersonalBest.RESOURCE_NAME, username=username))
         summary = collections.defaultdict(dict)
         summary_elems = await asyncio.gather(*[PersonalBest.parse(pb) for pb in personal_bests])
         for summary_elem in summary_elems:
@@ -181,6 +183,8 @@ class Speedrun:
     async def wr(self, ctx, game):
         url = WorldRecord.get_url(game)
         records = await WorldRecord.get_data(url)
+        LOG.debug("{count} {resource_name}s successfuly retrieved for {game}"
+                  .format(count=len(records), resource_name=PersonalBest.RESOURCE_NAME, game=game))
         summary = collections.defaultdict(dict)
         summary_elems = await asyncio.gather(*[WorldRecord.parse(record) for record in records if record['runs']])
         for summary_elem in summary_elems:
