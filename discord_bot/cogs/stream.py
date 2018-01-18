@@ -367,16 +367,16 @@ class StreamManager:
 
     # EVENTS
     async def on_guild_channel_delete(self, channel):
-        LOG.debug("The channel '{guild_name:channel_name}' has been deleted".format(guild_name=channel.guild.name,
-                                                                                    channel_name=channel.name))
+        LOG.debug("The channel '{guild_name}:{channel_name}' has been deleted".format(guild_name=channel.guild.name,
+                                                                                      channel_name=channel.name))
         try:
             del self.streams[channel.id]
             self._save()
             LOG.debug("Every tracked stream have been removed from the deleted channel '{guild_name:channel_name}'"
                       .format(guild_name=channel.guild.name, channel_name=channel.name))
         except KeyError:
-            LOG.warning("channel '{guild_name:channel_name}' not found".format(guild_name=channel.guild.name,
-                                                                               channel_name=channel.name))
+            LOG.warning("channel '{guild_name}:{channel_name}' had no tracked channel"
+                        .format(guild_name=channel.guild.name, channel_name=channel.name))
 
 
 def setup(bot):
