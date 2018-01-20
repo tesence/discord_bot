@@ -127,13 +127,12 @@ class StreamManager:
         :param everyone: True if the stream is notified with @everyone, False otherwise
         """
         twitch_icon_url = "https://www.shareicon.net/download/2015/09/08/98061_twitch_512x512.png"
-        clock_icon_url = "http://www.iconsdb.com/icons/preview/caribbean-blue/clock-xxl.png"
+        clock_icon_url = "https://cdn2.iconfinder.com/data/icons/metro-uinvert-dock/256/Clock.png"
 
         display_name = status.get('channel').get('display_name')
         game = status.get('game')
         title = status.get('channel').get('status')
         logo_url = status.get('channel').get('logo')
-        profile_banner_url = status.get('channel').get('profile_banner')
         url = status.get('channel').get('url')
 
         message = ""
@@ -146,14 +145,12 @@ class StreamManager:
         embed.description = "[{}]({})".format(url, url)
 
         embed.set_author(name=display_name, url=url, icon_url=twitch_icon_url)
-        embed.add_field(name="Playing", value=game)
-        embed.add_field(name="Stream Title", value=title)
+        embed.add_field(name="Playing", value=game + (50 - len(game)) * " ** **", inline=False)
+        embed.add_field(name="Stream Title", value=title, inline=False)
         embed.set_footer(text="Stream live time", icon_url=clock_icon_url)
 
         if logo_url:
             embed.set_thumbnail(url=logo_url)
-        if profile_banner_url:
-            embed.set_image(url=profile_banner_url)
 
         return message, embed
 
