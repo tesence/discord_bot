@@ -186,8 +186,16 @@ class StreamManager:
         """ Set all stream ids """
         discord_channels_by_stream = self._get_discord_channels_by_stream()
         id_by_username = await self._get_ids(*[stream.username for stream in discord_channels_by_stream])
-        for stream in self._get_discord_channels_by_stream():
-            stream.id = int(id_by_username[stream.username])
+        for stream, discord_channels in self._get_discord_channels_by_stream().items():
+            try:
+                stream.id = int(id_by_username[stream.username])
+            except KeyError:
+                LOG.error("Unable to enrich data for {username}. This username doesn't exist anymore and might have "
+                          "been changed".format(username=stream.username))
+                for discord_channel in discord_channels:
+                    self.streams[discord_channel]['twitch_channels'].remove(stream)
+                    LOG.debug("{username} is no longer tracked in {discord_channel}"
+                              .format(username=stream.username, discord_channel=discord_channel))
         LOG.debug("The data has successfully been enriched: {data}".format(data=id_by_username))
 
     async def _save(self):
