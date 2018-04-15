@@ -7,5 +7,4 @@ log
 /.idea/
 
 # excluded files
-cfg.py
 /etc

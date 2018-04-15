@@ -7,16 +7,16 @@ import time
 from discord import colour, embeds
 from discord.ext import commands
 
-import cfg
+from discord_bot import cfg
 from discord_bot import utils
 from discord_bot.utils import bold, underline
 
-
+CONF = cfg.CONF
 LOG = logging.getLogger('debug')
 
 HEADERS = {
     "Accept": "application/json",
-    "X-API-Key": cfg.SR_API_KEY
+    "X-API-Key": CONF.SR_API_KEY
 }
 
 
@@ -85,7 +85,7 @@ class SpeedrunData:
     @classmethod
     async def _get_game_name(cls, game_id):
         if game_id not in cls.GAMES:
-            url = "{sr_api_url}/games/{game_id}".format(sr_api_url=cfg.SR_API_URL, game_id=game_id)
+            url = "{sr_api_url}/games/{game_id}".format(sr_api_url=CONF.SR_API_URL, game_id=game_id)
             game = await cls.get_data(url)
             cls.GAMES[game_id] = game['names']['international']
         return cls.GAMES[game_id]
@@ -93,7 +93,7 @@ class SpeedrunData:
     @classmethod
     async def _get_category_name(cls, category_id):
         if category_id not in cls.CATEGORIES:
-            url = "{sr_api_url}/categories/{category_id}".format(sr_api_url=cfg.SR_API_URL, category_id=category_id)
+            url = "{sr_api_url}/categories/{category_id}".format(sr_api_url=CONF.SR_API_URL, category_id=category_id)
             category = await cls.get_data(url)
             cls.CATEGORIES[category_id] = category['name']
         return cls.CATEGORIES[category_id]
@@ -126,7 +126,7 @@ class WorldRecord(SpeedrunData):
 
     @staticmethod
     def get_url(game):
-        return "{sr_api_url}/games/{game}/records?top=1".format(sr_api_url=cfg.SR_API_URL, game=game)
+        return "{sr_api_url}/games/{game}/records?top=1".format(sr_api_url=CONF.SR_API_URL, game=game)
 
 
 class PersonalBest(SpeedrunData):
@@ -158,7 +158,7 @@ class PersonalBest(SpeedrunData):
     @staticmethod
     def get_url(username, game):
         return "{sr_api_url}/users/{username}/personal-bests?game={game}"\
-                .format(sr_api_url=cfg.SR_API_URL, username=username, game=game or "")
+                .format(sr_api_url=CONF.SR_API_URL, username=username, game=game or "")
 
 
 class Speedrun:

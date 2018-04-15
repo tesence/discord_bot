@@ -7,14 +7,15 @@ import os
 from discord.ext import commands
 from discord import colour, embeds
 
-import cfg
+from discord_bot import cfg
 from discord_bot import utils
 
+CONF = cfg.CONF
 LOG = logging.getLogger('debug')
 
 HEADERS = {
-    "Client-ID": cfg.TWITCH_API_CLIENT_ID,
-    "accept": cfg.TWITCH_API_ACCEPT
+    "Client-ID": CONF.TWITCH_API_CLIENT_ID,
+    "accept": CONF.TWITCH_API_ACCEPT
 }
 
 
@@ -47,12 +48,12 @@ class Stream(object):
         else:
             now = datetime.now()
             offline_duration = now - self.last_offline_date
-            return offline_duration.seconds > cfg.MIN_OFFLINE_DURATION
+            return offline_duration.seconds > CONF.MIN_OFFLINE_DURATION
 
 
 class StreamManager:
 
-    def __init__(self, bot, filename="channels"):
+    def __init__(self, bot, filename=CONF.CONF_NAME + "_channels"):
         type(self).__name__ = "Stream commands"
         self.bot = bot
         self.streams = None
@@ -87,7 +88,7 @@ class StreamManager:
          
         :param usernames: usernames whose we want the id
         """""
-        url = "{twitch_api_url}/users?login={usernames}".format(twitch_api_url=cfg.TWITCH_API_URL,
+        url = "{twitch_api_url}/users?login={usernames}".format(twitch_api_url=CONF.TWITCH_API_URL,
                                                                 usernames=",".join(usernames))
         try:
             body = await utils.request(url, headers=HEADERS)
@@ -107,7 +108,7 @@ class StreamManager:
         :param twitch_ids: twitch ids whose we want the status
         """
         url = "{twitch_api_url}/streams/?channel={twitch_ids}".format(
-            twitch_api_url=cfg.TWITCH_API_URL,
+            twitch_api_url=CONF.TWITCH_API_URL,
             twitch_ids=",".join([str(twitch_id) for twitch_id in twitch_ids])
         )
         body = await utils.request(url, headers=HEADERS)

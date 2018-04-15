@@ -30,9 +30,9 @@ https://www.twitchtools.com/chat-token
 
 
 
-## Create a ```cfg.py``` file
+## Create a configuration file
 
-Create the file ```<project_folder>/cfg.py``` and fill it as follow:
+Create the file ```discord_bot/etc/<configuration_file>.py``` and fill it as follow:
 
 ```
 # cfg.py
@@ -58,12 +58,12 @@ In the project folder, run:
 
 ### Windows
 
-	.venv/Script/python.exe main.py
+	.venv/Script/python.exe main.py <configuration_file>
 
 
 ### Linux
 
-	.venv/bin/python main.py
+	.venv/bin/python main.py <configuration_file>
 
 
 ## COGS

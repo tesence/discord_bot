@@ -2,8 +2,10 @@ import logging
 import os
 from logging.handlers import RotatingFileHandler
 
+from discord_bot import cfg
 from discord_bot import utils
 
+CONF = cfg.CONF
 
 LOG_PATTERN = logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: [%(filename)s] %(message)s')
 
@@ -31,4 +33,4 @@ def setup():
             logger.addHandler(steam_handler)
 
     setup_logger("discord")
-    setup_logger("debug", "discord_bot", True)
+    setup_logger("debug", CONF.CONF_NAME, True)
