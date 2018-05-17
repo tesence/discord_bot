@@ -1,5 +1,3 @@
-import collections
-import json
 import logging
 import os
 
@@ -15,44 +13,6 @@ def get_project_dir():
 
 def get_project_name():
     return os.path.basename(os.path.dirname(__file__))
-
-
-def get_file_path(filename):
-    return "{project_dir}/{filename}".format(project_dir=get_project_dir(), filename=filename)
-
-
-def save_file(filepath, data):
-    with open(filepath, mode='w+', encoding="utf-8") as fs:
-        fs.write(data)
-        LOG.debug("Updating %s data: %s", filepath, str(data))
-
-
-def save_json_file(filepath, data):
-    with open(filepath, mode='w+', encoding="utf-8") as fs:
-        json.dump(collections.OrderedDict(data), fs, indent=2)
-        LOG.debug("Updating %s data: %s", filepath, str(data))
-
-
-def load_file(filepath):
-    with open(filepath, mode='r', encoding="utf-8") as fs:
-        try:
-            data = fs.read()
-            LOG.debug("%s loaded: %s", filepath, data.replace("\n", ""))
-            return data
-        except FileNotFoundError:
-            LOG.exception("Cannot load the file: %s", filepath)
-
-
-def load_json_file(filename):
-    if filename.split(".").pop() == "json":
-        content = load_file(filename)
-        if content:
-            try:
-                return json.loads(content)
-            except (TypeError, ValueError):
-                LOG.exception("Cannot load the json file: {filename}".format(filename=filename))
-    else:
-        LOG.error("'%s' is not a json file", filename)
 
 
 def ordinal(num):

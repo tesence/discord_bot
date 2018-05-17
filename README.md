@@ -28,6 +28,9 @@ https://www.twitchtools.com/chat-token
 	virtualenv .venv
 	.venv/bin/pip install -r requirements.txt
 
+## Create a database
+
+Create a postgresSQL database. The tables will be generated automatically.
 
 
 ## Create a configuration file
@@ -51,6 +54,13 @@ MIN_OFFLINE_DURATION = 60
 # SR COG
 SR_API_URL = "https://www.speedrun.com/api/v1"
 SR_API_KEY = <speedrun.com api key>
+
+# DATABASE
+DB_HOST = <DB_HOST>
+DB_PORT = <DB_PORT>
+DB_NAME = <DB_NAME>
+DB_USER = <DB_USER>
+DB_PASSWORD = <DB_PASSWORD>
 ```
 ## Run the bot
 

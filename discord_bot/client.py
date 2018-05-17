@@ -6,7 +6,7 @@ from discord_bot import utils
 
 LOG = logging.getLogger('debug')
 
-INITIAL_EXTENSIONS = ['stream', 'sr']
+INITIAL_EXTENSIONS = ['stream.setup', 'sr']
 
 
 class Bot(commands.Bot):
@@ -25,10 +25,11 @@ class Bot(commands.Bot):
         for extension in INITIAL_EXTENSIONS:
             try:
                 self.load_extension(extension_module_name + "." + extension)
-                LOG.debug("The extension '{extension}' has been successfully loaded".format(extension=extension))
+                LOG.debug("The extension '{extension}' has been successfully loaded"
+                          .format(extension=extension.split(".")[0]))
             except:
-                LOG.error("Failed to load extension {extension}".format(extension=extension))
+                LOG.exception("Failed to load extension {extension}"
+                              .format(extension=extension.split(".")[0]))
 
-    async def say(self, ctx, message):
-        message = "```" + message + "```"
-        await ctx.message.channel.send(message)
+    async def say(self, channel, message):
+        await channel.send("```" + message + "```")
