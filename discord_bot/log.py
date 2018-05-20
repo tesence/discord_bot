@@ -7,7 +7,7 @@ from discord_bot import utils
 
 CONF = cfg.CONF
 
-LOG_PATTERN = logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: [%(filename)s] %(message)s')
+LOG_PATTERN = logging.Formatter('%(asctime)s:%(levelname)s: [%(filename)s] %(message)s')
 
 
 def setup():
@@ -34,3 +34,7 @@ def setup():
 
     setup_logger("discord")
     setup_logger("debug", CONF.CONF_NAME, True)
+
+
+def get_log_exception_message(message, e):
+    return message + " ({error_class}: {error_message})".format(error_class=type(e).__name__, error_message=str(e))

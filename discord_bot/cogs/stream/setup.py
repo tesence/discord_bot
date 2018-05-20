@@ -6,8 +6,10 @@ from discord.ext import commands
 from discord import colour, embeds
 
 from discord_bot import cfg
-from discord_bot.cogs.stream import db
+from discord_bot import log
 from discord_bot import utils
+
+from discord_bot.cogs.stream import db
 
 CONF = cfg.CONF
 LOG = logging.getLogger('debug')
@@ -47,8 +49,9 @@ class StreamManager:
 
         try:
             await self.poll_streams()
-        except asyncio.TimeoutError:
-            LOG.exception("The polling unexpectedly stopped")
+        except asyncio.TimeoutError as e:
+            message = "The polling unexpectedly stopped"
+            LOG.exception(log.get_log_exception_message(message, e))
 
     @staticmethod
     async def _get_ids(*names):
@@ -62,11 +65,11 @@ class StreamManager:
             body = await utils.request(url, headers=HEADERS)
             users = body['users']
         except (KeyError, TypeError) as e:
-            LOG.error("Cannot parse retrieved ids for {names} ({message})".format(names=names,
-                                                                                      message=e.args))
+            message = "Cannot parse retrieved ids for {names}".format(names=names)
+            LOG.error(log.get_log_exception_message(message, e))
         else:
             result = {user['name']: user['_id'] for user in users}
-            LOG.debug("API data for {names}: {data} ({url})".format(names=names, data=result, url=url))
+            LOG.debug("API data for {names}: {data} ({url})".format(names=list(names), data=result, url=url))
             return result
 
     @staticmethod
@@ -83,8 +86,8 @@ class StreamManager:
         try:
             streams = body['streams']
         except (KeyError, TypeError) as e:
-            LOG.error("Cannot retrieve stream data for {twitch_ids} ({message})".format(twitch_ids=twitch_ids,
-                                                                                        message=e.args))
+            message = "Cannot retrieve stream data"
+            LOG.error(log.get_log_exception_message(message, e))
         else:
             return {stream['channel']['_id']: stream for stream in streams}
 
@@ -199,8 +202,7 @@ class StreamManager:
                             stream.is_online = False
                             LOG.debug("{username} just went offline".format(username=stream.name))
             else:
-                LOG.warning("Cannot retrieve status for {stream_names}, the polling iteration has been skipped."
-                            .format(stream_names=[self.streams_by_id[stream_id] for stream_id in channels_by_stream_id]))
+                LOG.warning("Cannot retrieve status, the polling iteration has been skipped.")
             await asyncio.sleep(10)
 
     # COMMANDS

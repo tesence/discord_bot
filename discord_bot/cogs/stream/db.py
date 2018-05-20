@@ -5,6 +5,7 @@ from asyncpg import exceptions as db_exc
 from gino import Gino
 
 from discord_bot import cfg
+from discord_bot import log
 
 
 CONF = cfg.CONF
@@ -76,12 +77,9 @@ class DBDriver:
     async def _create(self, model, **kwargs):
         try:
             return await model.create(**kwargs)
-        except KeyError as e:
-            LOG.error("Cannot create {class_name}, invalid attribute: {attr}"
-                      .format(class_name=model.__name__, attr=e.args[0]))
-        except db_exc.UniqueViolationError as e:
-            LOG.error("Cannot create {class_name}, an entry already exist for: {kwargs}"
-                      .format(class_name=model.__name__, kwargs=kwargs))
+        except (KeyError, db_exc.UniqueViolationError) as e:
+            message = "Cannot create {class_name}".format(class_name=model.__name__)
+            LOG.error(log.get_log_exception_message(message, e))
 
     # CREATE
 

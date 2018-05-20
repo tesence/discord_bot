@@ -1,7 +1,10 @@
+import asyncio
 import logging
 import os
 
 import aiohttp
+
+from discord_bot import log
 
 
 LOG = logging.getLogger('debug')
@@ -48,8 +51,16 @@ async def request(url, headers):
                 if status_code == 200:
                     return await resp.json()
                 elif 400 < status_code < 500:
-                    LOG.error("Bad request {url} (status_code)".format(url=url, status_code=status_code))
-                elif 500 < status_code < 600:
-                    LOG.error("The request didn't succeed {url} (status_code)".format(url=url, status_code=status_code))
-    except aiohttp.client_exceptions.ClientError as e:
-        LOG.error("An error has occured while requesting the url {url}".format(url=url))
+                    LOG.error("Bad request {url} ({status_code})".format(url=url, status_code=status_code))
+                elif 500 <= status_code < 600:
+                    LOG.error("The request didn't succeed {url} ({status_code})".format(url=url, status_code=status_code))
+
+    except Exception as e:
+        message = None
+        if type(e) == aiohttp.client_exceptions.ClientError:
+            message = "An error as occured"
+        elif type(e) == asyncio.TimeoutError:
+            message = "The timeout has been reached"
+        message += " while requesting the url {url}".format(url=url)
+
+        LOG.error(log.get_log_exception_message(message, e))
