@@ -4,10 +4,23 @@ import os
 
 import aiohttp
 
+from discord_bot import cfg
 from discord_bot import log
 
+CONF = cfg.CONF
 
 LOG = logging.getLogger('debug')
+
+
+def check_is_admin(ctx):
+    return _is_admin(ctx.message.author)
+
+
+def _is_admin(user):
+    if not CONF.ADMIN_ROLES:
+        return True
+    author_roles = [role.name for role in user.roles]
+    return user.id == 133313675237916672 or set(author_roles) & set(CONF.ADMIN_ROLES)
 
 
 def get_project_dir():

@@ -11,6 +11,7 @@ class Config:
 
             # CLIENT
             self.COMMAND_PREFIX = getattr(module, "COMMAND_PREFIX", "!")
+            self.ADMIN_ROLES = getattr(module, "ADMIN_ROLES", [])
             self.DISCORD_BOT_TOKEN = getattr(module, "DISCORD_BOT_TOKEN")
 
             # TWITCH COG

@@ -285,6 +285,7 @@ class StreamManager:
         return False
 
     @stream.command()
+    @commands.check(utils.check_is_admin)
     async def add(self, ctx, stream_name):
         """ Add a stream to the tracked list
 
@@ -298,6 +299,7 @@ class StreamManager:
                                                 channel_name=channel.name))
 
     @stream.command()
+    @commands.check(utils.check_is_admin)
     async def everyone(self, ctx, stream_name):
         """ Add a stream to the tracked list (with @everyone)
 
@@ -337,6 +339,7 @@ class StreamManager:
             return True
 
     @stream.command()
+    @commands.check(utils.check_is_admin)
     async def remove(self, ctx, stream_name):
         """ Disable bot notification for a stream in a specific channel
 
