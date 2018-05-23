@@ -3,57 +3,41 @@ import importlib
 
 class Config:
 
-    def __init__(self):
-
-        self.CONF_NAME = None
-
-        # CLIENT
-        self.COMMAND_PREFIX = None
-        self.DISCORD_BOT_TOKEN = None
-
-        # TWITCH COG
-        self.TWITCH_API_URL = None
-        self.TWITCH_API_ACCEPT = None
-        self.TWITCH_API_CLIENT_ID = None
-        self.MIN_OFFLINE_DURATION = None
-
-        # SR COG
-        self.SR_API_URL = None
-        self.SR_API_KEY = None
-
-        # DATABASE
-        self.DB_HOST = None
-        self.DB_PORT = None
-        self.DB_NAME = None
-        self.DB_USER = None
-        self.DB_PASSWORD = None
-
     def load(self, filename):
+        try:
+            module = importlib.import_module("etc." + filename)
 
-        module = importlib.import_module("etc." + filename)
+            self.CONF_NAME = filename
 
-        self.CONF_NAME = filename
+            # CLIENT
+            self.COMMAND_PREFIX = getattr(module, "COMMAND_PREFIX", "!")
+            self.DISCORD_BOT_TOKEN = getattr(module, "DISCORD_BOT_TOKEN")
 
-        # CLIENT
-        self.COMMAND_PREFIX = module.COMMAND_PREFIX
-        self.DISCORD_BOT_TOKEN = module.DISCORD_BOT_TOKEN
+            # TWITCH COG
+            self.TWITCH_API_URL = getattr(module, "TWITCH_API_URL",  "https://api.twitch.tv/kraken")
+            self.TWITCH_API_ACCEPT = getattr(module, "TWITCH_API_ACCEPT", "application/vnd.twitchtv.v5+json")
+            self.TWITCH_API_CLIENT_ID = getattr(module, "TWITCH_API_CLIENT_ID")
+            self.MIN_OFFLINE_DURATION = getattr(module, "MIN_OFFLINE_DURATION", 60)
 
-        # TWITCH COG
-        self.TWITCH_API_URL = module.TWITCH_API_URL
-        self.TWITCH_API_ACCEPT = module.TWITCH_API_ACCEPT
-        self.TWITCH_API_CLIENT_ID = module.TWITCH_API_CLIENT_ID
-        self.MIN_OFFLINE_DURATION = module.MIN_OFFLINE_DURATION
+            # SR COG
+            self.SR_API_URL = getattr(module, "SR_API_URL", "https://www.speedrun.com/api/v1")
+            self.SR_API_KEY = getattr(module, "SR_API_KEY")
 
-        # SR COG
-        self.SR_API_URL = module.SR_API_URL
-        self.SR_API_KEY = module.SR_API_KEY
+            # DATABASE
+            self.DB_HOST = getattr(module, "DB_HOST")
+            self.DB_PORT = getattr(module, "DB_PORT", 5432)
+            self.DB_NAME = getattr(module, "DB_NAME")
+            self.DB_USER = getattr(module, "DB_USER")
+            self.DB_PASSWORD = getattr(module, "DB_PASSWORD")
 
-        # DATABASE
-        self.DB_HOST = module.DB_HOST
-        self.DB_PORT = module.DB_PORT
-        self.DB_NAME = module.DB_NAME
-        self.DB_USER = module.DB_USER
-        self.DB_PASSWORD = module.DB_PASSWORD
+        except Exception as e:
+            if type(e) == ImportError:
+                message = "Cannot find the configuration file 'etc/{filename}.py'".format(filename=filename)
+            elif type(e) == AttributeError:
+                message = "Missing configuration variable: {key}".format(key=e.args[0])
+            else:
+                message = "Cannot import the configuration file 'etc/{filename}.py'".format(filename=filename)
+            raise type(e)(message)
 
 
 CONF = Config()
