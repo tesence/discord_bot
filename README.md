@@ -4,6 +4,7 @@ A Discord Bot based on asynchronous programming (asyncio)
 
 - Notify twitch streams status
 - Show [speedrun.com](speedrun.com) data
+- Dab
 
 ## Create a Twitch account to get a twich token
 
@@ -54,6 +55,9 @@ MIN_OFFLINE_DURATION = 60
 # SR COG
 SR_API_URL = "https://www.speedrun.com/api/v1"
 SR_API_KEY = <speedrun.com api key>
+
+# DAB COG
+DAB_COOLDOWN = 120
 
 # DATABASE
 DB_HOST = <DB_HOST>

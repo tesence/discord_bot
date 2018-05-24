@@ -25,6 +25,9 @@ class Config:
             self.SR_API_URL = getattr(module, "SR_API_URL", "https://www.speedrun.com/api/v1")
             self.SR_API_KEY = getattr(module, "SR_API_KEY")
 
+            # DAB COG
+            self.DAB_COOLDOWN = getattr(module, "DAB_COOLDOWN", 0)
+
             # DATABASE
             self.DB_HOST = getattr(module, "DB_HOST")
             self.DB_PORT = getattr(module, "DB_PORT", 5432)
