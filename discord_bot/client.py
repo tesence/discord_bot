@@ -2,12 +2,13 @@ import logging
 
 from discord.ext import commands
 
+from discord_bot import cfg
 from discord_bot import log
 from discord_bot import utils
 
+CONF = cfg.CONF
 LOG = logging.getLogger('debug')
 
-INITIAL_EXTENSIONS = ['stream.setup', 'sr']
 WASTEBASKET_EMOJI = "\N{WASTEBASKET}"
 
 
@@ -23,7 +24,7 @@ class Bot(commands.Bot):
     def load_extensions(self):
         """Load all the extensions"""
         extension_module_name = "{project_name}.cogs".format(project_name=utils.get_project_name())
-        for extension in INITIAL_EXTENSIONS:
+        for extension in CONF.LOADED_EXTENSIONS:
             try:
                 self.load_extension(extension_module_name + "." + extension)
                 LOG.debug("The extension '{extension}' has been successfully loaded"
