@@ -32,7 +32,6 @@ def setup():
         if add_steam:
             logger.addHandler(steam_handler)
 
-    setup_logger("discord")
     setup_logger("debug", CONF.CONF_NAME, True)
 
 
