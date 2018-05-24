@@ -56,6 +56,10 @@ def bold(message):
     return "**" + str(message) + "**"
 
 
+def code_block(message):
+    return "```" + str(message) + "```"
+
+
 async def request(url, headers):
     try:
         async with aiohttp.ClientSession() as session:

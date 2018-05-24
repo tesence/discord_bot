@@ -31,5 +31,7 @@ class Bot(commands.Bot):
                 message = "Failed to load extension '{extension}'".format(extension=extension.split(".")[0])
                 LOG.error(log.get_log_exception_message(message, e))
 
-    async def say(self, channel, message):
-        await channel.send("```" + message + "```")
+    async def _send(self, channel, message, embed=None, code_block=False):
+        if code_block:
+            message = utils.code_block(message)
+        await channel.send(message, embed=embed)
