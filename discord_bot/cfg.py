@@ -37,11 +37,11 @@ class Config:
 
         except Exception as e:
             if type(e) == ImportError:
-                message = "Cannot find the configuration file 'etc/{filename}.py'".format(filename=filename)
+                message = f"Cannot find the configuration file 'etc/{filename}.py'"
             elif type(e) == AttributeError:
-                message = "Missing configuration variable: {key}".format(key=e.args[0])
+                message = f"Missing configuration variable: {e.args[0]}"
             else:
-                message = "Cannot import the configuration file 'etc/{filename}.py'".format(filename=filename)
+                message = f"Cannot import the configuration file 'etc/{filename}.py'"
             raise type(e)(message)
 
 

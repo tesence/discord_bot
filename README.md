@@ -14,19 +14,23 @@ Connect to twitch using the bot account and generate a chat token for the bot
 
 https://www.twitchtools.com/chat-token
 
-## Setup environment (Python 3.5+ required)
+## Setup environment (Python 3.6+ required)
+
+Requires 3.6 because:
+* it uses `async` and `await`, only available for Python 3.5+
+* it uses fstrings, only available for Python 3.6+
 
 ### Windows
 
 	cd <project folder>
-	virtualenv .venv
+	virtualenv -p python3.6 .venv
 	.venv/Script/pip.exe install -r requirements.txt
 
 
 ### Linux
 
 	cd <project folder>
-	virtualenv .venv
+	virtualenv -p python3.6 .venv
 	.venv/bin/pip install -r requirements.txt
 
 ## Create a database

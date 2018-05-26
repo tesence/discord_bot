@@ -37,13 +37,13 @@ class StreamManager:
         await self.db_driver.setup()
 
         streams = await self.db_driver.get_stream()
-        LOG.debug("Streams={streams}".format(streams=streams))
+        LOG.debug(f"Streams={streams}")
 
         channels = await self.db_driver.get_channel()
-        LOG.debug("Channels={channels}".format(channels=channels))
+        LOG.debug(f"Channels={channels}")
 
         channel_streams = await self.db_driver.get_channel_stream()
-        LOG.debug("ChannelStreams={channel_streams}".format(channel_streams=channel_streams))
+        LOG.debug(f"ChannelStreams={channel_streams}")
 
         self.streams_by_id = {stream.id: stream for stream in streams}
 
@@ -59,17 +59,16 @@ class StreamManager:
 
         :param names: names whose we want the id
         """
-        url = "{twitch_api_url}/users?login={names}".format(twitch_api_url=CONF.TWITCH_API_URL,
-                                                            names=",".join(names))
+        url = f"{CONF.TWITCH_API_URL}/users?login={','.join(names)}"
         try:
             body = await utils.request(url, headers=HEADERS)
             users = body['users']
         except (KeyError, TypeError) as e:
-            message = "Cannot parse retrieved ids for {names}".format(names=names)
+            message = f"Cannot parse retrieved ids for {names}"
             LOG.error(log.get_log_exception_message(message, e))
         else:
             result = {user['name']: user['_id'] for user in users}
-            LOG.debug("API data for {names}: {data} ({url})".format(names=list(names), data=result, url=url))
+            LOG.debug(f"API data for {list(names)}: {result} ({url})")
             return result
 
     @staticmethod
@@ -78,10 +77,8 @@ class StreamManager:
 
         :param twitch_ids: twitch ids whose we want the status
         """
-        url = "{twitch_api_url}/streams/?channel={twitch_ids}".format(
-            twitch_api_url=CONF.TWITCH_API_URL,
-            twitch_ids=",".join([str(twitch_id) for twitch_id in twitch_ids])
-        )
+        ids = ','.join([str(twitch_id) for twitch_id in twitch_ids])
+        url = f"{CONF.TWITCH_API_URL}/streams/?channel={ids}"
         body = await utils.request(url, headers=HEADERS)
         try:
             streams = body['streams']
@@ -108,11 +105,11 @@ class StreamManager:
         message = ""
         message = message + "@everyone " if everyone else message
 
-        message += "{display_name} is streaming!".format(display_name=display_name)
+        message += f"{display_name} is streaming!"
 
         embed = embeds.Embed()
         embed.colour = colour.Color.dark_blue()
-        embed.description = "[{}]({})".format(url, url)
+        embed.description = f"[{url}]({url})"
 
         embed.set_author(name=display_name, url=url, icon_url=TWITCH_ICON_URL)
         embed.add_field(name="Playing", value=game + (50 - len(game)) * " ** **", inline=False)
@@ -185,12 +182,8 @@ class StreamManager:
                         # If the stream was not online during the previous iteration, the stream just went online
                         if not stream.is_online:
                             await on_stream_online(stream, notified_channels, status)
-                            channels_str = [
-                                "{channel_name}#{channel_id}".format(channel_id=nc[0].id, channel_name=nc[0].name)
-                                for nc in notified_channels
-                            ]
-                            LOG.debug("{stream_name} is live and notified in the channels: {channels}"
-                                      .format(stream_name=stream.name, channels=", ".join(channels_str)))
+                            channels_str = [f"{nc[0].name}#{nc[0].id}" for nc in notified_channels]
+                            LOG.debug(f"{stream.name} is live and notified in the channels: {', '.join(channels_str)}")
                             stream.is_online = True
 
                     # If the stream is offline, but was online during the previous iteration, the stream just went
@@ -200,7 +193,7 @@ class StreamManager:
                     elif stream.is_online and stream.offline_duration > CONF.MIN_OFFLINE_DURATION:
                             await on_stream_offline(stream)
                             stream.is_online = False
-                            LOG.debug("{username} just went offline".format(username=stream.name))
+                            LOG.debug(f"{stream.name} just went offline")
             else:
                 LOG.warning("Cannot retrieve status, the polling iteration has been skipped.")
             await asyncio.sleep(10)
@@ -242,7 +235,7 @@ class StreamManager:
             embed = embeds.Embed()
             embed.set_author(name="Streams", icon_url=TWITCH_ICON_URL)
             for channel, streams in sorted(streams_by_channel.items(), key=lambda x: x[0].position):
-                stream_links = ["[{}](https://twitch.tv/{})".format(stream, stream) for stream in sorted(streams)]
+                stream_links = [f"[{stream}](https://twitch.tv/{stream})" for stream in sorted(streams)]
                 embed.add_field(name=channel.name, value=", ".join(stream_links), inline=False)
 
             await self.bot._send(ctx.message.channel, message, embed=embed)
@@ -263,25 +256,21 @@ class StreamManager:
                 stream = await self.db_driver.create_stream(id=stream_id, name=stream_name)
                 self.streams_by_id[stream_id] = stream
             else:
-                LOG.debug("The stream {stream_name}#{stream_id} has already been stored in the database"
-                          .format(stream_name=stream_name, stream_id=stream_id))
+                LOG.debug(f"The stream {stream_name}#{stream_id} has already been stored in the database")
 
             # Store the discord channel in the database if it wasn't tracked anywhere before
             if not await self.db_driver.get_channel(id=channel.id):
                 await self.db_driver.create_channel(id=channel.id, name=channel.name, guild_id=channel.guild.id,
                                                     guild_name=channel.guild.name)
             else:
-                LOG.debug("The channel {channel_name}#{channel_id} has already been stored in the database"
-                          .format(channel_name=channel.name, channel_id=channel.id))
+                LOG.debug(f"The channel {channel.name}#{channel.id} has already been stored in the database")
 
             # Create a new relation between the twitch stream and the discord channel
             await self.db_driver.create_channel_stream(channel_id=channel.id, stream_id=stream_id, everyone=everyone)
             return True
 
         else:
-            LOG.warning("{stream_name}#{stream_id} is already track in the channel {channel_name}#{channel_id}"
-                        .format(stream_name=stream_name, stream_id=stream_id, channel_name=channel.name,
-                                channel_id=channel.id))
+            LOG.warning(f"{stream_name}#{stream_id} is already track in the channel {channel.name}#{channel.id}")
         return False
 
     @stream.command()
@@ -294,9 +283,8 @@ class StreamManager:
         """
         channel = ctx.message.channel
         if await self._add_stream(channel, stream_name.lower()):
-            await self.bot._send(channel, "{name} is now tracked in '{guild_name}:{channel_name}'"
-                                .format(name=stream_name, guild_name=channel.guild.name,
-                                        channel_name=channel.name), code_block=True)
+            await self.bot._send(channel, f"{stream_name} is now tracked in '{channel.guild.name}:{channel.name}'",
+                                 code_block=True)
 
     @stream.command()
     @commands.check(utils.check_is_admin)
@@ -308,9 +296,8 @@ class StreamManager:
         """
         channel = ctx.message.channel
         if await self._add_stream(channel, stream_name.lower(), everyone=True):
-            await self.bot._send(channel, "{name} is now tracked in '{guild_name}:{channel_name}'"
-                                 .format(name=stream_name, guild_name=channel.guild.name,
-                                         channel_name=channel.name), code_block=True)
+            await self.bot._send(channel, f"{stream_name} is now tracked in '{channel.guild.name}:{channel.name}'",
+                                 code_block=True)
 
     async def _remove_stream(self, channel, stream_name):
         stream_id = int((await self._get_ids(stream_name))[stream_name])
@@ -321,20 +308,19 @@ class StreamManager:
 
             # Remove the relation between the twitch stream and the discord channel
             await channel_stream.delete()
-            LOG.debug("{stream_name} is no longer tracked in '{guild_name}:{channel_name}'"
-                      .format(stream_name=stream.name, guild_name=channel.guild.name, channel_name=channel.name))
+            LOG.debug(f"{stream.name} is no longer tracked in '{channel.guild.name}:{channel.name}'")
 
             # Remove the discord channel from the database if there no streams notified in it
             if not await self.db_driver.get_channel_stream(channel_id=channel.id):
-                LOG.debug("There is no stream tracked in the channel {channel_name}#{channel_id}, the channel is "
-                          "deleted from the database".format(channel_name=channel.name, channel_id=channel.id))
+                LOG.debug(f"There is no stream tracked in the channel {channel.name}#{channel.id}, the channel is "
+                          "deleted from the database")
                 del self.streams_by_id[stream.id]
                 await stream.delete()
 
             # Remove the twitch stream from the database of it's not notified anymore
             if not await self.db_driver.get_channel_stream(stream_id=stream_id):
-                LOG.debug("The stream {stream_name}#{stream_id} is no longer tracked in any channel, the stream is "
-                          "deleted from the database".format(stream_name=stream.name, stream_id=stream.id))
+                LOG.debug(f"The stream {stream.name}#{stream.id} is no longer tracked in any channel, the stream is "
+                          "deleted from the database")
                 await stream.delete()
             return True
 
@@ -348,9 +334,8 @@ class StreamManager:
         """
         channel = ctx.message.channel
         if await self._remove_stream(channel, stream_name.lower()):
-            await self.bot._send(channel, "{stream_name} is no longer tracked in '{guild_name}:{channel_name}'"
-                                 .format(stream_name=stream_name, guild_name=channel.guild.name,
-                                         channel_name=channel.name), code_block=True)
+            await self.bot._send(channel, f"{stream_name} is no longer tracked in '{channel.guild.name}:{channel.name}'",
+                                 code_block=True)
 
     # EVENTS
     async def on_guild_channel_delete(self, channel):
@@ -358,20 +343,18 @@ class StreamManager:
 
         :param channel: the deleted discord channel
         """
-        LOG.debug("The channel '{guild_name}:{channel_name}' has been deleted"
-                  .format(guild_name=channel.guild.name, channel_name=channel.name))
+        LOG.debug(f"The channel '{channel.guild.name}:{channel.name}' has been deleted")
 
         for channel_stream in await self.db_driver.get_channel_stream(channel_id=channel.id):
 
             stream = (await self.db_driver.get_stream(id=channel_stream.stream_id))[0]
             await channel_stream.delete()
-            LOG.debug("{stream_name} is no longer tracked in '{guild_name}:{channel_name}'"
-                      .format(stream_name=stream.name, guild_name=channel.guild.name, channel_name=channel.name))
+            LOG.debug(f"{stream.name} is no longer tracked in '{channel.guild.name}:{channel.name}'")
 
             # Remove the twitch stream from the database of it's not notified anymore
             if not await self.db_driver.get_channel_stream(stream_id=stream.id):
-                LOG.debug("The stream {stream_name}#{stream_id} is no longer tracked in any channel, the stream is "
-                          "deleted from the database".format(stream_name=stream.name, stream_id=stream.id))
+                LOG.debug(f"The stream {stream.name}#{stream.id} is no longer tracked in any channel, the stream is "
+                          "deleted from the database")
                 await stream.delete()
 
 

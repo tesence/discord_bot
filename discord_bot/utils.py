@@ -68,16 +68,16 @@ async def request(url, headers):
                 if status_code == 200:
                     return await resp.json()
                 elif 400 < status_code < 500:
-                    LOG.error("Bad request {url} ({status_code})".format(url=url, status_code=status_code))
+                    LOG.error(f"Bad request {url} ({status_code})")
                 elif 500 <= status_code < 600:
-                    LOG.error("The request didn't succeed {url} ({status_code})".format(url=url, status_code=status_code))
+                    LOG.error(f"The request didn't succeed {url} ({status_code})")
 
     except Exception as e:
         message = None
         if type(e) == aiohttp.client_exceptions.ClientError:
-            message = "An error as occured"
+            message = "An error has occured"
         elif type(e) == asyncio.TimeoutError:
             message = "The timeout has been reached"
-        message += " while requesting the url {url}".format(url=url)
+        message += f" while requesting the url {url}"
 
         LOG.error(log.get_log_exception_message(message, e))

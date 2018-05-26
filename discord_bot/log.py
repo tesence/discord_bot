@@ -36,4 +36,4 @@ def setup():
 
 
 def get_log_exception_message(message, e):
-    return message + " ({error_class}: {error_message})".format(error_class=type(e).__name__, error_message=str(e))
+    return message + f" ({type(e).__name__}: {str(e)})"

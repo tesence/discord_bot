@@ -19,7 +19,7 @@ class BaseModel:
 
     def __repr__(self):
         attrs = [k + "=" + str(v) for k, v in self.to_dict().items()]
-        return "<{class_name} {attrs}>".format(class_name=self.__class__.__name__, attrs=" ".join(attrs))
+        return f"<{self.__class__.__name__} {' '.join(attrs)}>"
 
 
 class Channel(BaseModel, db.Model):
@@ -68,9 +68,7 @@ class DBDriver:
         self.engine = None
 
     async def setup(self):
-        bind = "postgresql://{user}:{password}@{host}:{port}/{database}"\
-               .format(user=CONF.DB_USER, password=CONF.DB_PASSWORD, host=CONF.DB_HOST,
-                       port=CONF.DB_PORT, database=CONF.DB_NAME)
+        bind = f"postgresql://{CONF.DB_USER}:{CONF.DB_PASSWORD}@{CONF.DB_HOST}:{CONF.DB_PORT}/{CONF.DB_NAME}"
         await db.set_bind(bind)
         await db.gino.create_all()
 
@@ -78,7 +76,7 @@ class DBDriver:
         try:
             return await model.create(**kwargs)
         except (KeyError, db_exc.UniqueViolationError) as e:
-            message = "Cannot create {class_name}".format(class_name=model.__name__)
+            message = f"Cannot create {model.__name__}"
             LOG.error(log.get_log_exception_message(message, e))
 
     # CREATE

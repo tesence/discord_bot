@@ -16,21 +16,19 @@ class Bot(commands.Bot):
 
     # BOT EVENTS #
     async def on_ready(self):
-        LOG.debug("Bot is connected | user id: {bot_id} | username: {bot_name}"
-                  .format(bot_id=self.user.id, bot_name=self.user))
+        LOG.debug(f"Bot is connected | user id: {self.user.id} | username: {self.user}")
         self.load_extensions()
 
     # BOT ACTIONS #
     def load_extensions(self):
         """Load all the extensions"""
-        extension_module_name = "{project_name}.cogs".format(project_name=utils.get_project_name())
+        extension_module_name = f"{utils.get_project_name()}.cogs"
         for extension in CONF.LOADED_EXTENSIONS:
             try:
                 self.load_extension(extension_module_name + "." + extension)
-                LOG.debug("The extension '{extension}' has been successfully loaded"
-                          .format(extension=extension.split(".")[0]))
+                LOG.debug(f"The extension '{extension.split('.')[0]}' has been successfully loaded")
             except Exception as e:
-                message = "Failed to load extension '{extension}'".format(extension=extension.split(".")[0])
+                message = f"Failed to load extension '{extension.split('.')[0]}'"
                 LOG.error(log.get_log_exception_message(message, e))
 
     async def _send(self, channel, message, embed=None, code_block=False):
@@ -53,6 +51,5 @@ class Bot(commands.Bot):
 
         if is_bot_message and not is_bot_reaction and emoji == WASTEBASKET_EMOJI and utils._is_admin(user):
             await message.delete()
-            LOG.debug("{user} has deleted the message '{message}' from {author} (has_embeds={has_embeds})"
-                      .format(user=user.name, message=message.content, author=message.author.name,
-                              has_embeds=has_embeds))
+            LOG.debug(f"{user.name} has deleted the message '{message.content}' from {message.author.name} "
+                      f"(has_embeds={has_embeds})")

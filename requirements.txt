@@ -2,3 +2,4 @@
 
 aiocontextvars
 gino
+yarl < 1.2 # Workaround because discord.py install a wrong version
