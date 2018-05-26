@@ -44,6 +44,8 @@ Create the file ```discord_bot/etc/<configuration_file>.py``` and fill it as fol
 
 # CLIENT
 COMMAND_PREFIX = "!"
+ADMIN_ROLES = <list of roles that have admin rights>
+LOADED_EXTENSIONS = ["stream.setup", "sr", "dab"]
 DISCORD_BOT_TOKEN = <discord bot token>
 
 # TWITCH COG
