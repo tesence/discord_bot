@@ -39,11 +39,15 @@ class Bot(commands.Bot):
         message = await channel.send(message, embed=embed)
         await message.add_reaction(WASTEBASKET_EMOJI)
 
-    async def on_reaction_add(self, reaction, user):
-        message = reaction.message
-        has_embeds = bool(reaction.message.embeds)
-        author = reaction.message.author
-        emoji = reaction.emoji
+    async def on_raw_reaction_add(self, payload):
+        channel = self.get_channel(payload.channel_id)
+        user = channel.guild.get_member(payload.user_id)
+
+        message = await channel.get_message(payload.message_id)
+        emoji = payload.emoji.name
+        author = message.author
+        has_embeds = bool(message.embeds)
+
         is_bot_message = author.id == self.user.id
         is_bot_reaction = user.id == self.user.id
 
