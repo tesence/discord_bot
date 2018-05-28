@@ -304,24 +304,25 @@ class StreamManager:
         channel_streams = await self.db_driver.get_channel_stream(channel_id=channel.id, stream_id=stream_id)
         if channel_streams:
             channel_stream = channel_streams[0]
-            stream = (await self.db_driver.get_stream(id=channel_stream.stream_id))[0]
+            channel_db = (await self.db_driver.get_channel(id=channel_stream.channel_id))[0]
+            stream_db = (await self.db_driver.get_stream(id=channel_stream.stream_id))[0]
 
             # Remove the relation between the twitch stream and the discord channel
             await channel_stream.delete()
-            LOG.debug(f"{stream.name} is no longer tracked in '{channel.guild.name}:{channel.name}'")
+            LOG.debug(f"{stream_db.name} is no longer tracked in '{channel.guild.name}:{channel.name}'")
 
             # Remove the discord channel from the database if there no streams notified in it
             if not await self.db_driver.get_channel_stream(channel_id=channel.id):
                 LOG.debug(f"There is no stream tracked in the channel {channel.name}#{channel.id}, the channel is "
                           "deleted from the database")
-                del self.streams_by_id[stream.id]
-                await stream.delete()
+                await channel_db.delete()
 
             # Remove the twitch stream from the database of it's not notified anymore
             if not await self.db_driver.get_channel_stream(stream_id=stream_id):
-                LOG.debug(f"The stream {stream.name}#{stream.id} is no longer tracked in any channel, the stream is "
-                          "deleted from the database")
-                await stream.delete()
+                LOG.debug(f"The stream {stream_db.name}#{stream_db.id} is no longer tracked in any channel, the stream "
+                          "is deleted from the database")
+                del self.streams_by_id[stream_db.id]
+                await stream_db.delete()
             return True
 
     @stream.command()
