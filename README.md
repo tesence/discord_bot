@@ -3,7 +3,6 @@
 A Discord Bot based on asynchronous programming (asyncio)
 
 - Notify twitch streams status
-- Show [speedrun.com](speedrun.com) data
 - Dab
 
 ## Create a Twitch account to get a twich token
@@ -49,7 +48,7 @@ Create the file ```discord_bot/etc/<configuration_file>.py``` and fill it as fol
 # CLIENT
 COMMAND_PREFIX = "!"
 ADMIN_ROLES = <list of roles that have admin rights>
-LOADED_EXTENSIONS = ["stream.setup", "sr", "dab"]
+LOADED_EXTENSIONS = ["stream.setup" "dab"]
 DISCORD_BOT_TOKEN = <discord bot token>
 
 # TWITCH COG
@@ -57,10 +56,6 @@ TWITCH_API_URL = "https://api.twitch.tv/kraken"
 TWITCH_API_ACCEPT = "application/vnd.twitchtv.v5+json"
 TWITCH_API_CLIENT_ID = <twitch client id>
 MIN_OFFLINE_DURATION = 60
-
-# SR COG
-SR_API_URL = "https://www.speedrun.com/api/v1"
-SR_API_KEY = <speedrun.com api key>
 
 # DAB COG
 DAB_COOLDOWN = 120
@@ -152,33 +147,3 @@ If the bot requests the first server, it will find that the stream just went off
 
 To avoid that, the bot will look at the date when the stream went offline.
 If the API still returns that the stream is offline during the X next seconds, the bot tags it as offline. Otherwise it considers that the stream didn't really go offline.
-
-### speedrun.com (in progress)
-
-The speedrun.com allows to retrieve information from [speedrun.com](speedrun.com)
-
-It can either be used to
-
-- Find a speedrun user profile
-- Find the records for a game
-
-The bot will send an embed message including of the profile/records
-
-#### Commands
-
-	Find a speedrun user profile. You can filter on the game to only show the user personal bests for this game.
-	The commands shows every game by default.
-	!sr <username> <game=None>
-
-	Find the records for a game
-	!wr <game>
-
-	In both case, the game must not be a name but abbreviation because of unicity matters.
-
-#### How does it work ?
-
-In both cases, the API returns a list of runs. For each run, the bot will request each game and each category in which the user has a record (Every resquest is made independently thanks to asynchronous programming behaviour).
-
-In order to avoid redundant requests on games and categories. Everytime a new information is resquested and stored in cache. If the same information is requests again later it will return the cache data in priority and won't request the speedrun.com API.
-
-The bot will them build an embed message summarizing these information and send it in the channel in which the command has been called.

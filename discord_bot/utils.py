@@ -31,31 +31,6 @@ def get_project_name():
     return os.path.basename(os.path.dirname(__file__))
 
 
-def ordinal(num):
-    num = int(num)
-    SUFFIXES = {1: 'st', 2: 'nd', 3: 'rd'}
-    if 10 <= num % 100 <= 20:
-        suffix = 'th'
-    else:
-        # the second parameter is a default.
-        suffix = SUFFIXES.get(num % 10, 'th')
-    return str(num) + suffix
-
-
-def convert_time(seconds):
-    m, s = divmod(seconds, 60)
-    h, m = divmod(m, 60)
-    return "%d:%02d:%02d" % (h, m, s)
-
-
-def underline(message):
-    return "__" + str(message) + "__"
-
-
-def bold(message):
-    return "**" + str(message) + "**"
-
-
 def code_block(message):
     return "```" + str(message) + "```"
 

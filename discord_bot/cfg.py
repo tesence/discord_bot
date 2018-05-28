@@ -21,10 +21,6 @@ class Config:
             self.TWITCH_API_CLIENT_ID = getattr(module, "TWITCH_API_CLIENT_ID")
             self.MIN_OFFLINE_DURATION = getattr(module, "MIN_OFFLINE_DURATION", 60)
 
-            # SR COG
-            self.SR_API_URL = getattr(module, "SR_API_URL", "https://www.speedrun.com/api/v1")
-            self.SR_API_KEY = getattr(module, "SR_API_KEY")
-
             # DAB COG
             self.DAB_COOLDOWN = getattr(module, "DAB_COOLDOWN", 0)
 
