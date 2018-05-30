@@ -9,15 +9,14 @@ from discord_bot import cfg
 from discord_bot import log
 from discord_bot import utils
 
+from discord_bot.api import twitch as api
+
 from discord_bot.cogs.stream import db
+
 
 CONF = cfg.CONF
 LOG = logging.getLogger('debug')
 
-HEADERS = {
-    "Client-ID": CONF.TWITCH_API_CLIENT_ID,
-    "accept": CONF.TWITCH_API_ACCEPT
-}
 
 TWITCH_ICON_URL = "https://www.shareicon.net/download/2015/09/08/98061_twitch_512x512.png"
 CLOCK_ICON_URL = "https://cdn2.iconfinder.com/data/icons/metro-uinvert-dock/256/Clock.png"
@@ -52,41 +51,6 @@ class StreamManager:
         except asyncio.TimeoutError as e:
             message = "The polling unexpectedly stopped"
             LOG.exception(log.get_log_exception_message(message, e))
-
-    @staticmethod
-    async def _get_ids(*names):
-        """Retrieve all user ids.
-
-        :param names: names whose we want the id
-        """
-        url = f"{CONF.TWITCH_API_URL}/users?login={','.join(names)}"
-        try:
-            body = await utils.request(url, headers=HEADERS)
-            users = body['users']
-        except (KeyError, TypeError) as e:
-            message = f"Cannot parse retrieved ids for {names}"
-            LOG.error(log.get_log_exception_message(message, e))
-        else:
-            result = {user['name']: user['_id'] for user in users}
-            LOG.debug(f"API data for {list(names)}: {result} ({url})")
-            return result
-
-    @staticmethod
-    async def _get_status(*twitch_ids):
-        """Retrieve all stream status.
-
-        :param twitch_ids: twitch ids whose we want the status
-        """
-        ids = ','.join([str(twitch_id) for twitch_id in twitch_ids])
-        url = f"{CONF.TWITCH_API_URL}/streams/?channel={ids}"
-        body = await utils.request(url, headers=HEADERS)
-        try:
-            streams = body['streams']
-        except (KeyError, TypeError) as e:
-            message = "Cannot retrieve stream data"
-            LOG.error(log.get_log_exception_message(message, e))
-        else:
-            return {stream['channel']['_id']: stream for stream in streams}
 
     @staticmethod
     def _get_notification(status, everyone=False):
@@ -161,7 +125,7 @@ class StreamManager:
                 channels_by_stream_id[cs.stream_id].append((channel, cs.everyone))
 
             # Get the status of all tracked streams
-            status = await self._get_status(*[stream_id for stream_id in self.streams_by_id])
+            status = await api.get_status(*[stream_id for stream_id in self.streams_by_id])
 
             # Check the response:
             # - If a stream is online, status is a dictionary {"stream_id" : <stream data dict>, ...}
@@ -248,7 +212,7 @@ class StreamManager:
         :param everyone: If True, add the tag @everyone to the bot notification
         """
         stream_name = stream_name.lower()
-        stream_id = int((await self._get_ids(stream_name))[stream_name])
+        stream_id = int((await api.get_ids(stream_name))[stream_name])
         if not await self.db_driver.get_channel_stream(channel_id=channel.id, stream_id=stream_id):
 
             # Store the twitch stream in the database if it wasn't tracked anywhere before
@@ -300,7 +264,7 @@ class StreamManager:
                                  code_block=True)
 
     async def _remove_stream(self, channel, stream_name):
-        stream_id = int((await self._get_ids(stream_name))[stream_name])
+        stream_id = int((await api.get_ids(stream_name))[stream_name])
         channel_streams = await self.db_driver.get_channel_stream(channel_id=channel.id, stream_id=stream_id)
         if channel_streams:
             channel_stream = channel_streams[0]
