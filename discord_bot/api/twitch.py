@@ -47,3 +47,4 @@ async def get_status(*twitch_ids):
         LOG.error(log.get_log_exception_message(message, e))
     else:
         return {stream['channel']['_id']: stream for stream in streams}
+

@@ -3,7 +3,6 @@ import collections
 import logging
 
 from discord.ext import commands
-from discord import colour, embeds
 
 from discord_bot import cfg
 from discord_bot import log
@@ -12,14 +11,10 @@ from discord_bot import utils
 from discord_bot.api import twitch as api
 
 from discord_bot.cogs.stream import db
-
+from discord_bot.cogs.stream import embeds
 
 CONF = cfg.CONF
 LOG = logging.getLogger('debug')
-
-
-TWITCH_ICON_URL = "https://www.shareicon.net/download/2015/09/08/98061_twitch_512x512.png"
-CLOCK_ICON_URL = "https://cdn2.iconfinder.com/data/icons/metro-uinvert-dock/256/Clock.png"
 
 
 class StreamManager:
@@ -52,39 +47,6 @@ class StreamManager:
             message = "The polling unexpectedly stopped"
             LOG.exception(log.get_log_exception_message(message, e))
 
-    @staticmethod
-    def _get_notification(status, everyone=False):
-        """Send a message in discord chat to notify that a stream went online.
-
-        :param status: status object
-        :param everyone: True if the stream is notified with @everyone, False otherwise
-        """
-
-        display_name = status['channel']['display_name']
-        game = status['game']
-        title = status['channel']['status']
-        logo_url = status['channel']['logo']
-        url = status['channel']['url']
-
-        message = ""
-        message = message + "@everyone " if everyone else message
-
-        message += f"{display_name} is streaming!"
-
-        embed = embeds.Embed()
-        embed.colour = colour.Color.dark_blue()
-        embed.description = f"[{url}]({url})"
-
-        embed.set_author(name=display_name, url=url, icon_url=TWITCH_ICON_URL)
-        embed.add_field(name="Playing", value=game + (50 - len(game)) * " ** **", inline=False)
-        embed.add_field(name="Stream Title", value=title, inline=False)
-        embed.set_footer(text="Stream live time", icon_url=CLOCK_ICON_URL)
-
-        if logo_url:
-            embed.set_thumbnail(url=logo_url)
-
-        return message, embed
-
     async def poll_streams(self):
         """Poll twitch every X seconds."""
 
@@ -98,18 +60,16 @@ class StreamManager:
             :param status: the API data for the stream going line
             """
             # Send the notifications in every discord channel the stream has been tracked
-            for notified_channel in notified_channels:
-                channel = notified_channel[0]
-                everyone = notified_channel[1]
-                message, embed = self._get_notification(status[stream.id], everyone)
+            for channel, everyone in notified_channels:
+                message, embed = embeds.get_notification(status, everyone)
                 await self.bot.send(channel, message, embed=embed)
 
-        async def on_stream_offline(stream):
+        async def on_stream_offline(stream, notified_channels):
             """Method called if the twitch stream is going offline.
 
             :param stream: The stream going offline
+            :param notified_channels: The discord channels in which the stream is tracked
             """
-            pass
 
         while True:
 
@@ -145,7 +105,7 @@ class StreamManager:
 
                         # If the stream was not online during the previous iteration, the stream just went online
                         if not stream.is_online:
-                            await on_stream_online(stream, notified_channels, status)
+                            await on_stream_online(stream, notified_channels, status[stream.id])
                             channels_str = [f"{nc[0].name}#{nc[0].id}" for nc in notified_channels]
                             LOG.debug(f"{stream.name} is live and notified in the channels: {', '.join(channels_str)}")
                             stream.is_online = True
@@ -155,7 +115,7 @@ class StreamManager:
                     # To avoid spam if a stream keeps going online/offline because of Twitch or bad connections,
                     # we consider a stream as offline if it was offline for at least MIN_OFFLINE_DURATION
                     elif stream.is_online and stream.offline_duration > CONF.MIN_OFFLINE_DURATION:
-                            await on_stream_offline(stream)
+                            await on_stream_offline(stream, notified_channels)
                             stream.is_online = False
                             LOG.debug(f"{stream.name} just went offline")
             else:
@@ -196,11 +156,7 @@ class StreamManager:
             # - The discord channels are sorted in the same order as on the server
             # - The stream names are sorted in alphabetical order
             message = "Tracked channels"
-            embed = embeds.Embed()
-            embed.set_author(name="Streams", icon_url=TWITCH_ICON_URL)
-            for channel, streams in sorted(streams_by_channel.items(), key=lambda x: x[0].position):
-                stream_links = [f"[{stream}](https://twitch.tv/{stream})" for stream in sorted(streams)]
-                embed.add_field(name=channel.name, value=", ".join(stream_links), inline=False)
+            embed = embeds.get_stream_list_embed(streams_by_channel)
 
             await self.bot.send(ctx.message.channel, message, embed=embed)
 
