@@ -48,11 +48,10 @@ async def request(url, headers):
                     LOG.error(f"The request didn't succeed {url} ({status_code})")
 
     except Exception as e:
-        message = None
-        if type(e) == aiohttp.client_exceptions.ClientError:
-            message = "An error has occured"
-        elif type(e) == asyncio.TimeoutError:
+        if type(e) == asyncio.TimeoutError:
             message = "The timeout has been reached"
+        else:
+            message = "An error has occured"
         message += f" while requesting the url {url}"
 
         LOG.error(log.get_log_exception_message(message, e))
