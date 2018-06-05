@@ -102,7 +102,7 @@ class StreamManager:
                 channel = notified_channel[0]
                 everyone = notified_channel[1]
                 message, embed = self._get_notification(status[stream.id], everyone)
-                await self.bot._send(channel, message, embed=embed)
+                await self.bot.send(channel, message, embed=embed)
 
         async def on_stream_offline(stream):
             """Method called if the twitch stream is going offline.
@@ -202,7 +202,7 @@ class StreamManager:
                 stream_links = [f"[{stream}](https://twitch.tv/{stream})" for stream in sorted(streams)]
                 embed.add_field(name=channel.name, value=", ".join(stream_links), inline=False)
 
-            await self.bot._send(ctx.message.channel, message, embed=embed)
+            await self.bot.send(ctx.message.channel, message, embed=embed)
 
     async def _add_stream(self, channel, stream_name, everyone=False):
         """ Add a stream in a discord channel tracklist
@@ -247,8 +247,8 @@ class StreamManager:
         """
         channel = ctx.message.channel
         if await self._add_stream(channel, stream_name.lower()):
-            await self.bot._send(channel, f"{stream_name} is now tracked in '{channel.guild.name}:{channel.name}'",
-                                 code_block=True)
+            await self.bot.send(channel, f"{stream_name} is now tracked in '{channel.guild.name}:{channel.name}'",
+                                code_block=True)
 
     @stream.command()
     @commands.check(utils.check_is_admin)
@@ -260,8 +260,8 @@ class StreamManager:
         """
         channel = ctx.message.channel
         if await self._add_stream(channel, stream_name.lower(), everyone=True):
-            await self.bot._send(channel, f"{stream_name} is now tracked in '{channel.guild.name}:{channel.name}'",
-                                 code_block=True)
+            await self.bot.send(channel, f"{stream_name} is now tracked in '{channel.guild.name}:{channel.name}'",
+                                code_block=True)
 
     async def _remove_stream(self, channel, stream_name):
         stream_id = int((await api.get_ids(stream_name))[stream_name])
@@ -299,8 +299,8 @@ class StreamManager:
         """
         channel = ctx.message.channel
         if await self._remove_stream(channel, stream_name.lower()):
-            await self.bot._send(channel, f"{stream_name} is no longer tracked in '{channel.guild.name}:{channel.name}'",
-                                 code_block=True)
+            await self.bot.send(channel, f"{stream_name} is no longer tracked in '{channel.guild.name}:{channel.name}'",
+                                code_block=True)
 
     # EVENTS
     async def on_guild_channel_delete(self, channel):

@@ -31,11 +31,12 @@ class Bot(commands.Bot):
                 message = f"Failed to load extension '{extension.split('.')[0]}'"
                 LOG.error(log.get_log_exception_message(message, e))
 
-    async def _send(self, channel, message, embed=None, code_block=False):
+    async def send(self, channel, message, embed=None, code_block=False):
         if code_block:
             message = utils.code_block(message)
         message = await channel.send(message, embed=embed)
         await message.add_reaction(WASTEBASKET_EMOJI)
+        return message
 
     async def on_raw_reaction_add(self, payload):
         channel = self.get_channel(payload.channel_id)
