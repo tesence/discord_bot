@@ -20,6 +20,14 @@ class Bot(commands.Bot):
         self.load_extensions()
 
     # BOT ACTIONS #
+
+    async def start(self, *args, **kwargs):
+        try:
+            await super(Bot, self).start(*args, **kwargs)
+        except ConnectionError as e:
+            message = "Cannot connect to the websocket"
+            LOG.error(log.get_log_exception_message(message, e))
+
     def load_extensions(self):
         """Load all the extensions"""
         extension_module_name = f"{utils.get_project_name()}.cogs"

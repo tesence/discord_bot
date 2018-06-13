@@ -16,9 +16,7 @@ def main():
     bot = client.Bot(command_prefix=CONF.COMMAND_PREFIX)
 
     loop = asyncio.get_event_loop()
-    asyncio.ensure_future(coro_or_future=bot.start(CONF.DISCORD_BOT_TOKEN),
-                          loop=loop)
-    loop.run_forever()
+    loop.run_until_complete(bot.start(CONF.DISCORD_BOT_TOKEN))
 
 
 if __name__ == "__main__":
