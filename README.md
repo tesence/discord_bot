@@ -4,6 +4,7 @@ A Discord Bot based on asynchronous programming (asyncio)
 
 - Notify twitch streams status
 - Dab
+- Ori and the Blind Forest Randomizer seed generation
 
 ## Create a Twitch account to get a twich token
 
@@ -147,3 +148,32 @@ If the bot requests the first server, it will find that the stream just went off
 
 To avoid that, the bot will look at the date when the stream went offline.
 If the API still returns that the stream is offline during the X next seconds, the bot tags it as offline. Otherwise it considers that the stream didn't really go offline.
+
+### Ori and the Blind Forest seed generation
+
+The seed generation allows you to generate a customized seed for the Ori and the Blind Forest Randomizer,
+originally made by Sigmasin https://github.com/sigmasin/OriDERandomizer
+
+The bot uploads the `randomizer.dat` and the `spoiler.txt` in the channel where the command is used
+
+
+#### Commands
+
+	!seed <logic> <mode> [additional_flags...]
+
+    Valid logics: casual, standard, expert, master, hard, ohko, 0xp, glitched
+    Valid modes: shards, limitkeys, clues
+    Valid flags: easy-path, normal-path, hard-path, normal, speed, dbash, extended, extended-damage, lure,
+                 speed-lure, lure-hard, dboost, dboost-light, dboost-hard, cdash, cdash-farming, extreme,
+                 timed-level, glitched
+
+#### How does it work ?
+
+  The bot requests the seed generator made by Eiko https://github.com/turntekGodhead/ori_coop_server using
+  the parameters of the command. Then, it extracts the seed and the spoiler download link and download the actual files.
+
+  Once the files are successfully downloaded, they are uploaded in the channel where the command has been called.
+
+  Since the randomizer expects the seed file to have the name `randomizer.dat` to work, the bot creates a temporary
+  subfolder in which it downloads both files to avoid any name conflict. This subfolder is deleted as soon as the
+  files are sent in Discord.

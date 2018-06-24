@@ -1,5 +1,6 @@
 -e git+https://github.com/Rapptz/discord.py@rewrite#egg=discord.py[voice]
 
+aiofiles
 aiocontextvars
 gino
 yarl < 1.2 # Workaround because discord.py install a wrong version
