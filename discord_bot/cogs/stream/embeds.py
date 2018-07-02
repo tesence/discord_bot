@@ -35,7 +35,7 @@ def _get_stream_notification(status):
 
     type = "Stream"
     color = colour.Color.dark_purple()
-    embed = _get_notification_embed(status, type, color)
+    embed = _get_notification_embed(status, type, color, image=False)
     return message, embed
 
 
@@ -43,7 +43,7 @@ def _get_vodcast_notification(status):
     message = f"{status['channel']['display_name']} started a vodcast!"
 
     color = colour.Color.red()
-    embed = _get_notification_embed(status, type, color)
+    embed = _get_notification_embed(status, type, color, image=False)
     return message, embed
 
 
