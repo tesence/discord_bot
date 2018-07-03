@@ -33,21 +33,23 @@ def get_notification(status, everyone=False):
 def _get_stream_notification(status):
     message = f"{status['channel']['display_name']} is streaming!"
 
-    type = "Stream"
+    broadcast_type = "Stream"
     color = colour.Color.dark_purple()
-    embed = _get_notification_embed(status, type, color, image=False)
+    embed = _get_notification_embed(status, broadcast_type, color, image=False)
     return message, embed
 
 
 def _get_vodcast_notification(status):
     message = f"{status['channel']['display_name']} started a vodcast!"
 
+    broadcast_type = "Vodcast"
     color = colour.Color.red()
-    embed = _get_notification_embed(status, type, color, image=False)
+    embed = _get_notification_embed(status, broadcast_type, color, image=False)
     return message, embed
 
 
-def _get_notification_embed(data, type, color, *fields, url=None, image=True):
+def _get_notification_embed(data, broadcast_type, color, *fields, url=None,
+                            image=True):
     """Get a live notification
 
     :param type: stream type
@@ -72,7 +74,7 @@ def _get_notification_embed(data, type, color, *fields, url=None, image=True):
 
     embed.add_field(name="Title", value=title, inline=False)
     embed.add_field(name="Game", value=game, inline=False)
-    embed.add_field(name="Type", value=type)
+    embed.add_field(name="Type", value=broadcast_type)
 
     for field in fields:
         embed.add_field(**field)
