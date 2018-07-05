@@ -14,10 +14,10 @@ LOG = logging.getLogger('debug')
 
 
 def check_is_admin(ctx):
-    return _is_admin(ctx.message.author)
+    return is_admin(ctx.author)
 
 
-def _is_admin(user):
+def is_admin(user):
     if not CONF.ADMIN_ROLES:
         return True
     author_roles = [role.name for role in user.roles]

@@ -66,11 +66,13 @@ class DBDriver:
 
     def __init__(self):
         self.engine = None
+        self.ready = False
 
     async def setup(self):
         bind = f"postgresql://{CONF.DB_USER}:{CONF.DB_PASSWORD}@{CONF.DB_HOST}:{CONF.DB_PORT}/{CONF.DB_NAME}"
         await db.set_bind(bind)
         await db.gino.create_all()
+        self.ready = True
 
     async def _create(self, model, **kwargs):
         try:

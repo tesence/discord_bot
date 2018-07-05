@@ -1,3 +1,4 @@
+import asyncio
 import concurrent.futures
 import logging
 import os
@@ -177,7 +178,7 @@ class OriRandoCommands:
             if invalid_flags:
                 raise InvalidFlagError(*invalid_flags)
 
-            download_message = await ctx.send("Downloading the seed...")
+            download_message = await self.bot.send(ctx.channel, "Downloading the seed...")
             try:
                 self.generating_seed = True
 
@@ -193,13 +194,17 @@ class OriRandoCommands:
                 self.bot.loop.run_in_executor(executor, os.makedirs, str(seed))
 
                 # Download the files
-                await utils.download_file(seed_link, seed_filepath)
-                await utils.download_file(spoiler_link, spoiler_filepath)
+                files_download_futures = [
+                    utils.download_file(seed_link, seed_filepath),
+                    utils.download_file(spoiler_link, spoiler_filepath)
+                ]
+                await asyncio.gather(*files_download_futures, loop=self.bot.loop)
 
                 # Send the files in the chat
-                await download_message.delete()
+                asyncio.ensure_future(download_message.delete(), loop=self.bot.loop)
                 seed_header = await self._get_flags(seed_filepath)
-                await ctx.send(content=seed_header, files=[discord.File(seed_filepath), discord.File(spoiler_filepath)])
+                await self.bot.send(ctx.channel, seed_header, reaction=True,
+                                    files=[discord.File(seed_filepath), discord.File(spoiler_filepath)])
 
                 # Delete everything once it's sent
                 self.bot.loop.run_in_executor(executor, os.remove, seed_filepath)

@@ -19,10 +19,10 @@ class Bot(commands.Bot):
     def __init__(self, *args, **kwargs):
         super(Bot, self).__init__(*args, **kwargs)
         self.handled_exceptions = []
+        self.load_extensions()
 
     async def on_ready(self):
-        LOG.debug(f"Bot is connected | user id: {self.user.id} | username: {self.user}")
-        self.load_extensions()
+        LOG.debug(f"Bot is connected | user id: {self.user.id} | username: {self.user.name}")
 
     async def on_command_error(self, ctx, error):
         """The event triggered when an error is raised while invoking a command.
@@ -50,15 +50,15 @@ class Bot(commands.Bot):
         message = await channel.get_message(payload.message_id)
         emoji = payload.emoji.name
         author = message.author
-        has_embeds = bool(message.embeds)
+        embeds = len(message.embeds)
 
         is_bot_message = author.id == self.user.id
         is_bot_reaction = user.id == self.user.id
 
-        if is_bot_message and not is_bot_reaction and emoji == WASTEBASKET_EMOJI and utils._is_admin(user):
+        if is_bot_message and not is_bot_reaction and emoji == WASTEBASKET_EMOJI and utils.is_admin(user):
             await message.delete()
             LOG.debug(f"{user.name} has deleted the message '{message.content}' from {message.author.name} "
-                      f"(has_embeds={has_embeds})")
+                      f"(embeds={embeds})")
 
     async def start(self, *args, **kwargs):
         try:
@@ -76,11 +76,12 @@ class Bot(commands.Bot):
                 LOG.debug(f"The extension '{extension.split('.')[0]}' has been successfully loaded")
             except Exception as e:
                 message = f"Failed to load extension '{extension.split('.')[0]}'"
-                LOG.error(log.get_log_exception_message(message, e))
+                LOG.exception(log.get_log_exception_message(message, e))
 
-    async def send(self, channel, message, embed=None, code_block=False):
+    async def send(self, channel, content, reaction=False, code_block=False, **kwargs):
         if code_block:
-            message = utils.code_block(message)
-        message = await channel.send(message, embed=embed)
-        await message.add_reaction(WASTEBASKET_EMOJI)
+            content = utils.code_block(content)
+        message = await channel.send(content=content, **kwargs)
+        if reaction:
+            await message.add_reaction(WASTEBASKET_EMOJI)
         return message

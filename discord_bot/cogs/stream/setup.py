@@ -25,8 +25,9 @@ class StreamManager:
         self.db_driver = db.DBDriver()
         self.streams_by_id = {}
 
-    async def start(self):
-        """Initialization."""
+        asyncio.ensure_future(self.load_database_data(), loop=self.bot.loop)
+
+    async def load_database_data(self):
 
         await self.db_driver.setup()
 
@@ -41,8 +42,15 @@ class StreamManager:
 
         self.streams_by_id = {stream.id: stream for stream in streams}
 
+    async def on_ready(self):
+
+        # Ensure that the database driver is ready before starting the polling
+        while not self.db_driver.ready:
+            LOG.debug("Waiting for the database driver to be ready")
+            await asyncio.sleep(1)
+
         try:
-            await self.poll_streams()
+            asyncio.ensure_future(self.poll_streams(), loop=self.bot.loop)
         except asyncio.TimeoutError as e:
             message = "The polling unexpectedly stopped"
             LOG.exception(log.get_log_exception_message(message, e))
@@ -62,7 +70,7 @@ class StreamManager:
             # Send the notifications in every discord channel the stream has been tracked
             for channel, everyone in notified_channels:
                 message, embed = embeds.get_notification(status, everyone)
-                await self.bot.send(channel, message, embed=embed)
+                await self.bot.send(channel, message, embed=embed, reaction=True)
 
         async def on_stream_offline(stream, notified_channels):
             """Method called if the twitch stream is going offline.
@@ -158,7 +166,7 @@ class StreamManager:
             message = "Tracked channels"
             embed = embeds.get_stream_list_embed(streams_by_channel)
 
-            await self.bot.send(ctx.message.channel, message, embed=embed)
+            await self.bot.send(ctx.channel, message, embed=embed, reaction=True)
 
     async def _add_stream(self, channel, stream_name, everyone=False):
         """ Add a stream in a discord channel tracklist
@@ -201,7 +209,7 @@ class StreamManager:
         :param ctx: command context
         :param stream_name: The stream to notify
         """
-        channel = ctx.message.channel
+        channel = ctx.channel
         if await self._add_stream(channel, stream_name.lower()):
             await self.bot.send(channel, f"{stream_name} is now tracked in '{channel.guild.name}:{channel.name}'",
                                 code_block=True)
@@ -214,9 +222,9 @@ class StreamManager:
         :param ctx: command context
         :param stream_name: The stream to notify
         """
-        channel = ctx.message.channel
-        if await self._add_stream(channel, stream_name.lower(), everyone=True):
-            await self.bot.send(channel, f"{stream_name} is now tracked in '{channel.guild.name}:{channel.name}'",
+        channel = ctx.channel
+        if await self._add_stream(ctx.channel, stream_name.lower(), everyone=True):
+            await self.bot.send(ctx.channel, f"{stream_name} is now tracked in '{channel.guild.name}:{channel.name}'",
                                 code_block=True)
 
     async def _remove_stream(self, channel, stream_name):
@@ -253,7 +261,7 @@ class StreamManager:
         :param ctx: command context
         :param stream_name: The stream to notify
         """
-        channel = ctx.message.channel
+        channel = ctx.channel
         if await self._remove_stream(channel, stream_name.lower()):
             await self.bot.send(channel, f"{stream_name} is no longer tracked in '{channel.guild.name}:{channel.name}'",
                                 code_block=True)
@@ -280,8 +288,4 @@ class StreamManager:
 
 
 def setup(bot):
-    stream_manager = StreamManager(bot)
-    bot.add_cog(stream_manager)
-
-    loop = asyncio.get_event_loop()
-    asyncio.ensure_future(stream_manager.start(), loop=loop)
+    bot.add_cog(StreamManager(bot))

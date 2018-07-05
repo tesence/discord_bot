@@ -1,7 +1,5 @@
 from discord import colour, embeds
 
-from discord_bot import utils
-
 TWITCH_ICON_URL = "https://www.shareicon.net/download/2015/09/08/98061_twitch_512x512.png"
 CLOCK_ICON_URL = "https://cdn2.iconfinder.com/data/icons/metro-uinvert-dock/256/Clock.png"
 

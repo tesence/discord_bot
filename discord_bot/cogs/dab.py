@@ -24,7 +24,7 @@ class DabCommands:
             await ctx.invoke(self.bot.get_command('help'), "dab")
         elif "@here" not in dabbed and "@everyone" not in dabbed:
             times = random.randint(0, 100)
-            author_name = ctx.message.author.nick or ctx.message.author.name
+            author_name = ctx.author.nick or ctx.author.name
             answer = f"{author_name} dabs on {dabbed} {times} times!"
             LOG.debug(answer)
             await ctx.message.channel.send(answer)
