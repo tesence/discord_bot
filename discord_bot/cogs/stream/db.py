@@ -50,6 +50,7 @@ class Stream(BaseModel, db.Model):
         super(Stream, self).__init__(**kwargs)
         self.is_online = False
         self.last_offline_date = None
+        self.notifications = []
 
 
 class ChannelStream(BaseModel, db.Model):

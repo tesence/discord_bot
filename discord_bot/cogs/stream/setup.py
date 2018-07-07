@@ -70,7 +70,8 @@ class StreamManager:
             # Send the notifications in every discord channel the stream has been tracked
             for channel, everyone in notified_channels:
                 message, embed = embeds.get_notification(status, everyone)
-                await self.bot.send(channel, message, embed=embed, reaction=True)
+                notification = await self.bot.send(channel, message, embed=embed, reaction=True)
+                stream.notifications.append(notification)
 
         async def on_stream_offline(stream, notified_channels):
             """Method called if the twitch stream is going offline.
@@ -78,6 +79,11 @@ class StreamManager:
             :param stream: The stream going offline
             :param notified_channels: The discord channels in which the stream is tracked
             """
+            for notification in stream.notifications:
+                embed = notification.embeds[0]
+                offline_embed = embeds.get_offline_embed(embed)
+                await notification.edit(content="", embed=offline_embed)
+                stream.notifications.remove(notification)
 
         while True:
 

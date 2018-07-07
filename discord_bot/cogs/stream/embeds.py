@@ -28,6 +28,11 @@ def get_notification(status, everyone=False):
     return message, embed
 
 
+def get_offline_embed(embed):
+    embed.colour = colour.Color.lighter_grey()
+    return embed
+
+
 def _get_stream_notification(status):
     message = f"{status['channel']['display_name']} is streaming!"
 
