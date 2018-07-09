@@ -1,7 +1,6 @@
 from discord import colour, embeds
 
 TWITCH_ICON_URL = "https://www.shareicon.net/download/2015/09/08/98061_twitch_512x512.png"
-CLOCK_ICON_URL = "https://cdn2.iconfinder.com/data/icons/metro-uinvert-dock/256/Clock.png"
 
 
 def get_field(embed, field_name):
@@ -81,8 +80,6 @@ def _get_notification_embed(data, broadcast_type, color, *fields, url=None,
 
     for field in fields:
         embed.add_field(**field)
-
-    embed.set_footer(text="Stream live time", icon_url=CLOCK_ICON_URL)
 
     if image and image_url:
         embed.set_image(url=image_url)
