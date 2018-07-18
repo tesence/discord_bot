@@ -2,6 +2,7 @@ import asyncio
 import collections
 import logging
 
+from discord import errors
 from discord.ext import commands
 
 from discord_bot import cfg
@@ -51,7 +52,7 @@ class StreamManager:
 
         try:
             asyncio.ensure_future(self.poll_streams(), loop=self.bot.loop)
-        except asyncio.TimeoutError as e:
+        except Exception as e:
             message = "The polling unexpectedly stopped"
             LOG.exception(log.get_log_exception_message(message, e))
 
@@ -82,8 +83,14 @@ class StreamManager:
             for notification in stream.notifications:
                 embed = notification.embeds[0]
                 offline_embed = embeds.get_offline_embed(embed)
-                await notification.edit(content="", embed=offline_embed)
-                stream.notifications.remove(notification)
+                try:
+                    await notification.edit(content="", embed=offline_embed)
+                    stream.notifications.remove(notification)
+                    LOG.debug(f"The notification for {stream.name} sent at {notification.created_at} has been edited at"
+                              f" {notification.edited_at}")
+                except errors.NotFound:
+                    LOG.warning(f"The notification for {stream.name} sent at {notification.created_at} does not exist "
+                                f"or has already been deleted")
 
         while True:
 
