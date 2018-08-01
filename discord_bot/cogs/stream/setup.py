@@ -9,7 +9,7 @@ from discord_bot import cfg
 from discord_bot import log
 from discord_bot import utils
 
-from discord_bot.api import twitch as api
+from discord_bot.api import twitch
 
 from discord_bot.cogs.stream import db
 from discord_bot.cogs.stream import embeds
@@ -23,6 +23,7 @@ class StreamManager:
     def __init__(self, bot):
         type(self).__name__ = "Stream commands"
         self.bot = bot
+        self.client = twitch.TwitchAPIClient()
         self.db_driver = db.DBDriver()
         self.streams_by_id = {}
 
@@ -106,7 +107,7 @@ class StreamManager:
                 channels_by_stream_id[cs.stream_id].append((channel, cs.everyone))
 
             # Get the status of all tracked streams
-            status = await api.get_status(*[stream_id for stream_id in self.streams_by_id])
+            status = await self.client.get_status(*[stream_id for stream_id in self.streams_by_id])
 
             # Check the response:
             # - If a stream is online, status is a dictionary {"stream_id" : <stream data dict>, ...}
@@ -189,7 +190,7 @@ class StreamManager:
         :param everyone: If True, add the tag @everyone to the bot notification
         """
         stream_name = stream_name.lower()
-        stream_id = int((await api.get_ids(stream_name))[stream_name])
+        stream_id = int((await self.client.get_ids(stream_name))[stream_name])
         if not await self.db_driver.get_channel_stream(channel_id=channel.id, stream_id=stream_id):
 
             # Store the twitch stream in the database if it wasn't tracked anywhere before
@@ -241,7 +242,7 @@ class StreamManager:
                                 code_block=True)
 
     async def _remove_stream(self, channel, stream_name):
-        stream_id = int((await api.get_ids(stream_name))[stream_name])
+        stream_id = int((await self.client.get_ids(stream_name))[stream_name])
         channel_streams = await self.db_driver.get_channel_stream(channel_id=channel.id, stream_id=stream_id)
         if channel_streams:
             channel_stream = channel_streams[0]
