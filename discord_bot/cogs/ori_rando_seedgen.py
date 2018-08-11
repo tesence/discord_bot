@@ -8,11 +8,10 @@ import re
 import aiofiles
 import discord
 from discord.ext import commands
-from discord import utils as discord_utils
+from discord.ext.commands.cooldowns import BucketType
 
 from discord_bot.api import ori_randomizer
 from discord_bot import cfg
-from discord_bot import log
 from discord_bot import utils
 
 CONF = cfg.CONF
@@ -21,54 +20,13 @@ LOG = logging.getLogger('debug')
 SEED_FILENAME = "randomizer.dat"
 SPOILER_FILENAME = "spoiler.txt"
 
-WHITE_CHECK_MARK_EMOJI = "\N{WHITE HEAVY CHECK MARK}"
 
-
-class InvalidLogicError(commands.CommandError):
-    """Exception when the seed logic is invalid."""
-
-
-class InvalidModeError(commands.CommandError):
-    """Exception when the game mode is invalid."""
-
-
-class InvalidFlagError(commands.CommandError):
-    """Exception when a flag is invalid."""
-
-
-class SeedGeneratorError(commands.CommandError):
-    """Exception when an error occurred during the seed generation"""
-
-
-class OriRandoCommands:
+class OriRandoSeedGenCommands:
 
     def __init__(self, bot):
         type(self).__name__ = "Ori rando commands"
         self.bot = bot
-        self.rando_role = None
         self.client = ori_randomizer.OriRandomizerAPIClient()
-        self.bot.handled_exceptions += [SeedGeneratorError, InvalidModeError, InvalidFlagError, InvalidLogicError]
-
-    async def on_command_error(self, ctx, error):
-
-        if isinstance(error, InvalidLogicError):
-            LOG.error(f"Invalid logic: '{error.args[0]}'")
-            message = f"Invalid logic: '{error.args[0]}'\n"
-            message += f"The valid logics are: {', '.join(ori_randomizer.LOGICS)}\n\n"
-            message += f"!{self.seed.signature}"
-            return await self.bot.send(ctx.channel, message, code_block=True)
-        elif isinstance(error, InvalidModeError):
-            LOG.error(f"Invalid mode: '{error.args[0]}'")
-            message = f"Invalid mode: '{error.args[0]}'\n"
-            message += f"The valid modes are: {', '.join(ori_randomizer.MODES)}\n\n"
-            message += f"!{self.seed.signature}"
-            return await self.bot.send(ctx.channel, message, code_block=True)
-        elif isinstance(error, InvalidFlagError):
-            LOG.error(f"Invalid flags: {', '.join(error.args)}'")
-            message = f"Invalid flags: '{', '.join(error.args)}'\n"
-            message += f"The valid flags are: {', '.join(ori_randomizer.VARIATIONS)}\n\n"
-            message += f"!{self.seed.signature}"
-            return await self.bot.send(ctx.channel, message, code_block=True)
 
     async def _get_flags(self, filename):
         """ Get the first line of the seed file
@@ -80,55 +38,54 @@ class OriRandoCommands:
             return await f.readline()
 
     @commands.command()
-    async def seed(self, ctx, logic='', key_mode='', *additional_flags):
+    @commands.cooldown(1, CONF.SEEDGEN_COOLDOWN, BucketType.guild)
+    async def seed(self, ctx, *args):
         """Generate a seed for the Ori randomizer
 
         Valid logics: casual, standard, expert, master, hard, ohko, 0xp, glitched
-        Valid modes: shards, limitkeys, clues
+        Valid modes: shards, limitkeys, clues, default
         Valid flags: easy-path, normal-path, hard-path, normal, speed, dbash, extended, extended-damage, lure,
                      speed-lure, lure-hard, dboost, dboost-light, dboost-hard, cdash, cdash-farming, extreme,
                      timed-level, glitched
         """
-        path_pattern = "(\w+)\-path"
+        author_name = ctx.author.nick or ctx.author.name
+        LOG.debug(f"Seed requested by {author_name}: '{ctx.message.content}'")
 
-        if not logic:
-            LOG.debug("The logic is not specified, the logic is set to 'standard'")
-            logic = "standard"
+        valid_seed_codes = re.findall('[^"]*"(.*)"', ctx.message.content)
+        LOG.debug(f"Valid seed codes found: {valid_seed_codes}")
+        seed = valid_seed_codes[0] if valid_seed_codes else str(random.randint(1, 1000000000))
 
-        additional_flags = list(additional_flags)
-        paths = []
-        for flag in additional_flags:
-            if re.match(path_pattern, flag):
-                paths.append(re.match(path_pattern, flag).group(1))
-                additional_flags.remove(flag)
-        path = paths[0] if paths else paths
+        args = [arg.lower() for arg in args]
+        valid_logics = [logic for logic in args if logic in ori_randomizer.LOGICS]
+        LOG.debug(f"Valid logic presets found: {valid_logics}")
 
-        LOG.debug(f"Seed parameters: logic='{logic}' mode='{key_mode}' paths={paths} "
-                  f"additional_flags={list(additional_flags)}")
+        valid_modes = [mode for mode in args if mode in ori_randomizer.MODES]
+        LOG.debug(f"Valid modes found: {valid_modes}")
 
-        if logic.lower() not in ori_randomizer.PRESETS:
-            raise InvalidLogicError(logic)
+        valid_path_diffs = [path for path in args if path
+                            in [f"{path_diff}-path" for path_diff in ori_randomizer.PATH_DIFFICULTIES]]
+        valid_path_diffs = [valid_path_diff[:-5] for valid_path_diff in valid_path_diffs]
+        LOG.debug(f"Valid path difficulties found: {valid_path_diffs}")
 
-        if key_mode.lower() and key_mode not in ori_randomizer.MODES:
-            raise InvalidModeError(key_mode)
+        valid_variations = [variation for variation in args if variation in ori_randomizer.VARIATIONS]
+        LOG.debug(f"Valid variations found: {valid_variations}")
 
-        invalid_flags = set(additional_flags) - set(ori_randomizer.VARIATIONS)
-        if invalid_flags:
-            raise InvalidFlagError(*invalid_flags)
+        logic = valid_logics[0] if valid_logics else 'standard'
+        mode = valid_modes[0] if valid_modes else None
+        path_diff = valid_path_diffs[0] if valid_path_diffs else None
 
         download_message = await self.bot.send(ctx.channel, "Downloading the seed...")
         try:
-            self.generating_seed = True
 
             # Limit the executor to 1 worker to make everything sequential
             executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-            seed = str(random.randint(1, 1000000000))
 
-            # Download the data
+            # Download the seed data
             LOG.debug("Downloading the seed data...")
-            data = await self.client.get_data(seed, logic, key_mode, path)
+            data = await self.client.get_data(seed=seed, logic=logic, key_mode=mode, path_diff=path_diff,
+                                              additional_flags=valid_variations)
 
-            # Create a temporary subfolder to avoid name conflict
+            # Create a temporary subfolder to avoid any name conflict
             LOG.debug("Creating the subfolder...")
             self.bot.loop.run_in_executor(executor, os.makedirs, seed)
 
@@ -145,7 +102,7 @@ class OriRandoCommands:
             # Send the files in the chat
             LOG.debug("Sending the files in Discord...")
             seed_header = await self._get_flags(seed_path)
-            message = f"Seed requested by **{ctx.author.nick or ctx.author.name}**\n" \
+            message = f"Seed requested by **{author_name}**\n" \
                       f"`{seed_header}`"
 
             await download_message.delete()
@@ -159,36 +116,12 @@ class OriRandoCommands:
             self.bot.loop.run_in_executor(executor, os.rmdir, seed)
             LOG.debug(f"Cleanup successful")
 
-        except Exception as e:
-            self.generating_seed = False
+        except:
             error_message = "An error has occured while generating the seed"
-            LOG.exception(log.get_log_exception_message(error_message, e))
+            LOG.exception(error_message)
             await download_message.edit(content=f"```{error_message}. Please try again later.```")
-            raise SeedGeneratorError
-
-    @commands.group(aliases=['lfg'])
-    async def looking_for_rando(self, ctx):
-        """Add/remove the rando role"""
-        if ctx.invoked_subcommand is None:
-            await ctx.invoke(self.bot.get_command('help'), "looking_for_rando")
-        else:
-            self.rando_role = self.rando_role or discord_utils.get(ctx.guild.roles, name=CONF.RANDO_ROLE)
-
-    @looking_for_rando.command()
-    async def add(self, ctx):
-        if self.rando_role not in ctx.author.roles:
-            await ctx.author.add_roles(self.rando_role)
-            await ctx.message.add_reaction(WHITE_CHECK_MARK_EMOJI)
-            LOG.debug(f"{ctx.author.name} now has the randomizer role")
-
-    @looking_for_rando.command(aliases=['rm'])
-    async def remove(self, ctx):
-        if self.rando_role in ctx.author.roles:
-            await ctx.author.remove_roles(self.rando_role)
-            await ctx.message.add_reaction(WHITE_CHECK_MARK_EMOJI)
-            LOG.debug(f"{ctx.author.name} no longer has the randomizer role")
 
 
 def setup(bot):
-    dab_commands = OriRandoCommands(bot)
-    bot.add_cog(dab_commands)
+    ori_rando_seedgen_commands = OriRandoSeedGenCommands(bot)
+    bot.add_cog(ori_rando_seedgen_commands)
