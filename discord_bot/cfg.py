@@ -24,6 +24,11 @@ class Config:
             # DAB COG
             self.DAB_COOLDOWN = getattr(module, "DAB_COOLDOWN", 0)
 
+            # ORI RANDO COG
+            self.SEEDGEN_API_URL = getattr(module, "SEEDGEN_API_URL",  "http://orirandocoopserver.appspot.com")
+            self.SEEDGEN_COOLDOWN = getattr(module, "SEEDGEN_COOLDOWN", 0)
+            self.RANDO_ROLE = getattr(module, "RANDO_ROLE", None)
+
             # DATABASE
             self.DB_HOST = getattr(module, "DB_HOST", None)
             self.DB_PORT = getattr(module, "DB_PORT", 5432)

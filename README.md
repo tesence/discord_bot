@@ -49,7 +49,7 @@ Create the file ```discord_bot/etc/<configuration_file>.py``` and fill it as fol
 # CLIENT
 COMMAND_PREFIX = "!"
 ADMIN_ROLES = <list of roles that have admin rights>
-LOADED_EXTENSIONS = ["stream.setup" "dab"]
+LOADED_EXTENSIONS = ["stream.setup", "dab", "ori_rando_seedgen", "ori_rando_role"]
 DISCORD_BOT_TOKEN = <discord bot token>
 
 # TWITCH COG
@@ -60,6 +60,11 @@ MIN_OFFLINE_DURATION = 60
 
 # DAB COG
 DAB_COOLDOWN = 120
+
+# ORI RANDO COG
+SEEDGEN_API_URL = "http://orirandocoopserver.appspot.com"
+SEEDGEN_COOLDOWN = 10
+RANDO_ROLE = "Looking For Rando"
 
 # DATABASE
 DB_HOST = <DB_HOST>
@@ -159,7 +164,7 @@ The bot uploads the `randomizer.dat` and the `spoiler.txt` in the channel where 
 
 #### Commands
 
-	!seed <logic> <mode> [additional_flags...]
+	!seed [args...]
 
     Valid logics: casual, standard, expert, master, hard, ohko, 0xp, glitched
     Valid modes: shards, limitkeys, clues
@@ -170,7 +175,7 @@ The bot uploads the `randomizer.dat` and the `spoiler.txt` in the channel where 
 #### How does it work ?
 
   The bot requests the seed generator made by Eiko https://github.com/turntekGodhead/ori_coop_server using
-  the parameters of the command. Then, it extracts the seed and the spoiler download link and download the actual files.
+  the parameters of the command then save the data in the seed and the spoiler.
 
   Once the files are successfully downloaded, they are uploaded in the channel where the command has been called.
 

@@ -1,6 +1,8 @@
 import logging
 import os
 
+import aiofiles
+
 from discord_bot import cfg
 
 CONF = cfg.CONF
@@ -29,3 +31,8 @@ def get_project_name():
 
 def code_block(message):
     return "```" + str(message) + "```"
+
+
+async def write_file(path, content):
+    async with aiofiles.open(path, "w") as f:
+        await f.write(content)

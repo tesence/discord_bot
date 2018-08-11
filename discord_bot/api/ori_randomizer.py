@@ -1,5 +1,4 @@
 import logging
-import re
 
 from discord_bot.api import base
 from discord_bot import cfg
@@ -28,54 +27,35 @@ PRESETS = {
                  "extended", "lure-hard", "timed-level", "glitched", "extended-damage", "extreme"]
 }
 
-DEFAULT_PATHDIFF = "normal"
-DEFAULT_GENMODE = "balanced"
-DEFAULT_FORCE_TREES = True
-DEFAULT_SYNC_TYPE = "split"
-DEFAULT_PLAYER_COUNT = 1
-DEFAULT_SYNC_ID = ""
-DEFAULT_SYNC_MODE = "shared"
-
 
 class OriRandomizerAPIClient(base.APIClient):
 
     def __init__(self):
-        super(OriRandomizerAPIClient, self).__init__(base_url="http://orirandocoopserver.appspot.com")
+        super(OriRandomizerAPIClient, self).__init__(base_url=CONF.SEEDGEN_API_URL)
 
-    async def get_download_links(self, seed, logic, mode, paths, additional_flags):
+    async def get_data(self, seed, logic, key_mode=None, path_diff=None, additional_flags=None):
         """ Retrieve the seed and spoiler download links
 
         :param seed: The seed number
         :param logic: The seed logic
-        :param mode: The seed mode
-        :param paths: The seed path
+        :param key_mode: The seed mode
+        :param path_diff: The seed path
         :param additional_flags: The additional seed flags
-        :return: a tuple of download links
+        :return: seed and spoiler data
         """
 
-        link_patttern = f"{self.base_url}(\/getseed[&|?=\w-]+)"
+        logic_paths = PRESETS[logic]
+        logic_paths = set(logic_paths) | set(additional_flags or [])
 
-        preset_flags = PRESETS[logic]
-        flags = set(preset_flags) | set(additional_flags)
+        params = {("seed", seed), ('tracking', 'Disabled'), ('var', 'ForceTrees')}
+        if key_mode:
+            params.add(("key_mode", key_mode.capitalize()))
 
-        params = {
-            "mode": mode,
-            "pathdiff": paths[0] if len(paths) == 1 else DEFAULT_PATHDIFF,
-            "genmode": DEFAULT_GENMODE,
-            "forcetrees": DEFAULT_FORCE_TREES,
-            "synctype": DEFAULT_SYNC_TYPE,
-            "playerCount": DEFAULT_PLAYER_COUNT,
-            "seed": seed,
-            "syncid": DEFAULT_SYNC_ID,
-            "syncmode": DEFAULT_SYNC_MODE
-        }
-        params.update({flag: True for flag in flags})
+        if path_diff:
+            params.add(("path_diff", path_diff.capitalize()))
+
+        params = params | {("path", path) for path in logic_paths}
         LOG.debug(f"Parameters used for the seed generation: {params}")
 
-        gen_uri = "/mkseed?" + "&".join(f"{key}={value}" for key, value in params.items())
-        result = await (await self.get(gen_uri)).text()
-
-        seed_link = re.search(link_patttern, result).group(1)
-        spoiler_link = seed_link + "&splr=1"
-
-        return seed_link, spoiler_link
+        url = "/generator/json?" + "&".join([f"{param[0]}={param[1]}" for param in params])
+        return await (await self.get(url)).json()
