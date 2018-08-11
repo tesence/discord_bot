@@ -18,18 +18,18 @@ class Config:
             # TWITCH COG
             self.TWITCH_API_URL = getattr(module, "TWITCH_API_URL",  "https://api.twitch.tv/kraken")
             self.TWITCH_API_ACCEPT = getattr(module, "TWITCH_API_ACCEPT", "application/vnd.twitchtv.v5+json")
-            self.TWITCH_API_CLIENT_ID = getattr(module, "TWITCH_API_CLIENT_ID")
+            self.TWITCH_API_CLIENT_ID = getattr(module, "TWITCH_API_CLIENT_ID", None)
             self.MIN_OFFLINE_DURATION = getattr(module, "MIN_OFFLINE_DURATION", 60)
 
             # DAB COG
             self.DAB_COOLDOWN = getattr(module, "DAB_COOLDOWN", 0)
 
             # DATABASE
-            self.DB_HOST = getattr(module, "DB_HOST")
+            self.DB_HOST = getattr(module, "DB_HOST", None)
             self.DB_PORT = getattr(module, "DB_PORT", 5432)
-            self.DB_NAME = getattr(module, "DB_NAME")
-            self.DB_USER = getattr(module, "DB_USER")
-            self.DB_PASSWORD = getattr(module, "DB_PASSWORD")
+            self.DB_NAME = getattr(module, "DB_NAME", None)
+            self.DB_USER = getattr(module, "DB_USER", None)
+            self.DB_PASSWORD = getattr(module, "DB_PASSWORD", None)
 
         except Exception as e:
             if type(e) == ImportError:
