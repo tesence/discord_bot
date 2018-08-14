@@ -43,7 +43,7 @@ class OriRandoSeedGenCommands:
         """Generate a seed for the Ori randomizer
 
         Valid logics: casual, standard, expert, master, hard, ohko, 0xp, glitched
-        Valid modes: shards, limitkeys, clues
+        Valid modes: shards, limitkeys, clues, default
         Valid flags: easy-path, normal-path, hard-path, normal, speed, dbash, extended, extended-damage, lure,
                      speed-lure, lure-hard, dboost, dboost-light, dboost-hard, cdash, cdash-farming, extreme,
                      timed-level, glitched
@@ -51,10 +51,11 @@ class OriRandoSeedGenCommands:
         author_name = ctx.author.nick or ctx.author.name
         LOG.debug(f"Seed requested by {author_name}: '{ctx.message.content}'")
 
-        valid_seed_codes = re.findall("(?:\'|\")(.*\S+.*)(?:\'|\")", ctx.message.content)
+        valid_seed_codes = re.findall('[^"]*"(.*)"', ctx.message.content)
         LOG.debug(f"Valid seed codes found: {valid_seed_codes}")
         seed = valid_seed_codes[0] if valid_seed_codes else str(random.randint(1, 1000000000))
 
+        args = [arg.lower() for arg in args]
         valid_logics = [logic for logic in args if logic in ori_randomizer.LOGICS]
         LOG.debug(f"Valid logic presets found: {valid_logics}")
 

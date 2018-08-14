@@ -47,7 +47,7 @@ class OriRandomizerAPIClient(base.APIClient):
         logic_paths = PRESETS[logic]
         logic_paths = set(logic_paths) | set(additional_flags or [])
 
-        params = {("seed", seed), ('tracking', 'Disabled')}
+        params = {("seed", seed), ('tracking', 'Disabled'), ('var', 'ForceTrees')}
         if key_mode:
             params.add(("key_mode", key_mode.capitalize()))
 
