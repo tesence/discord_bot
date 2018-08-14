@@ -6,11 +6,22 @@ from discord_bot import cfg
 CONF = cfg.CONF
 LOG = logging.getLogger('debug')
 
-LOGICS = ["casual", "standard", "expert", "master", "hard", "ohko", "0xp", "glitched"]
-MODES = ["default", "shards", "limitkeys", "clues"]
+LOGIC_MODES = ["casual", "standard", "expert", "master", "hard", "ohko", "0xp", "glitched"]
+KEY_MODES = ["default", "shards", "limitkeys", "clues"]
 PATH_DIFFICULTIES = ["easy", "normal", "hard"]
-VARIATIONS = ["normal", "speed", "dbash", "extended", "extended-damage", "lure", "speed-lure", "lure-hard", "dboost",
-              "dboost-light", "dboost-hard", "cdash", "cdash-farming", "extreme", "timed-level", "glitched"]
+LOGIC_PATHS = ["normal", "speed", "dbash", "extended", "extended-damage", "lure", "speed-lure", "lure-hard", "dboost",
+               "dboost-light", "dboost-hard", "cdash", "cdash-farming", "extreme", "timed-level", "glitched"]
+
+# map of lowercase variation to correctly capitalized one.
+VARIATIONS = {v.lower(): v for v in ["0XP", "NonProgressMapStones", "Entrance", "ForceMapStones",
+                                     "ForceRandomEscape", "ForceTrees", "Hard", "NoPlants", "NoTeleporters", "OHKO",
+                                     "Starved", "BonusPickups"]}
+
+FLAGS = ["tracking", "classic_gen", "verbose_paths"]
+
+HARD_PRESETS = ["master", "glitched"]
+
+PRESET_VARS = {"master": ["starved"], "hard": ["hard"], "ohko": ["ohko", "hard"], "0xp": ["hard", "0xp"]}
 
 PRESETS = {
     "casual": ["normal", "dboost-light"],
@@ -26,6 +37,7 @@ PRESETS = {
     "glitched": ["normal", "speed", "lure", "speed-lure", "dboost", "dboost-light", "dboost-hard", "cdash", "dbash",
                  "extended", "lure-hard", "timed-level", "glitched", "extended-damage", "extreme"]
 }
+AMBIGUOUS_PRESETS = ["hard", "glitched", "ohko", "0xp"]
 
 
 class OriRandomizerAPIClient(base.APIClient):
@@ -33,28 +45,45 @@ class OriRandomizerAPIClient(base.APIClient):
     def __init__(self):
         super(OriRandomizerAPIClient, self).__init__(base_url=CONF.SEEDGEN_API_URL)
 
-    async def get_data(self, seed, logic, key_mode=None, path_diff=None, additional_flags=None):
+    async def get_data(self, seed, preset, key_mode=None, path_diff=None, variations=[], logic_paths=[], flags=[]):
         """ Retrieve the seed and spoiler download links
 
         :param seed: The seed number
-        :param logic: The seed logic
+        :param preset: The seed logic mode preset
         :param key_mode: The seed mode
-        :param path_diff: The seed path
-        :param additional_flags: The additional seed flags
+        :param path_diff: The seed path difficulty
+        :param variations: An optional list of variations
+        :param logic_paths: An optional list of addtional logic paths
+        :param flags: Any other flags
         :return: seed and spoiler data
         """
 
-        logic_paths = PRESETS[logic]
-        logic_paths = set(logic_paths) | set(additional_flags or [])
+        params = {("seed", seed)}
 
-        params = {("seed", seed), ('tracking', 'Disabled'), ('var', 'ForceTrees')}
+        if "tracking" not in flags:
+            params.add(("tracking", "Disabled"))
+
+        if "verbose_paths" in flags:
+            params.add(("verbose_paths", "on"))
+
+        if "classic_gen" in flags:
+            params.add(("gen_mode", "Classic"))
+
         if key_mode:
             params.add(("key_mode", key_mode.capitalize()))
 
         if path_diff:
             params.add(("path_diff", path_diff.capitalize()))
+        elif preset in HARD_PRESETS:
+            params.add(("path_diff", "Hard"))
 
+        logic_paths = set(PRESETS[preset] + logic_paths)
         params = params | {("path", path) for path in logic_paths}
+
+        if preset in PRESET_VARS:
+            variations = set(variations + PRESET_VARS[preset])
+        params = params | {("var", VARIATIONS[v]) for v in variations}
+
         LOG.debug(f"Parameters used for the seed generation: {params}")
 
         url = "/generator/json?" + "&".join([f"{param[0]}={param[1]}" for param in params])

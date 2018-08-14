@@ -42,37 +42,63 @@ class OriRandoSeedGenCommands:
     async def seed(self, ctx, *args):
         """Generate a seed for the Ori randomizer
 
-        Valid logics: casual, standard, expert, master, hard, ohko, 0xp, glitched
-        Valid modes: shards, limitkeys, clues, default
-        Valid flags: easy-path, normal-path, hard-path, normal, speed, dbash, extended, extended-damage, lure,
-                     speed-lure, lure-hard, dboost, dboost-light, dboost-hard, cdash, cdash-farming, extreme,
-                     timed-level, glitched
+        Default: standard, clues, forcetrees
+
+        - presets: casual, standard, expert, master, hard, ohko, 0xp, glitched
+
+        - modes: shards, limitkeys, clues, default
+
+        - logic paths: normal, speed, dbash, extended, extended-damage, lure, speed-lure, lure-hard, dboost, dboost-light, dboost-hard, cdash, cdash-farming, extreme, timed-level, glitched
+
+        - variations: forcetrees, entrance, hard, starved, ohko, nonprogressmapstones, 0xp, noplants, noteleporters
+
+        - flags: tracking, verbose_paths, classic_gen, hard-path, easy-path
         """
+
         author_name = ctx.author.nick or ctx.author.name
         LOG.debug(f"Seed requested by {author_name}: '{ctx.message.content}'")
 
-        valid_seed_codes = re.findall('[^"]*"(.*)"', ctx.message.content)
-        LOG.debug(f"Valid seed codes found: {valid_seed_codes}")
-        seed = valid_seed_codes[0] if valid_seed_codes else str(random.randint(1, 1000000000))
+        seed_codes = re.findall('[^"]*"(.*)"', ctx.message.content)
+        LOG.debug(f"Valid seed codes found: {seed_codes}")
+        seed = seed_codes[0] if seed_codes else str(random.randint(1, 1000000000))
 
         args = [arg.lower() for arg in args]
-        valid_logics = [logic for logic in args if logic in ori_randomizer.LOGICS]
-        LOG.debug(f"Valid logic presets found: {valid_logics}")
 
-        valid_modes = [mode for mode in args if mode in ori_randomizer.MODES]
-        LOG.debug(f"Valid modes found: {valid_modes}")
+        def get_matching(target_list):
+            matching_vals = [arg for arg in args if arg in target_list]
+            return matching_vals
 
-        valid_path_diffs = [path for path in args if path
-                            in [f"{path_diff}-path" for path_diff in ori_randomizer.PATH_DIFFICULTIES]]
-        valid_path_diffs = [valid_path_diff[:-5] for valid_path_diff in valid_path_diffs]
-        LOG.debug(f"Valid path difficulties found: {valid_path_diffs}")
+        logic_presets = get_matching(ori_randomizer.LOGIC_MODES)
 
-        valid_variations = [variation for variation in args if variation in ori_randomizer.VARIATIONS]
-        LOG.debug(f"Valid variations found: {valid_variations}")
+        # handle the ambiguous cases.
+        unambiguous_presets = [preset for preset in logic_presets if preset not in ori_randomizer.AMBIGUOUS_PRESETS]
+        if len(logic_presets) != len(unambiguous_presets):
+            if unambiguous_presets:
+                # take an unambiguous preset over an ambiguous one
+                logic_presets = unambiguous_presets
+            else:
+                # if we don't have an unambiguous preset, remove the one we're going to use so it doesn't get picked
+                # up as a variation or logic path.
+                args.remove(logic_presets[0])
 
-        logic = valid_logics[0] if valid_logics else 'standard'
-        mode = valid_modes[0] if valid_modes else None
-        path_diff = valid_path_diffs[0] if valid_path_diffs else None
+        key_modes = get_matching(ori_randomizer.KEY_MODES)
+        variations = get_matching(ori_randomizer.VARIATIONS)
+        logic_paths = get_matching(ori_randomizer.LOGIC_PATHS)
+        flags = get_matching(ori_randomizer.FLAGS)
+
+        LOG.debug(f"seeds_codes={seed_codes}, presets={logic_presets}, key_modes={key_modes}, variations={variations}, "
+                  f"paths={logic_paths}, flags={flags}")
+
+        variations = variations or ["forcetrees"]
+
+        path_diff = None
+        if "hard-path" in args:
+            path_diff = "Hard"
+        elif "easy-path" in args:
+            path_diff = "Easy"
+
+        logic_preset = logic_presets[0] if logic_presets else 'standard'
+        key_mode = key_modes[0] if key_modes else None
 
         download_message = await self.bot.send(ctx.channel, "Downloading the seed...")
         try:
@@ -82,8 +108,7 @@ class OriRandoSeedGenCommands:
 
             # Download the seed data
             LOG.debug("Downloading the seed data...")
-            data = await self.client.get_data(seed=seed, logic=logic, key_mode=mode, path_diff=path_diff,
-                                              additional_flags=valid_variations)
+            data = await self.client.get_data(seed, logic_preset, key_mode, path_diff, variations, logic_paths, flags)
 
             # Create a temporary subfolder to avoid any name conflict
             LOG.debug("Creating the subfolder...")
@@ -103,7 +128,12 @@ class OriRandoSeedGenCommands:
             LOG.debug("Sending the files in Discord...")
             seed_header = await self._get_flags(seed_path)
             message = f"Seed requested by **{author_name}**\n" \
-                      f"`{seed_header}`"
+
+            if "tracking" in flags:
+                message += f"**Map**: {CONF.SEEDGEN_API_URL + data['map_url']}\n"
+                message += f"**History**: {CONF.SEEDGEN_API_URL + data['history_url']}\n"
+
+            message += f"`{seed_header}`"
 
             await download_message.delete()
             await self.bot.send(ctx.channel, message,
