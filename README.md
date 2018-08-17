@@ -49,7 +49,7 @@ Create the file ```discord_bot/etc/<configuration_file>.py``` and fill it as fol
 # CLIENT
 COMMAND_PREFIX = "!"
 ADMIN_ROLES = <list of roles that have admin rights>
-LOADED_EXTENSIONS = ["stream.setup", "dab", "ori_rando_seedgen", "ori_rando_role"]
+LOADED_EXTENSIONS = ["stream.setup", "dab", "ori_rando_seedgen", "ori_rando_role", "ori_logic_helper"]
 DISCORD_BOT_TOKEN = <discord bot token>
 
 # TWITCH COG
