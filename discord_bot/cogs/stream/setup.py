@@ -6,12 +6,13 @@ from discord import errors
 from discord.ext import commands
 
 from discord_bot import cfg
+from discord_bot.db import stream
 from discord_bot import log
 from discord_bot import utils
 
 from discord_bot.api import twitch
 from discord_bot.cogs import base
-from discord_bot.cogs.stream import db
+
 from discord_bot.cogs.stream import embeds
 
 CONF = cfg.CONF
@@ -27,33 +28,26 @@ class StreamManager(base.DBCogMixin):
         type(self).__name__ = "Stream commands"
         super(StreamManager, self).__init__(bot, CONF_VARIABLES)
         self.client = twitch.TwitchAPIClient()
-        self.db_driver = db.DBDriver()
-        self.streams_by_id = {}
+        self.stream_db_driver = stream.StreamDBDriver(self.bot.loop)
+        self.channel_db_driver = stream.ChannelDBDriver(self.bot.loop)
+        self.channel_stream_db_driver = stream.ChannelStreamDBDriver(self.bot.loop)
 
         asyncio.ensure_future(self.load_database_data(), loop=self.bot.loop)
 
     async def load_database_data(self):
 
-        await self.db_driver.setup()
-
-        streams = await self.db_driver.get_stream()
+        streams = await self.stream_db_driver.get()
         LOG.debug(f"Streams={streams}")
 
-        channels = await self.db_driver.get_channel()
+        channels = await self.channel_db_driver.get()
         LOG.debug(f"Channels={channels}")
 
-        channel_streams = await self.db_driver.get_channel_stream()
+        channel_streams = await self.channel_stream_db_driver.get()
         LOG.debug(f"ChannelStreams={channel_streams}")
 
         self.streams_by_id = {stream.id: stream for stream in streams}
 
     async def on_ready(self):
-
-        # Ensure that the database driver is ready before starting the polling
-        while not self.db_driver.ready:
-            LOG.debug("Waiting for the database driver to be ready")
-            await asyncio.sleep(1)
-
         try:
             asyncio.ensure_future(self.poll_streams(), loop=self.bot.loop)
         except Exception as e:
@@ -105,7 +99,7 @@ class StreamManager(base.DBCogMixin):
             #   "stream_id_3": [(<discord_channel_1>, everyone=True), (<discord_channel_3>, everyone=False|True), ...]
             # }
             channels_by_stream_id = collections.defaultdict(list)
-            for cs in await self.db_driver.get_channel_stream():
+            for cs in await self.channel_stream_db_driver.get():
                 channel = self.bot.get_channel(cs.channel_id)
                 channels_by_stream_id[cs.stream_id].append((channel, cs.everyone))
 
@@ -126,7 +120,8 @@ class StreamManager(base.DBCogMixin):
 
                         # Update streamer's name in the database if it has changed
                         if not stream.name == status[stream.id]['channel']['name']:
-                            stream.update(name=status[stream.id]['channel']['name']).apply()
+                            await self.stream_db_driver.update('name', status[stream.id]['channel']['name'],
+                                                               id=stream.id)
 
                         # If the stream was not online during the previous iteration, the stream just went online
                         if not stream.is_online:
@@ -159,11 +154,11 @@ class StreamManager(base.DBCogMixin):
     async def list(self, ctx):
         """List current tracked streams."""
 
-        channel_streams = await self.db_driver.get_channel_stream()
+        channel_streams = await self.channel_stream_db_driver.get()
 
         if channel_streams:
 
-            streams = {stream.id: stream for stream in await self.db_driver.get_stream()}
+            streams = {stream.id: stream for stream in await self.stream_db_driver.get()}
 
             # Build the output data by storing every stream names notified for each discord channel
             # {
@@ -172,7 +167,7 @@ class StreamManager(base.DBCogMixin):
             #   <discord_channel_3>: ["stream_name_1", "stream_name_3", ...]
             # }
             streams_by_channel = collections.defaultdict(list)
-            for cs in await self.db_driver.get_channel_stream():
+            for cs in await self.channel_stream_db_driver.get():
                 channel = self.bot.get_channel(cs.channel_id)
                 stream = streams[cs.stream_id]
                 streams_by_channel[channel].append(stream.name)
@@ -194,29 +189,29 @@ class StreamManager(base.DBCogMixin):
         """
         stream_name = stream_name.lower()
         stream_id = int((await self.client.get_ids(stream_name))[stream_name])
-        if not await self.db_driver.get_channel_stream(channel_id=channel.id, stream_id=stream_id):
 
-            # Store the twitch stream in the database if it wasn't tracked anywhere before
-            if not await self.db_driver.get_stream(name=stream_name):
-                stream = await self.db_driver.create_stream(id=stream_id, name=stream_name)
+        if not await self.channel_stream_db_driver.get(channel_id=channel.id, stream_id=stream_id):
+
+            if not await self.stream_db_driver.get(id=stream_id):
+                # Store the twitch stream in the database if it wasn't tracked anywhere before
+                stream = await self.stream_db_driver.create(id=stream_id, name=stream_name)
                 self.streams_by_id[stream_id] = stream
             else:
                 LOG.debug(f"The stream {stream_name}#{stream_id} has already been stored in the database")
 
-            # Store the discord channel in the database if it wasn't tracked anywhere before
-            if not await self.db_driver.get_channel(id=channel.id):
-                await self.db_driver.create_channel(id=channel.id, name=channel.name, guild_id=channel.guild.id,
+            if not await self.channel_db_driver.get(id=channel.id):
+                # Store the discord channel in the database if nothing was tracked in it before
+                await self.channel_db_driver.create(id=channel.id, name=channel.name, guild_id=channel.guild.id,
                                                     guild_name=channel.guild.name)
             else:
                 LOG.debug(f"The channel {channel.name}#{channel.id} has already been stored in the database")
 
             # Create a new relation between the twitch stream and the discord channel
-            await self.db_driver.create_channel_stream(channel_id=channel.id, stream_id=stream_id, everyone=everyone)
+            await self.channel_stream_db_driver.create(channel_id=channel.id, stream_id=stream_id, everyone=everyone)
             return True
-
         else:
             LOG.warning(f"{stream_name}#{stream_id} is already track in the channel {channel.name}#{channel.id}")
-        return False
+            return False
 
     @stream.command()
     @commands.check(utils.check_is_admin)
@@ -246,29 +241,27 @@ class StreamManager(base.DBCogMixin):
 
     async def _remove_stream(self, channel, stream_name):
         stream_id = int((await self.client.get_ids(stream_name))[stream_name])
-        channel_streams = await self.db_driver.get_channel_stream(channel_id=channel.id, stream_id=stream_id)
-        if channel_streams:
-            channel_stream = channel_streams[0]
-            channel_db = (await self.db_driver.get_channel(id=channel_stream.channel_id))[0]
-            stream_db = (await self.db_driver.get_stream(id=channel_stream.stream_id))[0]
+
+        if await self.channel_stream_db_driver.get(channel_id=channel.id, stream_id=stream_id):
 
             # Remove the relation between the twitch stream and the discord channel
-            await channel_stream.delete()
-            LOG.debug(f"{stream_db.name} is no longer tracked in '{channel.guild.name}:{channel.name}'")
+            await self.channel_stream_db_driver.delete(channel_id=channel.id, stream_id=stream_id)
+            LOG.debug(f"{stream_name} is no longer tracked in '{channel.guild.name}:{channel.name}'")
 
-            # Remove the discord channel from the database if there no streams notified in it
-            if not await self.db_driver.get_channel_stream(channel_id=channel.id):
+            # Remove the discord channel from the database if there no streams notified in it anymore
+            if not await self.channel_stream_db_driver.get(channel_id=channel.id):
                 LOG.debug(f"There is no stream tracked in the channel {channel.name}#{channel.id}, the channel is "
                           "deleted from the database")
-                await channel_db.delete()
+                await self.channel_db_driver.delete(id=channel.id)
 
             # Remove the twitch stream from the database of it's not notified anymore
-            if not await self.db_driver.get_channel_stream(stream_id=stream_id):
-                LOG.debug(f"The stream {stream_db.name}#{stream_db.id} is no longer tracked in any channel, the stream "
+            if not await self.channel_stream_db_driver.get(stream_id=stream_id):
+                LOG.debug(f"The stream {stream_name}#{stream_id} is no longer tracked in any channel, the stream "
                           "is deleted from the database")
-                del self.streams_by_id[stream_db.id]
-                await stream_db.delete()
+                del self.streams_by_id[stream_id]
+                await self.stream_db_driver.delete(id=stream_id)
             return True
+        return False
 
     @stream.command()
     @commands.check(utils.check_is_admin)
@@ -290,18 +283,9 @@ class StreamManager(base.DBCogMixin):
         :param channel: the deleted discord channel
         """
         LOG.debug(f"The channel '{channel.guild.name}:{channel.name}' has been deleted")
-
-        for channel_stream in await self.db_driver.get_channel_stream(channel_id=channel.id):
-
-            stream = (await self.db_driver.get_stream(id=channel_stream.stream_id))[0]
-            await channel_stream.delete()
-            LOG.debug(f"{stream.name} is no longer tracked in '{channel.guild.name}:{channel.name}'")
-
-            # Remove the twitch stream from the database of it's not notified anymore
-            if not await self.db_driver.get_channel_stream(stream_id=stream.id):
-                LOG.debug(f"The stream {stream.name}#{stream.id} is no longer tracked in any channel, the stream is "
-                          "deleted from the database")
-                await stream.delete()
+        await self.channel_stream_db_driver.delete(channel_id=channel.id)
+        await self.channel_db_driver.delete(id=channel.id)
+        await self.stream_db_driver.delete_deprecated_streams()
 
 
 def setup(bot):
