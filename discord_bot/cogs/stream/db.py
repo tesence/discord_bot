@@ -70,7 +70,9 @@ class DBDriver:
         self.ready = False
 
     async def setup(self):
-        bind = f"postgresql://{CONF.DB_USER}:{CONF.DB_PASSWORD}@{CONF.DB_HOST}:{CONF.DB_PORT}/{CONF.DB_NAME}"
+        bind = f"postgresql://{CONF.DATABASE_CREDENTIALS['user']}:{CONF.DATABASE_CREDENTIALS['password']}@" \
+               f"{CONF.DATABASE_CREDENTIALS['host']}:{CONF.DATABASE_CREDENTIALS['port']}" \
+               f"/{CONF.DATABASE_CREDENTIALS['database']}"
         await db.set_bind(bind)
         await db.gino.create_all()
         self.ready = True

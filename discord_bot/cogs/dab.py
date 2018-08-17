@@ -3,18 +3,21 @@ import random
 
 from discord.ext import commands
 from discord.ext.commands.cooldowns import BucketType
-from discord_bot import cfg
 
+from discord_bot import cfg
+from discord_bot.cogs import base
 
 CONF = cfg.CONF
 LOG = logging.getLogger('debug')
 
+CONF_VARIABLES = ['DAB_COOLDOWN']
 
-class DabCommands:
+
+class DabCommands(base.CogMixin):
 
     def __init__(self, bot):
+        super(DabCommands, self).__init__(bot, CONF_VARIABLES)
         type(self).__name__ = "Dab commands"
-        self.bot = bot
 
     @commands.command()
     @commands.cooldown(1, CONF.DAB_COOLDOWN, BucketType.channel)
@@ -31,5 +34,4 @@ class DabCommands:
 
 
 def setup(bot):
-    dab_commands = DabCommands(bot)
-    bot.add_cog(dab_commands)
+    bot.add_cog(DabCommands(bot))

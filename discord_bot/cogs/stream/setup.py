@@ -10,19 +10,22 @@ from discord_bot import log
 from discord_bot import utils
 
 from discord_bot.api import twitch
-
+from discord_bot.cogs import base
 from discord_bot.cogs.stream import db
 from discord_bot.cogs.stream import embeds
 
 CONF = cfg.CONF
 LOG = logging.getLogger('debug')
 
+CONF_VARIABLES = ['TWITCH_API_URL', 'TWITCH_API_ACCEPT', 'TWITCH_API_CLIENT_ID',
+                  'MIN_OFFLINE_DURATION']
 
-class StreamManager:
+
+class StreamManager(base.DBCogMixin):
 
     def __init__(self, bot):
         type(self).__name__ = "Stream commands"
-        self.bot = bot
+        super(StreamManager, self).__init__(bot, CONF_VARIABLES)
         self.client = twitch.TwitchAPIClient()
         self.db_driver = db.DBDriver()
         self.streams_by_id = {}

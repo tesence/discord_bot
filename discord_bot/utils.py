@@ -15,7 +15,7 @@ def check_is_admin(ctx):
 
 
 def is_admin(user):
-    if not CONF.ADMIN_ROLES:
+    if not getattr(CONF, 'ADMIN_ROLES', None):
         return True
     author_roles = [role.name for role in user.roles]
     return user.id == 133313675237916672 or set(author_roles) & set(CONF.ADMIN_ROLES)
