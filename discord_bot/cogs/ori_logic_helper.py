@@ -4,6 +4,7 @@ from collections import defaultdict
 from discord.ext import commands
 
 from discord_bot import cfg
+from discord_bot.cogs import base
 
 CONF = cfg.CONF
 LOG = logging.getLogger('debug')
@@ -36,12 +37,14 @@ CELLS_STONES = {
 TP_NAMES = ["swamp", "grove", "valley", "grotto", "forlorn", "sorrow"]
 PRESETS = ["casual", "standard", "expert", "master", "hard", "ohko", "0xp", "glitched"]
 
+CONF_VARIABLES = ['SEEDGEN_API_URL']
 
-class OriLogicHelperCommands:
+
+class OriLogicHelperCommands(base.CogMixin):
 
     def __init__(self, bot):
+        super(OriLogicHelperCommands, self).__init__(bot, CONF_VARIABLES)
         type(self).__name__ = "Ori rando commands"
-        self.bot = bot
 
     @commands.command()
     async def logic(self, ctx, *args):

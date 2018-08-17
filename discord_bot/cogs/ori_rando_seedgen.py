@@ -12,20 +12,23 @@ from discord.ext.commands.cooldowns import BucketType
 
 from discord_bot.api import ori_randomizer
 from discord_bot import cfg
+from discord_bot.cogs import base
 from discord_bot import utils
 
 CONF = cfg.CONF
 LOG = logging.getLogger('debug')
 
+CONF_VARIABLES = ['SEEDGEN_API_URL', 'SEEDGEN_COOLDOWN']
+
 SEED_FILENAME = "randomizer.dat"
 SPOILER_FILENAME = "spoiler.txt"
 
 
-class OriRandoSeedGenCommands:
+class OriRandoSeedGenCommands(base.CogMixin):
 
     def __init__(self, bot):
+        super(OriRandoSeedGenCommands, self).__init__(bot, CONF_VARIABLES)
         type(self).__name__ = "Ori rando commands"
-        self.bot = bot
         self.client = ori_randomizer.OriRandomizerAPIClient()
 
     async def _get_flags(self, filename):
@@ -153,5 +156,4 @@ class OriRandoSeedGenCommands:
 
 
 def setup(bot):
-    ori_rando_seedgen_commands = OriRandoSeedGenCommands(bot)
-    bot.add_cog(ori_rando_seedgen_commands)
+    bot.add_cog(OriRandoSeedGenCommands(bot))

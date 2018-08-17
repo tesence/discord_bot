@@ -4,19 +4,22 @@ from discord.ext import commands
 from discord import utils as discord_utils
 
 from discord_bot import cfg
+from discord_bot.cogs import base
 
 CONF = cfg.CONF
 LOG = logging.getLogger('debug')
+
+CONF_VARIABLES = ['RANDO_ROLE']
 
 
 WHITE_CHECK_MARK_EMOJI = "\N{WHITE HEAVY CHECK MARK}"
 
 
-class OriRandoRoleCommands:
+class OriRandoRoleCommands(base.CogMixin):
 
     def __init__(self, bot):
+        super(OriRandoRoleCommands, self).__init__(bot, CONF_VARIABLES)
         type(self).__name__ = "Ori rando commands"
-        self.bot = bot
         self.rando_role = None
 
     @commands.group(aliases=['lfg'])
@@ -43,5 +46,4 @@ class OriRandoRoleCommands:
 
 
 def setup(bot):
-    ori_rando_role_commands = OriRandoRoleCommands(bot)
-    bot.add_cog(ori_rando_role_commands)
+    bot.add_cog(OriRandoRoleCommands(bot))

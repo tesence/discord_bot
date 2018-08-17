@@ -67,11 +67,13 @@ SEEDGEN_COOLDOWN = 10
 RANDO_ROLE = "Looking For Rando"
 
 # DATABASE
-DB_HOST = <DB_HOST>
-DB_PORT = <DB_PORT>
-DB_NAME = <DB_NAME>
-DB_USER = <DB_USER>
-DB_PASSWORD = <DB_PASSWORD>
+DATABASE_CREDENTIALS = {
+    'host': <DB_HOST>,
+    'port': <DB_PORT>,
+    'database': <DB_NAME>,
+    'user': <DB_USER>,
+    'password': <DB_PASSWORD>
+}
 ```
 ## Run the bot
 
