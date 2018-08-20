@@ -1,11 +1,8 @@
-import asyncio
-import concurrent.futures
+import io
 import logging
-import os
 import random
 import re
 
-import aiofiles
 import discord
 from discord.ext import commands
 from discord.ext.commands.cooldowns import BucketType
@@ -13,7 +10,6 @@ from discord.ext.commands.cooldowns import BucketType
 from discord_bot.api import ori_randomizer
 from discord_bot import cfg
 from discord_bot.cogs import base
-from discord_bot import utils
 
 CONF = cfg.CONF
 LOG = logging.getLogger('debug')
@@ -30,15 +26,6 @@ class OriRandoSeedGenCommands(base.CogMixin):
         super(OriRandoSeedGenCommands, self).__init__(bot, CONF_VARIABLES)
         type(self).__name__ = "Ori rando commands"
         self.client = ori_randomizer.OriRandomizerAPIClient()
-
-    async def _get_flags(self, filename):
-        """ Get the first line of the seed file
-
-        :param filename: the name of seed file
-        :return: The first line of the seed file as a string
-        """
-        async with aiofiles.open(filename) as f:
-            return await f.readline()
 
     @commands.command()
     @commands.cooldown(1, CONF.SEEDGEN_COOLDOWN, BucketType.guild)
@@ -105,31 +92,17 @@ class OriRandoSeedGenCommands(base.CogMixin):
 
         download_message = await self.bot.send(ctx.channel, "Downloading the seed...")
         try:
-
-            # Limit the executor to 1 worker to make everything sequential
-            executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-
             # Download the seed data
             LOG.debug("Downloading the seed data...")
             data = await self.client.get_data(seed, logic_preset, key_mode, path_diff, variations, logic_paths, flags)
 
-            # Create a temporary subfolder to avoid any name conflict
-            LOG.debug("Creating the subfolder...")
-            self.bot.loop.run_in_executor(executor, os.makedirs, seed)
-
-            seed_path = f"{seed}/{SEED_FILENAME}"
-            spoiler_path = f"{seed}/{SPOILER_FILENAME}"
-
-            LOG.debug(f"Creating '{seed_path}' and '{spoiler_path}'...")
-            file_futures = {
-                utils.write_file(seed_path, data['players'][0]['seed']),
-                utils.write_file(spoiler_path, data['players'][0]['spoiler'])
-            }
-            await asyncio.gather(*file_futures, loop=self.bot.loop)
+            # Store the data into file buffers
+            seed_buffer = io.BytesIO(bytes(data['players'][0]['seed'], encoding="utf8"))
+            spoiler_buffer = io.BytesIO(bytes(data['players'][0]['spoiler'], encoding="utf8"))
 
             # Send the files in the chat
             LOG.debug("Sending the files in Discord...")
-            seed_header = await self._get_flags(seed_path)
+            seed_header = data['players'][0]['seed'].split("\n")[0]
             message = f"Seed requested by **{author_name}**\n" \
 
             if "tracking" in flags:
@@ -140,15 +113,9 @@ class OriRandoSeedGenCommands(base.CogMixin):
 
             await download_message.delete()
             await self.bot.send(ctx.channel, message,
-                                files=[discord.File(seed_path), discord.File(spoiler_path)])
+                                files=[discord.File(seed_buffer, filename=SEED_FILENAME),
+                                       discord.File(spoiler_buffer, filename=SPOILER_FILENAME)])
             LOG.debug(f"The files have correctly been sent in Discord")
-
-            # Delete everything once it's sent
-            self.bot.loop.run_in_executor(executor, os.remove, seed_path)
-            self.bot.loop.run_in_executor(executor, os.remove, spoiler_path)
-            self.bot.loop.run_in_executor(executor, os.rmdir, seed)
-            LOG.debug(f"Cleanup successful")
-
         except:
             error_message = "An error has occured while generating the seed"
             LOG.exception(error_message)
