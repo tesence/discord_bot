@@ -1,5 +1,6 @@
 # temp files
 __pycache__/
+data
 log
 
 # project files

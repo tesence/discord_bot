@@ -1,6 +1,8 @@
 import io
+import json
 import logging
 import random
+import os
 import re
 
 import discord
@@ -10,6 +12,7 @@ from discord.ext.commands.cooldowns import BucketType
 from discord_bot.api import ori_randomizer
 from discord_bot import cfg
 from discord_bot.cogs import base
+from discord_bot import utils
 
 CONF = cfg.CONF
 LOG = logging.getLogger('debug')
@@ -18,6 +21,7 @@ CONF_VARIABLES = ['SEEDGEN_API_URL', 'SEEDGEN_COOLDOWN']
 
 SEED_FILENAME = "randomizer.dat"
 SPOILER_FILENAME = "spoiler.txt"
+DOWNLOAD_MESSAGES_FILE_PATH = "data/download_messages.json"
 
 
 class OriRandoSeedGenCommands(base.CogMixin):
@@ -26,6 +30,24 @@ class OriRandoSeedGenCommands(base.CogMixin):
         super(OriRandoSeedGenCommands, self).__init__(bot, CONF_VARIABLES)
         type(self).__name__ = "Ori rando commands"
         self.client = ori_randomizer.OriRandomizerAPIClient()
+
+    @staticmethod
+    def _get_download_message():
+        """Get a random message from the list stored in data/download_messages.json
+
+        :return: a random download message
+        """
+        file_absolute_path = utils.get_project_dir() + "/" + DOWNLOAD_MESSAGES_FILE_PATH
+        if os.path.isfile(file_absolute_path):
+            try:
+                with open(file_absolute_path, "r") as f:
+                    download_messages = json.load(f)
+                    if download_messages:
+                        return random.choice(download_messages)
+                    return random.choice(download_messages)
+            except json.decoder.JSONDecodeError:
+                LOG.exception(f"Cannot load the file '{DOWNLOAD_MESSAGES_FILE_PATH}'")
+        return "Downloading the seed"
 
     @commands.command()
     @commands.cooldown(1, CONF.SEEDGEN_COOLDOWN, BucketType.guild)
@@ -90,10 +112,10 @@ class OriRandoSeedGenCommands(base.CogMixin):
         logic_preset = logic_presets[0] if logic_presets else 'standard'
         key_mode = key_modes[0] if key_modes else None
 
-        download_message = await self.bot.send(ctx.channel, "Downloading the seed...")
+        download_message = await self.bot.send(ctx.channel, f"{self._get_download_message()}...")
         try:
             # Download the seed data
-            LOG.debug("Downloading the seed data...")
+            LOG.debug(f"Downloading the seed data. Download message: '{download_message.content}''")
             data = await self.client.get_data(seed, logic_preset, key_mode, path_diff, variations, logic_paths, flags)
 
             # Store the data into file buffers
