@@ -20,7 +20,7 @@ class BadCogConfigurationVariable(errors.CommandError):
 
 class CogMixin:
 
-    def __init__(self, bot, conf_variables):
+    def __init__(self, bot, *conf_variables):
         self.bot = bot
         self.conf_variables = conf_variables
         self._check_required_conf_variables()

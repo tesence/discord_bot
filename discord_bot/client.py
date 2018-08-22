@@ -1,24 +1,20 @@
 import logging
-import sys
-import traceback
 
 from discord.ext import commands
 
 from discord_bot import cfg
-from discord_bot import log
+from discord_bot.emoji import Emoji
 from discord_bot import utils
 
 CONF = cfg.CONF
 LOG = logging.getLogger('debug')
 
-WASTEBASKET_EMOJI = "\N{WASTEBASKET}"
-
 
 class Bot(commands.Bot):
 
     def __init__(self, *args, **kwargs):
-        super(Bot, self).__init__(*args, **kwargs)
-        self.handled_exceptions = []
+        command_prefix = kwargs.pop('command_prefix')
+        super(Bot, self).__init__(*args, command_prefix=commands.when_mentioned_or(command_prefix), **kwargs)
         self.load_extensions()
 
     async def on_ready(self):
@@ -35,13 +31,17 @@ class Bot(commands.Bot):
         error = getattr(error, 'original', error)
 
         if isinstance(error, commands.MissingRequiredArgument):
-            LOG.error(f"Missing argument in command {ctx.command}")
+            LOG.warning(f"Missing argument in command {ctx.command}: {error.message}")
             message = "An argument is missing\n\n"
-            message += f"{self.command_prefix}{ctx.command.signature}"
+            message += f"{ctx.command.signature}"
             await self.send(ctx.channel, message, code_block=True)
-        elif type(error) not in self.handled_exceptions:
-            LOG.error(f"Exception '{type(error).__name__}' raised in command '{ctx.command}':")
-            traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
+        elif isinstance(error, commands.CommandOnCooldown):
+            LOG.warning(f"{ctx.author.name} tried to use the command '{ctx.command.name}' while it was still on "
+                        f"cooldown for {round(error.retry_after, 2)}s")
+            await ctx.message.add_reaction(Emoji.ARROWS_COUNTERCLOCKWISE)
+        else:
+            LOG.exception(f"Exception '{type(error).__name__}' raised in command '{ctx.command}'",
+                          exc_info=(type(error), error, error.__traceback__))
 
     async def on_raw_reaction_add(self, payload):
         channel = self.get_channel(payload.channel_id)
@@ -55,7 +55,7 @@ class Bot(commands.Bot):
         is_bot_message = author.id == self.user.id
         is_bot_reaction = user.id == self.user.id
 
-        if is_bot_message and not is_bot_reaction and emoji == WASTEBASKET_EMOJI and utils.is_admin(user):
+        if is_bot_message and not is_bot_reaction and emoji == Emoji.WASTEBASKET and utils.is_admin(user):
             await message.delete()
             LOG.debug(f"{user.name} has deleted the message '{message.content}' from {message.author.name} "
                       f"(embeds={embeds})")
@@ -63,9 +63,8 @@ class Bot(commands.Bot):
     async def start(self, *args, **kwargs):
         try:
             await super(Bot, self).start(*args, **kwargs)
-        except ConnectionError as e:
-            message = "Cannot connect to the websocket"
-            LOG.error(log.get_log_exception_message(message, e))
+        except ConnectionError:
+            LOG.exception("Cannot connect to the websocket")
 
     def load_extensions(self):
         """Load all the extensions"""
@@ -74,14 +73,13 @@ class Bot(commands.Bot):
             try:
                 self.load_extension(extension_module_name + "." + extension)
                 LOG.debug(f"The extension '{extension.split('.')[0]}' has been successfully loaded")
-            except Exception as e:
-                message = f"Failed to load extension '{extension.split('.')[0]}'"
-                LOG.exception(log.get_log_exception_message(message, e))
+            except:
+                LOG.exception(f"Failed to load extension '{extension.split('.')[0]}'")
 
     async def send(self, channel, content, reaction=False, code_block=False, **kwargs):
         if code_block:
             content = utils.code_block(content)
         message = await channel.send(content=content, **kwargs)
         if reaction:
-            await message.add_reaction(WASTEBASKET_EMOJI)
+            await message.add_reaction(Emoji.WASTEBASKET)
         return message

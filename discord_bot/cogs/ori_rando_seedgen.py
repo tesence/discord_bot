@@ -17,7 +17,7 @@ from discord_bot import utils
 CONF = cfg.CONF
 LOG = logging.getLogger('debug')
 
-CONF_VARIABLES = ['SEEDGEN_API_URL', 'SEEDGEN_COOLDOWN']
+CONF_VARIABLES = ['SEEDGEN_API_URL']
 
 SEED_FILENAME = "randomizer.dat"
 SPOILER_FILENAME = "spoiler.txt"
@@ -27,7 +27,7 @@ DOWNLOAD_MESSAGES_FILE_PATH = "data/download_messages.json"
 class OriRandoSeedGenCommands(base.CogMixin):
 
     def __init__(self, bot):
-        super(OriRandoSeedGenCommands, self).__init__(bot, CONF_VARIABLES)
+        super(OriRandoSeedGenCommands, self).__init__(bot, *CONF_VARIABLES)
         type(self).__name__ = "Ori rando commands"
         self.client = ori_randomizer.OriRandomizerAPIClient()
 
@@ -50,7 +50,7 @@ class OriRandoSeedGenCommands(base.CogMixin):
         return "Downloading the seed"
 
     @commands.command()
-    @commands.cooldown(1, CONF.SEEDGEN_COOLDOWN, BucketType.guild)
+    @commands.cooldown(1, getattr(CONF, 'SEEDGEN_COOLDOWN', 0), BucketType.guild)
     async def seed(self, ctx, *args):
         """Generate a seed for the Ori randomizer
 

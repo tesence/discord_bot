@@ -4,6 +4,7 @@ from discord.ext import commands
 from discord import utils as discord_utils
 
 from discord_bot import cfg
+from discord_bot.emoji import Emoji
 from discord_bot.cogs import base
 
 CONF = cfg.CONF
@@ -12,13 +13,10 @@ LOG = logging.getLogger('debug')
 CONF_VARIABLES = ['RANDO_ROLE']
 
 
-WHITE_CHECK_MARK_EMOJI = "\N{WHITE HEAVY CHECK MARK}"
-
-
 class OriRandoRoleCommands(base.CogMixin):
 
     def __init__(self, bot):
-        super(OriRandoRoleCommands, self).__init__(bot, CONF_VARIABLES)
+        super(OriRandoRoleCommands, self).__init__(bot, *CONF_VARIABLES)
         type(self).__name__ = "Ori rando commands"
         self.rando_role = None
 
@@ -26,7 +24,7 @@ class OriRandoRoleCommands(base.CogMixin):
     async def looking_for_game(self, ctx):
         """Add/remove the rando role"""
         if ctx.invoked_subcommand is None:
-            await ctx.invoke(self.bot.get_command('help'), "looking_for_game")
+            await ctx.invoke(self.bot.get_command('help'), ctx.command.name)
         else:
             self.rando_role = self.rando_role or discord_utils.get(ctx.guild.roles, name=CONF.RANDO_ROLE)
 
@@ -34,14 +32,14 @@ class OriRandoRoleCommands(base.CogMixin):
     async def add(self, ctx):
         if self.rando_role not in ctx.author.roles:
             await ctx.author.add_roles(self.rando_role)
-            await ctx.message.add_reaction(WHITE_CHECK_MARK_EMOJI)
+            await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
             LOG.debug(f"{ctx.author.name} now has the randomizer role")
 
     @looking_for_game.command(aliases=['rm'])
     async def remove(self, ctx):
         if self.rando_role in ctx.author.roles:
             await ctx.author.remove_roles(self.rando_role)
-            await ctx.message.add_reaction(WHITE_CHECK_MARK_EMOJI)
+            await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
             LOG.debug(f"{ctx.author.name} no longer has the randomizer role")
 
 
