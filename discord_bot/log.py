@@ -33,7 +33,3 @@ def setup():
             logger.addHandler(steam_handler)
 
     setup_logger("debug", CONF.CONF_NAME, True)
-
-
-def get_log_exception_message(message, e):
-    return message + f" ({type(e).__name__}: {str(e)})"

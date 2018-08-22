@@ -10,17 +10,15 @@ from discord_bot.cogs import base
 CONF = cfg.CONF
 LOG = logging.getLogger('debug')
 
-CONF_VARIABLES = ['DAB_COOLDOWN']
-
 
 class DabCommands(base.CogMixin):
 
     def __init__(self, bot):
-        super(DabCommands, self).__init__(bot, CONF_VARIABLES)
+        super(DabCommands, self).__init__(bot)
         type(self).__name__ = "Dab commands"
 
     @commands.command()
-    @commands.cooldown(1, CONF.DAB_COOLDOWN, BucketType.channel)
+    @commands.cooldown(1, getattr(CONF, 'DAB_COOLDOWN', 0), BucketType.channel)
     async def dab(self, ctx, *, dabbed=None):
         """Disrespect someone"""
         if not dabbed:

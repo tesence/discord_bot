@@ -2,7 +2,6 @@ import logging
 
 from discord_bot.api import base
 from discord_bot import cfg
-from discord_bot import log
 
 
 CONF = cfg.CONF
@@ -28,9 +27,8 @@ class TwitchAPIClient(base.APIClient):
         try:
             body = await (await self.get(uri)).json()
             users = body['users']
-        except (AttributeError, KeyError, TypeError) as e:
-            message = f"Cannot parse retrieved ids for {names}"
-            LOG.error(log.get_log_exception_message(message, e))
+        except (AttributeError, KeyError, TypeError):
+            LOG.exception(f"Cannot parse retrieved ids for {names}")
         else:
             result = {user['name']: user['_id'] for user in users}
             LOG.debug(f"API data for {list(names)}: {result} ({uri})")
@@ -46,9 +44,8 @@ class TwitchAPIClient(base.APIClient):
         try:
             body = await (await self.get(uri)).json()
             streams = body['streams']
-        except (AttributeError, KeyError, TypeError) as e:
-            message = "Cannot retrieve stream data"
-            LOG.error(log.get_log_exception_message(message, e))
+        except (AttributeError, KeyError, TypeError):
+            LOG.exception("Cannot retrieve stream data")
         else:
             return {stream['channel']['_id']: stream for stream in streams}
 

@@ -43,7 +43,7 @@ CONF_VARIABLES = ['SEEDGEN_API_URL']
 class OriLogicHelperCommands(base.CogMixin):
 
     def __init__(self, bot):
-        super(OriLogicHelperCommands, self).__init__(bot, CONF_VARIABLES)
+        super(OriLogicHelperCommands, self).__init__(bot, *CONF_VARIABLES)
         type(self).__name__ = "Ori rando commands"
 
     @commands.command()

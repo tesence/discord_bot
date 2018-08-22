@@ -7,7 +7,7 @@ from discord.ext import commands
 
 from discord_bot import cfg
 from discord_bot.db import stream
-from discord_bot import log
+from discord_bot.emoji import Emoji
 from discord_bot import utils
 
 from discord_bot.api import twitch
@@ -26,7 +26,7 @@ class StreamManager(base.DBCogMixin):
 
     def __init__(self, bot):
         type(self).__name__ = "Stream commands"
-        super(StreamManager, self).__init__(bot, CONF_VARIABLES)
+        super(StreamManager, self).__init__(bot, *CONF_VARIABLES)
         self.client = twitch.TwitchAPIClient()
         self.stream_db_driver = stream.StreamDBDriver(self.bot.loop)
         self.channel_db_driver = stream.ChannelDBDriver(self.bot.loop)
@@ -50,9 +50,8 @@ class StreamManager(base.DBCogMixin):
     async def on_ready(self):
         try:
             asyncio.ensure_future(self.poll_streams(), loop=self.bot.loop)
-        except Exception as e:
-            message = "The polling unexpectedly stopped"
-            LOG.exception(log.get_log_exception_message(message, e))
+        except:
+            LOG.exception("The polling unexpectedly stopped")
 
     async def poll_streams(self):
         """Poll twitch every X seconds."""
@@ -122,6 +121,8 @@ class StreamManager(base.DBCogMixin):
                         if not stream.name == status[stream.id]['channel']['name']:
                             await self.stream_db_driver.update('name', status[stream.id]['channel']['name'],
                                                                id=stream.id)
+                            LOG.debug(f"'{stream.name} has changed his name to '{status[stream.id]['channel']['name']}'"
+                                      f"The value has been updated in the database")
 
                         # If the stream was not online during the previous iteration, the stream just went online
                         if not stream.is_online:
@@ -148,7 +149,7 @@ class StreamManager(base.DBCogMixin):
     async def stream(self, ctx):
         """Manage tracked streams."""
         if ctx.invoked_subcommand is None:
-            await ctx.invoke(self.bot.get_command('help'), "stream")
+            await ctx.invoke(self.bot.get_command('help'), ctx.command.name)
 
     @stream.command()
     async def list(self, ctx):
@@ -221,10 +222,8 @@ class StreamManager(base.DBCogMixin):
         :param ctx: command context
         :param stream_name: The stream to notify
         """
-        channel = ctx.channel
-        if await self._add_stream(channel, stream_name.lower()):
-            await self.bot.send(channel, f"{stream_name} is now tracked in '{channel.guild.name}:{channel.name}'",
-                                code_block=True)
+        if await self._add_stream(ctx.channel, stream_name.lower()):
+            await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
 
     @stream.command()
     @commands.check(utils.check_is_admin)
@@ -234,10 +233,8 @@ class StreamManager(base.DBCogMixin):
         :param ctx: command context
         :param stream_name: The stream to notify
         """
-        channel = ctx.channel
         if await self._add_stream(ctx.channel, stream_name.lower(), everyone=True):
-            await self.bot.send(ctx.channel, f"{stream_name} is now tracked in '{channel.guild.name}:{channel.name}'",
-                                code_block=True)
+            await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
 
     async def _remove_stream(self, channel, stream_name):
         stream_id = int((await self.client.get_ids(stream_name))[stream_name])
@@ -271,10 +268,8 @@ class StreamManager(base.DBCogMixin):
         :param ctx: command context
         :param stream_name: The stream to notify
         """
-        channel = ctx.channel
-        if await self._remove_stream(channel, stream_name.lower()):
-            await self.bot.send(channel, f"{stream_name} is no longer tracked in '{channel.guild.name}:{channel.name}'",
-                                code_block=True)
+        if await self._remove_stream(ctx.channel, stream_name.lower()):
+            await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
 
     # EVENTS
     async def on_guild_channel_delete(self, channel):

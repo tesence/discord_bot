@@ -4,8 +4,6 @@ import logging
 import aiohttp
 import aiofiles
 
-from discord_bot import log
-
 LOG = logging.getLogger('debug')
 
 
@@ -32,8 +30,7 @@ class APIClient:
             else:
                 message = "An error has occured"
             message += f" while requesting the url {url}"
-
-            LOG.error(log.get_log_exception_message(message, e))
+            LOG.exception(message)
 
     async def get(self, uri):
         return await self.request("get", uri)
