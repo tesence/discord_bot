@@ -2,19 +2,14 @@ import logging
 import os
 from logging.handlers import RotatingFileHandler
 
-from discord_bot import cfg
-from discord_bot import utils
-
-CONF = cfg.CONF
 
 LOG_PATTERN = logging.Formatter('%(asctime)s:%(levelname)s: [%(filename)s] %(message)s')
 
 
-def setup():
+def setup(log_dir, config_file):
 
-    log_dir = utils.get_project_dir() + "/log"
-    if not os.path.isdir(log_dir):
-        os.makedirs(log_dir)
+    os.makedirs(log_dir, exist_ok=True)
+    conf_filename = os.path.basename(config_file).rsplit(".", 1)[0]
 
     # write in the console
     steam_handler = logging.StreamHandler()
@@ -23,13 +18,14 @@ def setup():
 
     def setup_logger(logger_name, file_name=None, add_steam=False):
         file_name = file_name or logger_name
+        log_filename = f"{os.path.join(log_dir, file_name)}.log"
 
         logger = logging.getLogger(logger_name)
         logger.setLevel(logging.DEBUG)
-        file_handler = RotatingFileHandler(log_dir + "/" + file_name + ".log", "a", 1000000, 1)
+        file_handler = RotatingFileHandler(log_filename, "a", 1000000, 1)
         file_handler.setFormatter(LOG_PATTERN)
         logger.addHandler(file_handler)
         if add_steam:
             logger.addHandler(steam_handler)
 
-    setup_logger("debug", CONF.CONF_NAME, True)
+    setup_logger("bot", conf_filename, True)

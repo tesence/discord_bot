@@ -8,7 +8,7 @@ from discord_bot import cfg
 from discord_bot import log
 
 CONF = cfg.CONF
-LOG = logging.getLogger('debug')
+LOG = logging.getLogger('bot')
 
 
 class Column:

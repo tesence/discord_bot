@@ -1,22 +1,23 @@
-import importlib
+import importlib.util
 
 
 class Config:
 
-    def load(self, filename):
+    def load(self, config_file):
         """Load the configuration variable according to the file name"""
         try:
-            self.CONF_NAME = filename
-            module = importlib.import_module("etc." + filename)
+            spec = importlib.util.spec_from_file_location("conf", config_file)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
             for attribute in dir(module):
                 if not attribute.startswith("__"):
                     setattr(self, attribute, getattr(module, attribute))
 
         except Exception as e:
             if type(e) == ImportError:
-                message = f"Cannot find the configuration file 'etc/{filename}.py'"
+                message = f"Cannot find the configuration file '{config_file}'"
             else:
-                message = f"Cannot import the configuration file 'etc/{filename}.py'"
+                message = f"Cannot import the configuration file '{config_file}'"
             raise type(e)(message)
 
 

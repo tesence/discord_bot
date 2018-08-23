@@ -7,7 +7,7 @@ from discord_bot import cfg
 
 CONF = cfg.CONF
 
-LOG = logging.getLogger('debug')
+LOG = logging.getLogger('bot')
 
 
 def check_is_admin(ctx):

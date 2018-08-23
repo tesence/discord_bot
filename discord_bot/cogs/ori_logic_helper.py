@@ -7,7 +7,7 @@ from discord_bot import cfg
 from discord_bot.cogs import base
 
 CONF = cfg.CONF
-LOG = logging.getLogger('debug')
+LOG = logging.getLogger('bot')
 
 SKILLS = {
     'ba': "SK|0", 'bash': "SK|0",

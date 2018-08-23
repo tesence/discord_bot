@@ -5,7 +5,7 @@ from discord.ext.commands import errors
 from discord_bot import cfg
 
 CONF = cfg.CONF
-LOG = logging.getLogger('debug')
+LOG = logging.getLogger('bot')
 
 DB_CONF_VARIABLES = ['DATABASE_CREDENTIALS']
 
@@ -38,5 +38,5 @@ class CogMixin:
 
 class DBCogMixin(CogMixin):
 
-    def __init__(self, bot, conf_variables):
-        super(DBCogMixin, self).__init__(bot, list(conf_variables) + DB_CONF_VARIABLES)
+    def __init__(self, bot, *conf_variables):
+        super(DBCogMixin, self).__init__(bot, *(list(conf_variables) + DB_CONF_VARIABLES))
