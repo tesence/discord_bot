@@ -40,7 +40,7 @@ Create a postgresSQL database. The tables will be generated automatically.
 
 ## Create a configuration file
 
-Create the file ```discord_bot/etc/<configuration_file>.py``` and fill it as follow:
+Create a python file and fill it as follow
 
 ```
 # cfg.py
@@ -81,13 +81,12 @@ In the project folder, run:
 
 ### Windows
 
-	.venv/Script/python.exe main.py <configuration_file>
+	.venv/Script/python.exe main.py --config-file /path/to/your/config/file.py --log-dir /path/to/the/log/folder
 
 
 ### Linux
 
-	.venv/bin/python main.py <configuration_file>
-
+	.venv/bin/python main.py --config-file /path/to/your/config/file.py --log-dir /path/to/the/log/folder
 
 ## COGS
 

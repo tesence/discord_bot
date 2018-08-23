@@ -4,7 +4,7 @@ from discord_bot.api import base
 from discord_bot import cfg
 
 CONF = cfg.CONF
-LOG = logging.getLogger('debug')
+LOG = logging.getLogger('bot')
 
 LOGIC_MODES = ["casual", "standard", "expert", "master", "hard", "ohko", "0xp", "glitched"]
 KEY_MODES = ["default", "shards", "limitkeys", "clues"]

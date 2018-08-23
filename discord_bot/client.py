@@ -7,7 +7,7 @@ from discord_bot.emoji import Emoji
 from discord_bot import utils
 
 CONF = cfg.CONF
-LOG = logging.getLogger('debug')
+LOG = logging.getLogger('bot')
 
 
 class Bot(commands.Bot):

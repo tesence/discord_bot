@@ -7,7 +7,7 @@ from discord_bot.db import base
 from discord_bot.db.base import transaction
 
 
-LOG = logging.getLogger('debug')
+LOG = logging.getLogger('bot')
 
 
 class Channel(base.BaseModel):

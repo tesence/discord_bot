@@ -8,7 +8,7 @@ from discord_bot import cfg
 from discord_bot.cogs import base
 
 CONF = cfg.CONF
-LOG = logging.getLogger('debug')
+LOG = logging.getLogger('bot')
 
 
 class DabCommands(base.CogMixin):

@@ -5,7 +5,7 @@ from discord_bot import cfg
 
 
 CONF = cfg.CONF
-LOG = logging.getLogger('debug')
+LOG = logging.getLogger('bot')
 
 HEADERS = {
     "Client-ID": CONF.TWITCH_API_CLIENT_ID,

@@ -4,7 +4,7 @@ import logging
 import aiohttp
 import aiofiles
 
-LOG = logging.getLogger('debug')
+LOG = logging.getLogger('bot')
 
 
 class APIClient:

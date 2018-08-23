@@ -16,7 +16,7 @@ from discord_bot.cogs import base
 from discord_bot.cogs.stream import embeds
 
 CONF = cfg.CONF
-LOG = logging.getLogger('debug')
+LOG = logging.getLogger('bot')
 
 CONF_VARIABLES = ['TWITCH_API_URL', 'TWITCH_API_ACCEPT', 'TWITCH_API_CLIENT_ID',
                   'MIN_OFFLINE_DURATION']

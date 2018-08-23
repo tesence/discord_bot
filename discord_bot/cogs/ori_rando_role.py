@@ -8,7 +8,7 @@ from discord_bot.emoji import Emoji
 from discord_bot.cogs import base
 
 CONF = cfg.CONF
-LOG = logging.getLogger('debug')
+LOG = logging.getLogger('bot')
 
 CONF_VARIABLES = ['RANDO_ROLE']
 
