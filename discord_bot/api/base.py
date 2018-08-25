@@ -2,7 +2,6 @@ import asyncio
 import logging
 
 import aiohttp
-import aiofiles
 
 LOG = logging.getLogger('bot')
 
@@ -34,9 +33,3 @@ class APIClient:
 
     async def get(self, uri):
         return await self.request("get", uri)
-
-    async def download(self, uri, filename):
-        content = await (await self.get(uri)).read()
-        async with aiofiles.open(filename, "wb") as f:
-            await f.write(content)
-        return True
