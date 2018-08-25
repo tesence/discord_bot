@@ -1,8 +1,6 @@
 import logging
 import os
 
-import aiofiles
-
 from discord_bot import cfg
 
 CONF = cfg.CONF
