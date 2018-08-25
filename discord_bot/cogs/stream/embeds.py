@@ -9,17 +9,17 @@ def get_field(embed, field_name):
         return fields[0]
 
 
-def get_notification(status, everyone=False):
+def get_notification(stream, everyone=False):
     """Return a message and an embed for a given stream
 
-    :param status: stream status
+    :param stream: stream status
     :param everyone: Add '@everyone' in front of the message if True
     :return: notification message and embed
     """
-    if status['stream_type'] == "live":
-        message, embed = _get_stream_notification(status)
+    if stream.type == "live":
+        message, embed = _get_stream_notification(stream)
     else:
-        message, embed = _get_vodcast_notification(status)
+        message, embed = _get_vodcast_notification(stream)
 
     if everyone:
         message = "@everyone " + message
@@ -32,26 +32,25 @@ def get_offline_embed(embed):
     return embed
 
 
-def _get_stream_notification(status):
-    message = f"{status['channel']['display_name']} is streaming!"
+def _get_stream_notification(stream):
+    message = f"{stream.display_name} is streaming!"
 
     broadcast_type = "Stream"
     color = colour.Color.dark_purple()
-    embed = _get_notification_embed(status, broadcast_type, color, image=False)
+    embed = _get_notification_embed(stream, broadcast_type, color)
     return message, embed
 
 
-def _get_vodcast_notification(status):
-    message = f"{status['channel']['display_name']} started a vodcast!"
+def _get_vodcast_notification(stream):
+    message = f"{stream.display_name} started a vodcast!"
 
     broadcast_type = "Vodcast"
     color = colour.Color.red()
-    embed = _get_notification_embed(status, broadcast_type, color, image=False)
+    embed = _get_notification_embed(stream, broadcast_type, color)
     return message, embed
 
 
-def _get_notification_embed(data, broadcast_type, color, *fields, url=None,
-                            image=True):
+def _get_notification_embed(stream, broadcast_type, color, *fields):
     """Get a live notification
 
     :param type: stream type
@@ -59,33 +58,23 @@ def _get_notification_embed(data, broadcast_type, color, *fields, url=None,
     :return: notification message and embed
     """
 
-    display_name = data['channel']['display_name']
-    logo_url = data['channel']['logo']
-    channel_url = data['channel']['url']
-    if not url:
-        url = channel_url
-    title = data['channel']['status']
-    game = data['game']
-    image_url = data['preview']['large']
+    channel_url = f"https://www.twitch.tv/{stream.name}"
 
     embed = embeds.Embed()
     embed.colour = color
 
-    embed.set_author(name=display_name, url=channel_url, icon_url=TWITCH_ICON_URL)
-    embed.description = url
+    embed.set_author(name=stream.display_name, url=channel_url, icon_url=TWITCH_ICON_URL)
+    embed.description = channel_url
 
-    embed.add_field(name="Title", value=title, inline=False)
-    embed.add_field(name="Game", value=game, inline=False)
+    embed.add_field(name="Title", value=stream.title, inline=False)
+    embed.add_field(name="Game", value=stream.game, inline=False)
     embed.add_field(name="Type", value=broadcast_type)
+
+    if stream.logo:
+        embed.set_thumbnail(url=stream.logo)
 
     for field in fields:
         embed.add_field(**field)
-
-    if image and image_url:
-        embed.set_image(url=image_url)
-
-    if logo_url:
-        embed.set_thumbnail(url=logo_url)
 
     return embed
 

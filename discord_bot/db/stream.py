@@ -42,9 +42,14 @@ class Stream(base.BaseModel):
 
     def __init__(self, **kwargs):
         super(Stream, self).__init__(**kwargs)
-        self.is_online = False
+        self.online = False
         self.last_offline_date = None
         self.notifications = []
+        self.display_name = None
+        self.title = None
+        self.game = None
+        self.logo = None
+        self.type = None
 
 
 class ChannelStream(base.BaseModel):
