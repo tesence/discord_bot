@@ -27,7 +27,7 @@ class StreamManager(base.DBCogMixin):
     def __init__(self, bot):
         type(self).__name__ = "Stream commands"
         super(StreamManager, self).__init__(bot, *CONF_VARIABLES)
-        self.client = twitch.TwitchAPIClient()
+        self.client = twitch.TwitchAPIClient(self.bot.loop)
         self.stream_db_driver = stream.StreamDBDriver(self.bot.loop)
         self.channel_db_driver = stream.ChannelDBDriver(self.bot.loop)
         self.channel_stream_db_driver = stream.ChannelStreamDBDriver(self.bot.loop)

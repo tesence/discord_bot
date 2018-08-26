@@ -29,7 +29,7 @@ class OriRandoSeedGenCommands(base.CogMixin):
     def __init__(self, bot):
         super(OriRandoSeedGenCommands, self).__init__(bot, *CONF_VARIABLES)
         type(self).__name__ = "Ori rando commands"
-        self.client = ori_randomizer.OriRandomizerAPIClient()
+        self.client = ori_randomizer.OriRandomizerAPIClient(self.bot.loop)
 
     @staticmethod
     def _get_download_message():

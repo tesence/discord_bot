@@ -42,8 +42,8 @@ AMBIGUOUS_PRESETS = ["hard", "glitched", "ohko", "0xp"]
 
 class OriRandomizerAPIClient(base.APIClient):
 
-    def __init__(self):
-        super(OriRandomizerAPIClient, self).__init__(base_url=CONF.SEEDGEN_API_URL)
+    def __init__(self, loop):
+        super(OriRandomizerAPIClient, self).__init__(base_url=CONF.SEEDGEN_API_URL, loop=loop)
 
     async def get_data(self, seed, preset, key_mode=None, path_diff=None, variations=[], logic_paths=[], flags=[]):
         """ Retrieve the seed and spoiler download links
