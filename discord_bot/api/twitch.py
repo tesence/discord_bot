@@ -15,8 +15,8 @@ HEADERS = {
 
 class TwitchAPIClient(base.APIClient):
 
-    def __init__(self):
-        super(TwitchAPIClient, self).__init__(base_url=CONF.TWITCH_API_URL, headers=HEADERS)
+    def __init__(self, loop):
+        super(TwitchAPIClient, self).__init__(base_url=CONF.TWITCH_API_URL, headers=HEADERS, loop=loop)
 
     async def get_ids(self, *names):
         """Retrieve all user ids.
