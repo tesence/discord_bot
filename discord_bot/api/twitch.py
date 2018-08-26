@@ -27,8 +27,10 @@ class TwitchAPIClient(base.APIClient):
         try:
             body = await (await self.get(uri)).json()
             users = body['users']
-        except (AttributeError, KeyError, TypeError):
+        except (KeyError, TypeError):
             LOG.exception(f"Cannot parse retrieved ids for {names}")
+        except AttributeError:
+            pass
         else:
             result = {user['name']: user['_id'] for user in users}
             LOG.debug(f"API data for {list(names)}: {result} ({uri})")
@@ -44,8 +46,10 @@ class TwitchAPIClient(base.APIClient):
         try:
             body = await (await self.get(uri)).json()
             streams = body['streams']
-        except (AttributeError, KeyError, TypeError):
+        except (KeyError, TypeError):
             LOG.exception("Cannot retrieve stream data")
+        except AttributeError:
+            pass
         else:
             return {stream['channel']['_id']: stream for stream in streams}
 
