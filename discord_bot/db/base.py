@@ -111,11 +111,33 @@ class DBDriver:
 
     @staticmethod
     def _format_conditions(**conditions):
-        return [f"{key} = {value}" if not isinstance(value, str) else f"{key} = '{value}'"
-                for key, value in conditions.items()]
+        parsed_conditions = []
+        for key, value in conditions.items():
+            if isinstance(value, str):
+                value = f"'{value}'"
+            elif value is None:
+                value = "NULL"
+            parsed_conditions.append(f"{key} = {value}")
+        return parsed_conditions
 
     @transaction()
     async def get(self, **conditions):
+        try:
+            query = f"SELECT * FROM {self.table_name}"
+            conditions = self._format_conditions(**conditions)
+            if conditions:
+                query += f" WHERE {' AND '.join(conditions)}"
+            query += ";"
+            result = await self.pool.fetchrow(query)
+            if result:
+                result = self.model(**dict(result.items()))
+        except exceptions.PostgresError:
+            LOG.error(f"Cannot retrieve data for values: {conditions} ('{query}')")
+        else:
+            return result
+
+    @transaction()
+    async def list(self, **conditions):
         try:
             query = f"SELECT * FROM {self.table_name}"
             conditions = self._format_conditions(**conditions)
@@ -132,11 +154,19 @@ class DBDriver:
     async def create(self, **fields):
         try:
             columns = ",".join(list(fields.keys()))
-            fields_str = ",".join([f"'{value}'" if not isinstance(value, bool) else str(value)
-                               for value in fields.values()])
-            query = f"INSERT INTO {self.table_name} ({columns}) VALUES ({fields_str})"
+
+            values = []
+            for value in fields.values():
+                if isinstance(value, str) or isinstance(value, int):
+                    values.append(f"'{value}'")
+                elif value is not None:
+                    values.append(value)
+                else:
+                    values.append("NULL")
+
+            query = f"INSERT INTO {self.table_name} ({columns}) VALUES ({', '.join(values)})"
             await self.pool.execute(query)
-            result = (await self.get(**fields))[0]
+            result = await self.get(**fields)
         except exceptions.PostgresError:
             LOG.exception(f"Cannot create data for values: {fields} ('{query}')")
         else:

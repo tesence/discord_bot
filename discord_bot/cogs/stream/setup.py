@@ -36,13 +36,13 @@ class StreamManager(base.DBCogMixin):
 
     async def load_database_data(self):
 
-        streams = await self.stream_db_driver.get()
+        streams = await self.stream_db_driver.list()
         LOG.debug(f"Streams={streams}")
 
-        channels = await self.channel_db_driver.get()
+        channels = await self.channel_db_driver.list()
         LOG.debug(f"Channels={channels}")
 
-        channel_streams = await self.channel_stream_db_driver.get()
+        channel_streams = await self.channel_stream_db_driver.list()
         LOG.debug(f"ChannelStreams={channel_streams}")
 
         self.streams_by_id = {stream.id: stream for stream in streams}
@@ -110,7 +110,7 @@ class StreamManager(base.DBCogMixin):
             #   "stream_id_3": [(<discord_channel_1>, everyone=True), (<discord_channel_3>, everyone=False|True), ...]
             # }
             channels_by_stream_id = collections.defaultdict(list)
-            for cs in await self.channel_stream_db_driver.get():
+            for cs in await self.channel_stream_db_driver.list():
                 channel = self.bot.get_channel(cs.channel_id)
                 NotifiedChannel = collections.namedtuple('NotifiedChannel', ['channel', 'everyone'])
                 channels_by_stream_id[cs.stream_id].append(NotifiedChannel(channel, cs.everyone))
@@ -182,11 +182,11 @@ class StreamManager(base.DBCogMixin):
     async def list(self, ctx):
         """List current tracked streams."""
 
-        channel_streams = await self.channel_stream_db_driver.get()
+        channel_streams = await self.channel_stream_db_driver.list()
 
         if channel_streams:
 
-            streams = {stream.id: stream for stream in await self.stream_db_driver.get()}
+            streams = {stream.id: stream for stream in await self.stream_db_driver.list()}
 
             # Build the output data by storing every stream names notified for each discord channel
             # {
@@ -195,7 +195,7 @@ class StreamManager(base.DBCogMixin):
             #   <discord_channel_3>: ["stream_name_1", "stream_name_3", ...]
             # }
             streams_by_channel = collections.defaultdict(list)
-            for cs in await self.channel_stream_db_driver.get():
+            for cs in await self.channel_stream_db_driver.list():
                 channel = self.bot.get_channel(cs.channel_id)
                 stream = streams[cs.stream_id]
                 streams_by_channel[channel].append(stream.name)
@@ -219,7 +219,6 @@ class StreamManager(base.DBCogMixin):
         stream_id = int((await self.client.get_ids(stream_name))[stream_name])
 
         if not await self.channel_stream_db_driver.get(channel_id=channel.id, stream_id=stream_id):
-
             if not await self.stream_db_driver.get(id=stream_id):
                 # Store the twitch stream in the database if it wasn't tracked anywhere before
                 stream = await self.stream_db_driver.create(id=stream_id, name=stream_name)
