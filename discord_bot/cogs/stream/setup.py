@@ -66,7 +66,7 @@ class StreamManager(base.DBCogMixin):
             """
             # Send the notifications in every discord channel the stream has been tracked
             for notified_channel in notified_channels:
-                message, embed = embeds.get_notification(stream, notified_channel.everyone)
+                message, embed = embeds.get_notification(stream, notified_channel.tags)
                 notification = await self.bot.send(notified_channel.channel, message, embed=embed, reaction=True)
                 stream.notifications.append(notification)
 
@@ -112,8 +112,8 @@ class StreamManager(base.DBCogMixin):
             channels_by_stream_id = collections.defaultdict(list)
             for cs in await self.channel_stream_db_driver.list():
                 channel = self.bot.get_channel(cs.channel_id)
-                NotifiedChannel = collections.namedtuple('NotifiedChannel', ['channel', 'everyone'])
-                channels_by_stream_id[cs.stream_id].append(NotifiedChannel(channel, cs.everyone))
+                NotifiedChannel = collections.namedtuple('NotifiedChannel', ['channel', 'tags'])
+                channels_by_stream_id[cs.stream_id].append(NotifiedChannel(channel, cs.tags))
 
             # Get the status of all tracked streams
             status = await self.client.get_status(*[stream_id for stream_id in self.streams_by_id])
@@ -208,17 +208,19 @@ class StreamManager(base.DBCogMixin):
 
             await self.bot.send(ctx.channel, message, embed=embed, reaction=True)
 
-    async def _add_stream(self, channel, stream_name, everyone=False):
+    async def _add_stream(self, channel, stream_name, *tags):
         """ Add a stream in a discord channel tracklist
 
         :param channel: The discord channel in which the stream notifications are enabled
         :param stream_name: The stream to notify
-        :param everyone: If True, add the tag @everyone to the bot notification
+        :param tags: List of tags to add to the notification
         """
         stream_name = stream_name.lower()
         stream_id = int((await self.client.get_ids(stream_name))[stream_name])
+        tags = " ".join(tags) if tags else None
 
-        if not await self.channel_stream_db_driver.get(channel_id=channel.id, stream_id=stream_id):
+        channel_stream = await self.channel_stream_db_driver.get(channel_id=channel.id, stream_id=stream_id)
+        if not channel_stream:
             if not await self.stream_db_driver.get(id=stream_id):
                 # Store the twitch stream in the database if it wasn't tracked anywhere before
                 stream = await self.stream_db_driver.create(id=stream_id, name=stream_name)
@@ -234,7 +236,12 @@ class StreamManager(base.DBCogMixin):
                 LOG.debug(f"The channel {channel.name}#{channel.id} has already been stored in the database")
 
             # Create a new relation between the twitch stream and the discord channel
-            await self.channel_stream_db_driver.create(channel_id=channel.id, stream_id=stream_id, everyone=everyone)
+            await self.channel_stream_db_driver.create(channel_id=channel.id, stream_id=stream_id, tags=tags)
+            return True
+        elif not channel_stream.tags == tags:
+            await self.channel_stream_db_driver.update('tags', tags, channel_id=channel.id, stream_id=stream_id)
+            LOG.debug(f"The notification tag for {stream_name} has been changed from '{channel_stream.tags}' to "
+                      f"'{tags if tags else ''}'")
             return True
         else:
             LOG.warning(f"{stream_name}#{stream_id} is already track in the channel {channel.name}#{channel.id}")
@@ -259,7 +266,18 @@ class StreamManager(base.DBCogMixin):
         :param ctx: command context
         :param stream_name: The stream to notify
         """
-        if await self._add_stream(ctx.channel, stream_name.lower(), everyone=True):
+        if await self._add_stream(ctx.channel, stream_name.lower(), "@everyone"):
+            await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
+
+    @stream.command()
+    @commands.check(utils.check_is_admin)
+    async def here(self, ctx, stream_name):
+        """ Add a stream to the tracked list (with @here)
+
+        :param ctx: command context
+        :param stream_name: The stream to notify
+        """
+        if await self._add_stream(ctx.channel, stream_name.lower(), "@here"):
             await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
 
     async def _remove_stream(self, channel, stream_name):

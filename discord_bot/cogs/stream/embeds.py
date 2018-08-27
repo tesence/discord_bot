@@ -9,11 +9,11 @@ def get_field(embed, field_name):
         return fields[0]
 
 
-def get_notification(stream, everyone=False):
+def get_notification(stream, tags=None):
     """Return a message and an embed for a given stream
 
     :param stream: stream status
-    :param everyone: Add '@everyone' in front of the message if True
+    :param tags: string of tags to add to the notification message
     :return: notification message and embed
     """
     if stream.type == "live":
@@ -21,8 +21,8 @@ def get_notification(stream, everyone=False):
     else:
         message, embed = _get_vodcast_notification(stream)
 
-    if everyone:
-        message = "@everyone " + message
+    if tags:
+        message = f"{tags} {message}"
 
     return message, embed
 
