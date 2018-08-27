@@ -59,7 +59,7 @@ class ChannelStream(base.BaseModel):
 
     channel_id = base.Column('bigint', base.ForeignKey("channels", "id"))
     stream_id = base.Column('bigint', base.ForeignKey("streams", "id"))
-    everyone = base.Column('bool', default=False)
+    tags = base.Column('varchar(255)', nullable=True)
 
     def __repr__(self):
         return f"<{type(self).__name__} stream_id={self.stream_id} channel_id={self.channel_id}>"
