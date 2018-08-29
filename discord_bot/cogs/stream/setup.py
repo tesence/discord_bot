@@ -76,17 +76,22 @@ class StreamManager(base.DBCogMixin):
             :param stream: The stream going offline
             :param notified_channels: The discord channels in which the stream is tracked
             """
-            embed = stream.notifications[0].embeds[0]
-            offline_embed = embeds.get_offline_embed(embed)
             for notification in stream.notifications:
                 try:
-                    await notification.edit(content="", embed=offline_embed)
+                    if getattr(CONF, 'AUTO_DELETE_OFFLINE_STREAMS', True):
+                        await notification.delete()
+                        LOG.debug(f"The notification for '{stream.name}' sent at '{notification.created_at}' has been "
+                                  f"deleted")
+                    else:
+                        embed = stream.notifications[0].embeds[0]
+                        offline_embed = embeds.get_offline_embed(embed)
+                        await notification.edit(content="", embed=offline_embed)
+                        LOG.debug(f"The notification for '{stream.name}' sent at '{notification.created_at}' has been "
+                                  f"edited at '{notification.edited_at}'")
                     stream.notifications.remove(notification)
-                    LOG.debug(f"The notification for {stream.name} sent at {notification.created_at} has been edited at"
-                              f" {notification.edited_at}")
                 except errors.NotFound:
-                    LOG.warning(f"The notification for {stream.name} sent at {notification.created_at} does not exist "
-                                f"or has already been deleted")
+                    LOG.warning(f"The notification for '{stream.name}' sent at '{notification.created_at}' does not "
+                                f"exist or has already been deleted")
 
         async def on_stream_update(stream, title=None, game=None):
             for notification in stream.notifications:
