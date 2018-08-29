@@ -57,6 +57,7 @@ TWITCH_API_URL = "https://api.twitch.tv/kraken"
 TWITCH_API_ACCEPT = "application/vnd.twitchtv.v5+json"
 TWITCH_API_CLIENT_ID = <twitch client id>
 MIN_OFFLINE_DURATION = 60
+AUTO_DELETE_OFFLINE_STREAMS = True
 
 # DAB COG
 DAB_COOLDOWN = 120
