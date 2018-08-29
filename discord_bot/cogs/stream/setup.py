@@ -320,17 +320,6 @@ class StreamManager(base.DBCogMixin):
         if await self._remove_stream(ctx.channel, stream_name.lower()):
             await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
 
-    # EVENTS
-    async def on_guild_channel_delete(self, channel):
-        """Event called when a discord channel is deleted.
-
-        :param channel: the deleted discord channel
-        """
-        LOG.debug(f"The channel '{channel.guild.name}:{channel.name}' has been deleted")
-        await self.channel_stream_db_driver.delete(channel_id=channel.id)
-        await self.channel_db_driver.delete(id=channel.id)
-        await self.stream_db_driver.delete_deprecated_streams()
-
 
 def setup(bot):
     bot.add_cog(StreamManager(bot))
