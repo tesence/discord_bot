@@ -125,13 +125,12 @@ class OriRandoSeedGenCommands(base.CogMixin):
             # Send the files in the chat
             LOG.debug("Sending the files in Discord...")
             seed_header = data['players'][0]['seed'].split("\n")[0]
-            message = f"Seed requested by **{author_name}**\n" \
-
+            message = f"Seed requested by **{author_name}**\n"
+            message += f"`{seed_header}`\n"
+            message += f"**Spoiler link**: {CONF.SEEDGEN_API_URL + data['players'][0]['spoiler_url']}\n"
             if "tracking" in flags:
                 message += f"**Map**: {CONF.SEEDGEN_API_URL + data['map_url']}\n"
                 message += f"**History**: {CONF.SEEDGEN_API_URL + data['history_url']}\n"
-
-            message += f"`{seed_header}`"
 
             await download_message.delete()
             await self.bot.send(ctx.channel, message,
