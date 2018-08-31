@@ -32,9 +32,10 @@ class TwitchAPIClient(base.APIClient):
         except AttributeError:
             pass
         else:
-            result = {user['name']: user['_id'] for user in users}
+            result = {user['name']: int(user['_id']) for user in users}
             LOG.debug(f"API data for {list(names)}: {result} ({uri})")
             return result
+        return {}
 
     async def get_status(self, *twitch_ids):
         """Retrieve all stream status.
@@ -52,4 +53,5 @@ class TwitchAPIClient(base.APIClient):
             pass
         else:
             return {stream['channel']['_id']: stream for stream in streams}
+        return {}
 

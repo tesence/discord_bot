@@ -5,21 +5,25 @@ import logging
 from discord import errors
 from discord.ext import commands
 
+from discord_bot.api import twitch
 from discord_bot import cfg
+from discord_bot.cogs import base
+from discord_bot.cogs.stream import embeds
 from discord_bot.db import stream
 from discord_bot.emoji import Emoji
 from discord_bot import utils
-
-from discord_bot.api import twitch
-from discord_bot.cogs import base
-
-from discord_bot.cogs.stream import embeds
 
 CONF = cfg.CONF
 LOG = logging.getLogger('bot')
 
 CONF_VARIABLES = ['TWITCH_API_URL', 'TWITCH_API_ACCEPT', 'TWITCH_API_CLIENT_ID',
                   'MIN_OFFLINE_DURATION']
+
+
+class MissingStreamName(commands.MissingRequiredArgument):
+
+    def __init__(self):
+        self.message = "At least one stream name is required"
 
 
 class StreamManager(base.DBCogMixin):
@@ -179,13 +183,13 @@ class StreamManager(base.DBCogMixin):
 
     @commands.group(pass_context=True)
     async def stream(self, ctx):
-        """Manage tracked streams."""
+        """ Manage tracked streams """
         if ctx.invoked_subcommand is None:
             await ctx.invoke(self.bot.get_command('help'), ctx.command.name)
 
     @stream.command()
     async def list(self, ctx):
-        """List current tracked streams."""
+        """ Show the list of the current tracked streams """
 
         channel_streams = await self.channel_stream_db_driver.list()
 
@@ -213,111 +217,134 @@ class StreamManager(base.DBCogMixin):
 
             await self.bot.send(ctx.channel, message, embed=embed, reaction=True)
 
-    async def _add_stream(self, channel, stream_name, *tags):
+    async def _add_streams(self, channel, *stream_names, tags=None):
         """ Add a stream in a discord channel tracklist
 
         :param channel: The discord channel in which the stream notifications are enabled
-        :param stream_name: The stream to notify
+        :param stream_names: The streams to notify
         :param tags: List of tags to add to the notification
         """
-        stream_name = stream_name.lower()
-        stream_id = int((await self.client.get_ids(stream_name))[stream_name])
-        tags = " ".join(tags) if tags else None
-
-        channel_stream = await self.channel_stream_db_driver.get(channel_id=channel.id, stream_id=stream_id)
-        if not channel_stream:
-            if not await self.stream_db_driver.get(id=stream_id):
-                # Store the twitch stream in the database if it wasn't tracked anywhere before
-                stream = await self.stream_db_driver.create(id=stream_id, name=stream_name)
-                self.streams_by_id[stream_id] = stream
-            else:
-                LOG.debug(f"The stream {stream_name}#{stream_id} has already been stored in the database")
-
+        stream_ids_by_name = await self.client.get_ids(*stream_names)
+        if stream_ids_by_name:
             if not await self.channel_db_driver.get(id=channel.id):
                 # Store the discord channel in the database if nothing was tracked in it before
                 await self.channel_db_driver.create(id=channel.id, name=channel.name, guild_id=channel.guild.id,
                                                     guild_name=channel.guild.name)
             else:
                 LOG.debug(f"The channel {channel.name}#{channel.id} has already been stored in the database")
+            tasks = [self._add_stream(channel, name, id, tags) for name, id in stream_ids_by_name.items()]
+            return await asyncio.gather(*tasks, loop=self.bot.loop)
+
+    async def _add_stream(self, channel, stream_name, stream_id, tags=None):
+        """ Add a stream in a discord channel tracklist
+
+        :param channel: The discord channel in which the stream notifications are enabled
+        :param stream_name: The stream name to notify
+        :param stream_name: The stream id to notify
+        :param tags: List of tags to add to the notification
+        """
+        channel_stream = await self.channel_stream_db_driver.get(channel_id=channel.id, stream_id=stream_id)
+        if not channel_stream:
+            if not await self.stream_db_driver.get(id=stream_id):
+                # Store the twitch stream in the database if it wasn't tracked anywhere before
+                stream = await self.stream_db_driver.create(id=stream_id, name=stream_name)
+                self.streams_by_id[stream_id] = stream
+                LOG.warning(f"{stream_name}#{stream_id} is now tracked in the channel {channel.name}#{channel.id}")
+            else:
+                LOG.debug(f"The stream {stream_name}#{stream_id} has already been stored in the database")
 
             # Create a new relation between the twitch stream and the discord channel
             await self.channel_stream_db_driver.create(channel_id=channel.id, stream_id=stream_id, tags=tags)
-            return True
         elif not channel_stream.tags == tags:
             await self.channel_stream_db_driver.update('tags', tags, channel_id=channel.id, stream_id=stream_id)
-            LOG.debug(f"The notification tag for {stream_name} has been changed from '{channel_stream.tags}' to "
-                      f"'{tags if tags else ''}'")
-            return True
+            LOG.debug(f"The notification tag for {stream_name} has been changed from '{channel_stream.tags}' "
+                      f"to '{tags}'")
         else:
-            LOG.warning(f"{stream_name}#{stream_id} is already track in the channel {channel.name}#{channel.id}")
-            return False
+            LOG.warning(f"{stream_name}#{stream_id} is already track in the channel "
+                        f"{channel.name}#{channel.id}")
+        return True
 
     @stream.command()
     @commands.check(utils.check_is_admin)
-    async def add(self, ctx, stream_name):
-        """ Add a stream to the tracked list
-
-        :param ctx: command context
-        :param stream_name: The stream to notify
-        """
-        if await self._add_stream(ctx.channel, stream_name.lower()):
+    async def add(self, ctx, *stream_names):
+        """ Track a list of streams in a channel """
+        if not stream_names:
+            raise MissingStreamName
+        result = await self._add_streams(ctx.channel, *stream_names)
+        if result and all(result):
             await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
 
     @stream.command()
     @commands.check(utils.check_is_admin)
-    async def everyone(self, ctx, stream_name):
-        """ Add a stream to the tracked list (with @everyone)
-
-        :param ctx: command context
-        :param stream_name: The stream to notify
-        """
-        if await self._add_stream(ctx.channel, stream_name.lower(), "@everyone"):
+    async def everyone(self, ctx, *stream_names):
+        """ Track a list of streams in a channel (with @everyone) """
+        if not stream_names:
+            raise MissingStreamName
+        result = await self._add_streams(ctx.channel, *stream_names, tags="@everyone")
+        if result and all(result):
             await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
 
     @stream.command()
     @commands.check(utils.check_is_admin)
-    async def here(self, ctx, stream_name):
-        """ Add a stream to the tracked list (with @here)
-
-        :param ctx: command context
-        :param stream_name: The stream to notify
-        """
-        if await self._add_stream(ctx.channel, stream_name.lower(), "@here"):
+    async def here(self, ctx, *stream_names):
+        """ Track a list of streams in a channel (with @here) """
+        if not stream_names:
+            raise MissingStreamName
+        result = await self._add_streams(ctx.channel, *stream_names, tags="@here")
+        if result and all(result):
             await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
 
-    async def _remove_stream(self, channel, stream_name):
-        stream_id = int((await self.client.get_ids(stream_name))[stream_name])
+    async def _remove_streams(self, channel, *stream_names):
+        """ Remove a list streams from a discord channel tracklist
 
-        if await self.channel_stream_db_driver.get(channel_id=channel.id, stream_id=stream_id):
+        :param channel: The discord channel in which the stream notifications are enabled
+        :param stream_names: The streams to stop tracking
+        """
+        stream_ids_by_name = await self.client.get_ids(*stream_names)
+        if stream_ids_by_name:
+            tasks = [self._remove_stream(channel, name, id) for name, id in stream_ids_by_name.items()]
+            result = await asyncio.gather(*tasks, loop=self.bot.loop)
 
+            # Remove the discord channel from the database if there no streams notified in it anymore
+            if not await self.channel_stream_db_driver.get(channel_id=channel.id) and \
+                    await self.channel_db_driver.get(id=channel.id):
+                LOG.debug(f"There is no stream tracked in the channel {channel.name}#{channel.id}, the channel "
+                          f"is deleted from the database")
+                asyncio.ensure_future(self.channel_db_driver.delete(id=channel.id), loop=self.bot.loop)
+            return result
+
+    async def _remove_stream(self, channel, stream_name, stream_id):
+        """ Remove a stream from a discord channel tracklist
+
+        :param channel: The discord channel in which the stream notifications are enabled
+        :param stream_name: The stream_name to stop tracking
+        :param stream_id: The stream_id to stop tracking
+        """
+        channel_stream = await self.channel_stream_db_driver.get(channel_id=channel.id, stream_id=stream_id)
+        if channel_stream:
             # Remove the relation between the twitch stream and the discord channel
             await self.channel_stream_db_driver.delete(channel_id=channel.id, stream_id=stream_id)
             LOG.debug(f"{stream_name} is no longer tracked in '{channel.guild.name}:{channel.name}'")
 
-            # Remove the discord channel from the database if there no streams notified in it anymore
-            if not await self.channel_stream_db_driver.get(channel_id=channel.id):
-                LOG.debug(f"There is no stream tracked in the channel {channel.name}#{channel.id}, the channel is "
-                          "deleted from the database")
-                await self.channel_db_driver.delete(id=channel.id)
-
             # Remove the twitch stream from the database of it's not notified anymore
             if not await self.channel_stream_db_driver.get(stream_id=stream_id):
-                LOG.debug(f"The stream {stream_name}#{stream_id} is no longer tracked in any channel, the stream "
-                          "is deleted from the database")
+                LOG.debug(f"The stream {stream_name}#{stream_id} is no longer tracked in any channel, the "
+                          f"stream is deleted from the database")
                 del self.streams_by_id[stream_id]
-                await self.stream_db_driver.delete(id=stream_id)
-            return True
-        return False
+                asyncio.ensure_future(self.stream_db_driver.delete(id=stream_id), loop=self.bot.loop)
+        else:
+            LOG.debug(f"The stream {stream_name}#{stream_id} is not tracked in the channel "
+                      f"{channel.name}#{channel.id}")
+        return True
 
     @stream.command()
     @commands.check(utils.check_is_admin)
-    async def remove(self, ctx, stream_name):
-        """ Disable bot notification for a stream in a specific channel
-
-        :param ctx: command context
-        :param stream_name: The stream to notify
-        """
-        if await self._remove_stream(ctx.channel, stream_name.lower()):
+    async def remove(self, ctx, *stream_names):
+        """ Stop tracking a list of streams in a channel """
+        if not stream_names:
+            raise MissingStreamName
+        result = await self._remove_streams(ctx.channel, *stream_names)
+        if result and all(result):
             await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
 
 
