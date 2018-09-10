@@ -51,7 +51,7 @@ class OriRandoSeedGenCommands(base.CogMixin):
 
     @commands.command()
     @commands.cooldown(1, getattr(CONF, 'SEEDGEN_COOLDOWN', 0), BucketType.guild)
-    async def seed(self, ctx, *args):
+    async def seed(self, ctx, *, args=""):
         """Generate a seed for the Ori randomizer
 
         Default: standard, clues, forcetrees
@@ -70,11 +70,13 @@ class OriRandoSeedGenCommands(base.CogMixin):
         author_name = ctx.author.nick or ctx.author.name
         LOG.debug(f"Seed requested by {author_name}: '{ctx.message.content}'")
 
-        seed_codes = re.findall('[^"]*"(.*)"', ctx.message.content)
+        seed_codes = re.findall('[^"]*(".*")', args)
         LOG.debug(f"Valid seed codes found: {seed_codes}")
-        seed = seed_codes[0] if seed_codes else str(random.randint(1, 1000000000))
+        seed = seed_codes[0][1:-1] if seed_codes else str(random.randint(1, 1000000000))
 
-        args = [arg.lower() for arg in args]
+        for seed_code in seed_codes:
+            args = args.replace(seed_code, "")
+        args = [arg.lower() for arg in args.split()]
 
         def get_matching(target_list):
             matching_vals = [arg for arg in args if arg in target_list]
