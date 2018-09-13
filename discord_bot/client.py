@@ -50,15 +50,17 @@ class Bot(commands.Bot):
         message = await channel.get_message(payload.message_id)
         emoji = payload.emoji.name
         author = message.author
-        embeds = len(message.embeds)
+        embed = message.embeds[0] if message.embeds else None
 
         is_bot_message = author.id == self.user.id
         is_bot_reaction = user.id == self.user.id
 
         if is_bot_message and not is_bot_reaction and emoji == Emoji.WASTEBASKET and utils.is_admin(user):
             await message.delete()
-            LOG.debug(f"{user.name} has deleted the message '{message.content}' from {message.author.name} "
-                      f"(embeds={embeds})")
+            log = f"{user.name} has deleted the message '{message.content}' from {message.author.name} "
+            if embed:
+                log += f"(Embed={embed.to_dict()})"
+            LOG.debug(log)
 
     async def start(self, *args, **kwargs):
         try:

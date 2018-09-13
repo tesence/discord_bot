@@ -99,17 +99,21 @@ class StreamManager(base.DBCogMixin):
 
         async def on_stream_update(stream, title=None, game=None):
             for notification in stream.notifications:
-                embed = notification.embeds[0]
-                fields = embed.fields
-                if not stream.title == title:
-                    embed.set_field_at(index=0, name=fields[0].name, value=title, inline=fields[0].inline)
-                    LOG.debug(f"{stream.display_name} has changed the title of the stream from '{stream.title}' "
-                              f"to '{title}'")
-                if not stream.game == game:
-                    embed.set_field_at(index=1, name=fields[1].name, value=game, inline=fields[1].inline)
-                    LOG.debug(f"{stream.display_name} has changed the game of the stream from '{stream.game}' "
-                              f"to '{game}'")
-                await notification.edit(embed=embed)
+                try:
+                    embed = notification.embeds[0]
+                    fields = embed.fields
+                    if not stream.title == title:
+                        LOG.debug(f"{stream.display_name} has changed the title of the stream from '{stream.title}' "
+                                  f"to '{title}'")
+                        embed.set_field_at(index=0, name=fields[0].name, value=title, inline=fields[0].inline)
+                    if not stream.game == game:
+                        LOG.debug(f"{stream.display_name} has changed the game of the stream from '{stream.game}' "
+                                  f"to '{game}'")
+                        embed.set_field_at(index=1, name=fields[1].name, value=game, inline=fields[1].inline)
+                    await notification.edit(embed=embed)
+                except errors.NotFound:
+                    LOG.warning(f"The notification for '{stream.name}' sent at '{notification.created_at}' does not "
+                                f"exist or has already been deleted")
 
         while True:
             # Build a dictionary to easily iterate through the tracked streams
@@ -141,30 +145,35 @@ class StreamManager(base.DBCogMixin):
                         stream_status = status[stream.id]
                         stream.last_offline_date = None
 
-                        # If the stream title or game has changed, the notifications are updated
-                        if (stream.title and not stream_status['channel']['status'] == stream.title) or \
-                                (stream.game and not stream_status['game'] == stream.game):
-                            await on_stream_update(stream, title=stream_status['channel']['status'],
-                                                   game=stream_status['game'])
+                        # Store new values in variables to compare with the previous ones
+                        current_name = stream_status['channel']['name']
+                        current_game = stream_status['game'].strip() or "No Game"
+                        current_title = stream_status['channel']['status'].strip() or "No Title"
+
+                        if (current_title and not current_title == stream.title) or \
+                           (current_game and not current_game == stream.game):
+                            await on_stream_update(stream, title=current_title, game=current_game)
 
                         # Update streamer's name in the database if it has changed
-                        if not stream.name == stream_status['channel']['name']:
-                            await self.stream_db_driver.update('name', stream_status['channel']['name'], id=stream.id)
-                            LOG.debug(f"'{stream.name} has changed his name to '{stream_status['channel']['name']}'"
+                        if not stream.name == current_name:
+                            await self.stream_db_driver.update('name', current_name, id=stream.id)
+                            LOG.debug(f"'{stream.name} has changed his name to '{current_name}'"
                                       f"The value has been updated in the database")
 
-                        stream.name = stream_status['channel']['name']
+                        # Update old values
+                        stream.name = current_name
                         stream.display_name = stream_status['channel']['display_name']
-                        stream.title = stream_status['channel']['status']
-                        stream.game = stream_status['game']
                         stream.logo = stream_status['channel']['logo']
+                        stream.game = current_game
+                        stream.title = current_title
                         stream.type = stream_status['stream_type']
 
                         # If the stream was not online during the previous iteration, the stream just went online
                         if not stream.online:
-                            await on_stream_online(stream, notified_channels)
                             channels_str = [f"{nc.channel.name}#{nc.channel.id}" for nc in notified_channels]
-                            LOG.debug(f"{stream.name} is live and notified in the channels: {', '.join(channels_str)}")
+                            LOG.debug(f"{stream.name} is live (title='{stream.title}', game='{stream.game}') "
+                                      f"and notified in the channels: {', '.join(channels_str)}")
+                            await on_stream_online(stream, notified_channels)
                             stream.online = True
 
                     # If the stream is offline, but was online during the previous iteration, the stream just went
@@ -172,9 +181,9 @@ class StreamManager(base.DBCogMixin):
                     # To avoid spam if a stream keeps going online/offline because of Twitch or bad connections,
                     # we consider a stream as offline if it was offline for at least MIN_OFFLINE_DURATION
                     elif stream.online and stream.offline_duration > CONF.MIN_OFFLINE_DURATION:
+                        LOG.debug(f"{stream.name} just went offline")
                         await on_stream_offline(stream, notified_channels)
                         stream.online = False
-                        LOG.debug(f"{stream.name} just went offline")
             else:
                 LOG.warning("Cannot retrieve status, the polling iteration has been skipped.")
             await asyncio.sleep(10)
