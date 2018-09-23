@@ -1,3 +1,4 @@
+import aiohttp
 import logging
 
 from discord_bot.api import base
@@ -27,7 +28,7 @@ class TwitchAPIClient(base.APIClient):
         try:
             body = await (await self.get(uri)).json()
             users = body['users']
-        except (KeyError, TypeError):
+        except (KeyError, TypeError, aiohttp.ClientPayloadError):
             LOG.exception(f"Cannot parse retrieved ids for {names}")
         except AttributeError:
             pass
@@ -47,7 +48,7 @@ class TwitchAPIClient(base.APIClient):
         try:
             body = await (await self.get(uri)).json()
             streams = body['streams']
-        except (KeyError, TypeError):
+        except (KeyError, TypeError, aiohttp.ClientPayloadError):
             LOG.exception("Cannot retrieve stream data")
         except AttributeError:
             pass
