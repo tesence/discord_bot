@@ -11,7 +11,7 @@ from discord.ext.commands.cooldowns import BucketType
 
 from discord_bot.api import ori_randomizer
 from discord_bot import cfg
-from discord_bot.cogs import base
+from discord_bot import cogs
 from discord_bot import utils
 
 CONF = cfg.CONF
@@ -24,7 +24,7 @@ SPOILER_FILENAME = "spoiler.txt"
 DOWNLOAD_MESSAGES_FILE_PATH = "data/download_messages.json"
 
 
-class OriRandoSeedGenCommands(base.CogMixin):
+class OriRandoSeedGenCommands(cogs.CogMixin):
 
     def __init__(self, bot):
         super(OriRandoSeedGenCommands, self).__init__(bot, *CONF_VARIABLES)

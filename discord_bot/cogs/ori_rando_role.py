@@ -5,7 +5,7 @@ from discord import utils as discord_utils
 
 from discord_bot import cfg
 from discord_bot.emoji import Emoji
-from discord_bot.cogs import base
+from discord_bot import cogs
 
 CONF = cfg.CONF
 LOG = logging.getLogger('bot')
@@ -13,7 +13,7 @@ LOG = logging.getLogger('bot')
 CONF_VARIABLES = ['RANDO_ROLE']
 
 
-class OriRandoRoleCommands(base.CogMixin):
+class OriRandoRoleCommands(cogs.CogMixin):
 
     def __init__(self, bot):
         super(OriRandoRoleCommands, self).__init__(bot, *CONF_VARIABLES)

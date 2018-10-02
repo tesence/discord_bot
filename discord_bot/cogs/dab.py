@@ -5,13 +5,13 @@ from discord.ext import commands
 from discord.ext.commands.cooldowns import BucketType
 
 from discord_bot import cfg
-from discord_bot.cogs import base
+from discord_bot import cogs
 
 CONF = cfg.CONF
 LOG = logging.getLogger('bot')
 
 
-class DabCommands(base.CogMixin):
+class DabCommands(cogs.CogMixin):
 
     def __init__(self, bot):
         super(DabCommands, self).__init__(bot)

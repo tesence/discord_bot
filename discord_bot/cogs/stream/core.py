@@ -7,7 +7,7 @@ from discord.ext import commands
 
 from discord_bot.api import twitch
 from discord_bot import cfg
-from discord_bot.cogs import base
+from discord_bot import cogs
 from discord_bot.cogs.stream import embeds
 from discord_bot.db import stream
 from discord_bot.emoji import Emoji
@@ -26,7 +26,7 @@ class MissingStreamName(commands.MissingRequiredArgument):
         self.message = "At least one stream name is required"
 
 
-class StreamManager(base.DBCogMixin):
+class StreamManager(cogs.DBCogMixin):
 
     def __init__(self, bot):
         type(self).__name__ = "Stream commands"
