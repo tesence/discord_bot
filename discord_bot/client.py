@@ -70,13 +70,13 @@ class Bot(commands.Bot):
 
     def load_extensions(self):
         """Load all the extensions"""
-        extension_module_name = f"{utils.get_project_name()}.cogs"
         for extension in CONF.LOADED_EXTENSIONS:
             try:
-                self.load_extension(extension_module_name + "." + extension)
-                LOG.debug(f"The extension '{extension.split('.')[0]}' has been successfully loaded")
+                extension = f"cogs.{extension}"
+                self.load_extension(extension)
+                LOG.debug(f"The extension '{extension}' has been successfully loaded")
             except:
-                LOG.exception(f"Failed to load extension '{extension.split('.')[0]}'")
+                LOG.exception(f"Failed to load extension '{extension}'")
 
     async def send(self, channel, content, reaction=False, code_block=False, **kwargs):
         if code_block:

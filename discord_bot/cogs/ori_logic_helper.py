@@ -4,7 +4,7 @@ from collections import defaultdict
 from discord.ext import commands
 
 from discord_bot import cfg
-from discord_bot.cogs import base
+from discord_bot import cogs
 
 CONF = cfg.CONF
 LOG = logging.getLogger('bot')
@@ -40,7 +40,7 @@ PRESETS = ["casual", "standard", "expert", "master", "hard", "ohko", "0xp", "gli
 CONF_VARIABLES = ['SEEDGEN_API_URL']
 
 
-class OriLogicHelperCommands(base.CogMixin):
+class OriLogicHelperCommands(cogs.CogMixin):
 
     def __init__(self, bot):
         super(OriLogicHelperCommands, self).__init__(bot, *CONF_VARIABLES)

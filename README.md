@@ -49,7 +49,7 @@ Create a python file and fill it as follow
 # CLIENT
 COMMAND_PREFIX = "!"
 ADMIN_ROLES = <list of roles that have admin rights>
-LOADED_EXTENSIONS = ["stream.setup", "dab", "ori_rando_seedgen", "ori_rando_role", "ori_logic_helper"]
+LOADED_EXTENSIONS = ["stream", "dab", "ori_rando_seedgen", "ori_rando_role", "ori_logic_helper"]
 DISCORD_BOT_TOKEN = <discord bot token>
 
 # TWITCH COG
