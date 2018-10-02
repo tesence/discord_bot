@@ -9,7 +9,7 @@ from discord_bot.api import twitch
 from discord_bot import cfg
 from discord_bot import cogs
 from discord_bot.cogs.stream import embeds
-from discord_bot.db import stream
+from discord_bot import db
 from discord_bot.emoji import Emoji
 from discord_bot import utils
 
@@ -32,13 +32,14 @@ class StreamManager(cogs.DBCogMixin):
         type(self).__name__ = "Stream commands"
         super(StreamManager, self).__init__(bot, *CONF_VARIABLES)
         self.client = twitch.TwitchAPIClient(self.bot.loop)
-        self.stream_db_driver = stream.StreamDBDriver(self.bot.loop)
-        self.channel_db_driver = stream.ChannelDBDriver(self.bot.loop)
-        self.channel_stream_db_driver = stream.ChannelStreamDBDriver(self.bot.loop)
+        asyncio.ensure_future(self.configure_database(), loop=self.bot.loop)
 
-        asyncio.ensure_future(self.load_database_data(), loop=self.bot.loop)
+    async def configure_database(self):
+        await self.connection_ready.wait()
 
-    async def load_database_data(self):
+        self.stream_db_driver = db.StreamDBDriver(self.pool, self.bot.loop)
+        self.channel_db_driver = db.ChannelDBDriver(self.pool, self.bot.loop)
+        self.channel_stream_db_driver = db.ChannelStreamDBDriver(self.pool, self.bot.loop)
 
         streams = await self.stream_db_driver.list()
         LOG.debug(f"Streams={streams}")
@@ -49,7 +50,7 @@ class StreamManager(cogs.DBCogMixin):
         channel_streams = await self.channel_stream_db_driver.list()
         LOG.debug(f"ChannelStreams={channel_streams}")
 
-        self.streams_by_id = {stream.id: stream for stream in streams}
+        self.streams_by_id = {s.id: s for s in streams}
 
     async def on_ready(self):
         try:

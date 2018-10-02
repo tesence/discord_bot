@@ -12,6 +12,10 @@ CONF = cfg.CONF
 LOG = logging.getLogger('bot')
 
 
+async def get_pool():
+    return await asyncpg.create_pool(**CONF.DATABASE_CREDENTIALS, min_size=1, max_size=5)
+
+
 class Column:
 
     def __init__(self, type, foreign_key=None, primary_key=False, nullable=True, default=None):
@@ -61,11 +65,11 @@ def transaction():
 
 class DBDriver:
 
-    def __init__(self, loop, model):
-        self.model = model
+    def __init__(self, pool, loop, model):
+        self.pool = pool
         self.loop = loop
+        self.model = model
         self.ready = asyncio.Event(loop=loop)
-        self.pool = None
         asyncio.ensure_future(self.configure(), loop=loop)
 
     @property
@@ -73,7 +77,6 @@ class DBDriver:
         return self.table_info['name']
 
     async def configure(self):
-        self.pool = await asyncpg.create_pool(**CONF.DATABASE_CREDENTIALS)
         self._get_table_info()
         await self._create_table_if_not_exist()
         self.ready.set()

@@ -67,14 +67,14 @@ class ChannelStream(base.BaseModel):
 
 class ChannelDBDriver(base.DBDriver):
 
-    def __init__(self, loop):
-        super(ChannelDBDriver, self).__init__(loop, Channel)
+    def __init__(self, pool, loop):
+        super(ChannelDBDriver, self).__init__(pool, loop, Channel)
 
 
 class StreamDBDriver(base.DBDriver):
 
-    def __init__(self, loop):
-        super(StreamDBDriver, self).__init__(loop, Stream)
+    def __init__(self, pool, loop):
+        super(StreamDBDriver, self).__init__(pool, loop, Stream)
 
     @transaction()
     async def delete_deprecated_streams(self):
@@ -89,5 +89,5 @@ class StreamDBDriver(base.DBDriver):
 
 class ChannelStreamDBDriver(base.DBDriver):
 
-    def __init__(self, loop):
-        super(ChannelStreamDBDriver, self).__init__(loop, ChannelStream)
+    def __init__(self, pool, loop):
+        super(ChannelStreamDBDriver, self).__init__(pool, loop, ChannelStream)
