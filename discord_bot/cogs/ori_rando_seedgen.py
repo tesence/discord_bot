@@ -9,7 +9,7 @@ import discord
 from discord.ext import commands
 from discord.ext.commands.cooldowns import BucketType
 
-from discord_bot.api import ori_randomizer
+from discord_bot import api
 from discord_bot import cfg
 from discord_bot import cogs
 from discord_bot import utils
@@ -29,7 +29,7 @@ class OriRandoSeedGenCommands(cogs.CogMixin):
     def __init__(self, bot):
         super(OriRandoSeedGenCommands, self).__init__(bot, *CONF_VARIABLES)
         type(self).__name__ = "Ori rando commands"
-        self.client = ori_randomizer.OriRandomizerAPIClient(self.bot.loop)
+        self.client = api.OriRandomizerAPIClient(self.bot.loop)
 
     @staticmethod
     def _get_download_message():

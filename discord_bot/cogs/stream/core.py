@@ -5,7 +5,7 @@ import logging
 from discord import errors
 from discord.ext import commands
 
-from discord_bot.api import twitch
+from discord_bot import api
 from discord_bot import cfg
 from discord_bot import cogs
 from discord_bot.cogs.stream import embeds
@@ -31,7 +31,7 @@ class StreamManager(cogs.DBCogMixin):
     def __init__(self, bot):
         type(self).__name__ = "Stream commands"
         super(StreamManager, self).__init__(bot, *CONF_VARIABLES)
-        self.client = twitch.TwitchAPIClient(self.bot.loop)
+        self.client = api.TwitchAPIClient(self.bot.loop)
         asyncio.ensure_future(self.configure_database(), loop=self.bot.loop)
 
     async def configure_database(self):
