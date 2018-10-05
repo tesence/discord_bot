@@ -27,7 +27,7 @@ class Stream(base.BaseModel):
 
     __tablename__ = "streams"
 
-    id = base.Column('bigint', primary_key=True)
+    id = base.Column('varchar(255)', primary_key=True)
     name = base.Column('varchar(255)', nullable=False)
 
     def __repr__(self):

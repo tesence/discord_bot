@@ -87,4 +87,4 @@ class OriRandomizerAPIClient(base.APIClient):
         LOG.debug(f"Parameters used for the seed generation: {params}")
 
         url = "/generator/json?" + "&".join([f"{param[0]}={param[1]}" for param in params])
-        return await (await self.get(url)).json()
+        return await self.get(url)
