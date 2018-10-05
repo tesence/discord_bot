@@ -13,11 +13,14 @@ HEADERS = {
     "accept": CONF.TWITCH_API_ACCEPT
 }
 
+WARNING_EXCEPTIONS = (aiohttp.ClientPayloadError, aiohttp.ServerDisconnectedError)
+
 
 class TwitchAPIClient(base.APIClient):
 
     def __init__(self, loop):
-        super(TwitchAPIClient, self).__init__(base_url=CONF.TWITCH_API_URL, headers=HEADERS, loop=loop)
+        super(TwitchAPIClient, self).__init__(base_url=CONF.TWITCH_API_URL, headers=HEADERS, loop=loop,
+                                              warning_exceptions=WARNING_EXCEPTIONS)
 
     async def get_ids(self, *names):
         """Retrieve all user ids.
@@ -25,34 +28,26 @@ class TwitchAPIClient(base.APIClient):
         :param names: names whose we want the id
         """
         uri = f"/users?login={','.join(names)}"
-        try:
-            body = await (await self.get(uri)).json()
-            users = body['users']
-        except (KeyError, TypeError, aiohttp.ClientPayloadError):
-            LOG.exception(f"Cannot parse retrieved ids for {names}")
-        except AttributeError:
-            pass
-        else:
-            result = {user['name']: int(user['_id']) for user in users}
-            LOG.debug(f"API data for {list(names)}: {result} ({uri})")
-            return result
-        return {}
+        body = await self.get(uri)
+        if body:
+            try:
+                data = {user['name']: user['_id'] for user in body['users']}
+            except:
+                LOG.exception(f"Cannot retrieve channel ids")
+            else:
+                return data
 
-    async def get_status(self, *twitch_ids):
+    async def get_status(self, *ids):
         """Retrieve all stream status.
 
-        :param twitch_ids: twitch ids whose we want the status
+        :param ids: twitch ids whose we want the status
         """
-        ids = ','.join([str(twitch_id) for twitch_id in twitch_ids])
-        uri = f"/streams/?channel={ids}"
-        try:
-            body = await (await self.get(uri)).json()
-            streams = body['streams']
-        except (KeyError, TypeError, aiohttp.ClientPayloadError):
-            LOG.exception("Cannot retrieve stream data")
-        except AttributeError:
-            pass
-        else:
-            return {stream['channel']['_id']: stream for stream in streams}
-        return {}
-
+        uri = f"/streams?channel={','.join(ids)}"
+        body = await self.get(uri)
+        if body:
+            try:
+                data = {str(stream['channel']['_id']): stream for stream in body['streams']}
+            except:
+                LOG.exception(f"Cannot retrieve stream data")
+            else:
+                return data
