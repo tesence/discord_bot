@@ -128,6 +128,16 @@ class DBDriver:
         return parsed_conditions
 
     @transaction()
+    async def get_size(self):
+        try:
+            query = f"SELECT COUNT(*) FROM {self.table_name}"
+            result = list((await self.pool.fetchrow(query)).values())[0]
+        except exceptions.PostgresError:
+            LOG.exception(f"Cannot retrieve size for table '{self.table_name}' ('{query}')")
+        else:
+            return result
+
+    @transaction()
     async def get(self, **conditions):
         try:
             query = f"SELECT * FROM {self.table_name}"
@@ -139,7 +149,7 @@ class DBDriver:
             if result:
                 result = self.model(**dict(result.items()))
         except exceptions.PostgresError:
-            LOG.error(f"Cannot retrieve data for values: {conditions} ('{query}')")
+            LOG.exception(f"Cannot retrieve data for values: {conditions} ('{query}')")
         else:
             return result
 
@@ -153,7 +163,7 @@ class DBDriver:
             query += ";"
             result = [self.model(**dict(e.items())) for e in await self.pool.fetch(query)]
         except exceptions.PostgresError:
-            LOG.error(f"Cannot retrieve data for values: {conditions} ('{query}')")
+            LOG.exception(f"Cannot retrieve data for values: {conditions} ('{query}')")
         else:
             return result
 

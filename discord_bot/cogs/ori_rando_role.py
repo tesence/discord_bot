@@ -4,7 +4,7 @@ from discord.ext import commands
 from discord import utils as discord_utils
 
 from discord_bot import cfg
-from discord_bot.emoji import Emoji
+from discord_bot import Emoji
 from discord_bot import cogs
 
 CONF = cfg.CONF

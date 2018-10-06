@@ -67,9 +67,6 @@ class OriRandoSeedGenCommands(cogs.CogMixin):
         - flags: tracking, verbose_paths, classic_gen, hard-path, easy-path
         """
 
-        author_name = ctx.author.nick or ctx.author.name
-        LOG.debug(f"Seed requested by {author_name}: '{ctx.message.content}'")
-
         seed_codes = re.findall('[^"]*(".*")', args)
         LOG.debug(f"Valid seed codes found: {seed_codes}")
         seed = seed_codes[0][1:-1] if seed_codes else str(random.randint(1, 1000000000))
@@ -117,7 +114,7 @@ class OriRandoSeedGenCommands(cogs.CogMixin):
         download_message = await self.bot.send(ctx.channel, f"{self._get_download_message()}...")
         try:
             # Download the seed data
-            LOG.debug(f"Downloading the seed data. Download message: '{download_message.content}''")
+            LOG.debug(f"Downloading the seed data: '{download_message.content}''")
             data = await self.client.get_data(seed, logic_preset, key_mode, path_diff, variations, logic_paths, flags)
 
             # Store the data into file buffers
@@ -125,9 +122,8 @@ class OriRandoSeedGenCommands(cogs.CogMixin):
             spoiler_buffer = io.BytesIO(bytes(data['players'][0]['spoiler'], encoding="utf8"))
 
             # Send the files in the chat
-            LOG.debug("Sending the files in Discord...")
             seed_header = data['players'][0]['seed'].split("\n")[0]
-            message = f"Seed requested by **{author_name}**\n"
+            message = f"Seed requested by **{ctx.author.display_name}**\n"
             message += f"`{seed_header}`\n"
             message += f"**Spoiler link**: {CONF.SEEDGEN_API_URL + data['players'][0]['spoiler_url']}\n"
             if "tracking" in flags:

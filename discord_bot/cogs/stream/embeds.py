@@ -3,12 +3,6 @@ from discord import colour, embeds
 TWITCH_ICON_URL = "https://www.shareicon.net/download/2015/09/08/98061_twitch_512x512.png"
 
 
-def get_field(embed, field_name):
-    fields = [field for field in embed.fields if field.name == field_name]
-    if fields:
-        return fields[0]
-
-
 def get_notification(stream, tags=None):
     """Return a message and an embed for a given stream
 
