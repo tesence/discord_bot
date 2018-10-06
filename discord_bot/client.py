@@ -3,7 +3,7 @@ import logging
 from discord.ext import commands
 
 from discord_bot import cfg
-from discord_bot.emoji import Emoji
+from discord_bot import Emoji
 from discord_bot import utils
 
 CONF = cfg.CONF
@@ -20,10 +20,11 @@ class Bot(commands.Bot):
     async def on_ready(self):
         LOG.debug(f"Bot is connected | user id: {self.user.id} | username: {self.user.name}")
 
+    async def on_command(self, ctx):
+        LOG.debug(f"Command '{ctx.command.name}' called by '{ctx.author.display_name}': '{ctx.message.content}'")
+
     async def on_command_error(self, ctx, error):
-        """The event triggered when an error is raised while invoking a command.
-        ctx   : Context
-        error : Exception"""
+        """The event triggered when an error is raised while invoking a command."""
 
         if hasattr(ctx.command, 'on_error'):
             return
@@ -40,8 +41,8 @@ class Bot(commands.Bot):
                         f"cooldown for {round(error.retry_after, 2)}s")
             await ctx.message.add_reaction(Emoji.ARROWS_COUNTERCLOCKWISE)
         else:
-            LOG.exception(f"Exception '{type(error).__name__}' raised in command '{ctx.command}'",
-                          exc_info=(type(error), error, error.__traceback__))
+            LOG.warning(f"Exception '{type(error).__name__}' raised in command '{ctx.command}'",
+                        exc_info=(type(error), error, error.__traceback__))
 
     async def on_raw_reaction_add(self, payload):
         channel = self.get_channel(payload.channel_id)
@@ -59,7 +60,7 @@ class Bot(commands.Bot):
             await message.delete()
             log = f"{user.name} has deleted the message '{message.content}' from {message.author.name} "
             if embed:
-                log += f"(Embed={embed.to_dict()})"
+                log += f"(Embed fields: {embed.to_dict()['fields']})"
             LOG.debug(log)
 
     async def start(self, *args, **kwargs):

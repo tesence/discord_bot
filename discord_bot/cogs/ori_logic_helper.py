@@ -64,9 +64,6 @@ class OriLogicHelperCommands(cogs.CogMixin):
             expert logic, Bash+Grenade, 4 Energy: !logic expert Bash Grenade Energyx4
         """
 
-        author_name = ctx.author.nick or ctx.author.name
-        LOG.debug(f"logic link requested by {author_name}: '{ctx.message.content}'")
-
         args = [arg.lower() for arg in args]
 
         preset = "standard"

@@ -22,13 +22,12 @@ class DabCommands(cogs.CogMixin):
     async def dab(self, ctx, *, dabbed=None):
         """Disrespect someone"""
         if not dabbed:
-            await ctx.invoke(self.bot.get_command('help'), "dab")
+            await ctx.invoke(self.bot.get_command('help'), ctx.command.name)
         elif "@here" not in dabbed and "@everyone" not in dabbed:
             times = random.randint(0, 100)
-            author_name = ctx.author.nick or ctx.author.name
-            answer = f"{author_name} dabs on {dabbed} {times} times!"
-            LOG.debug(answer)
-            await ctx.message.channel.send(answer)
+            answer = f"{ctx.author.display_name} dabs on {dabbed} {times} times!"
+            LOG.info(answer)
+            await self.bot.send(ctx.channel, answer)
 
 
 def setup(bot):

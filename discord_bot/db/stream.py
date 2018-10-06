@@ -76,16 +76,6 @@ class StreamDBDriver(base.DBDriver):
     def __init__(self, pool, loop):
         super(StreamDBDriver, self).__init__(pool, loop, Stream)
 
-    @transaction()
-    async def delete_deprecated_streams(self):
-        try:
-            deprecated_streams = await self.join(join_type="LEFT", joined_table_name=ChannelStream.__tablename__,
-                                                 column_name="id", joined_column_name="stream_id", intersection=False)
-            for deprecated_stream in deprecated_streams:
-                await self.delete(id=deprecated_stream.id)
-        except exceptions.PostgresError:
-            LOG.exception("Cannot delete deprecated streams")
-
 
 class ChannelStreamDBDriver(base.DBDriver):
 
