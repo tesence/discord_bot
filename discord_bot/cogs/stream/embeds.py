@@ -87,6 +87,5 @@ def get_stream_list_embed(streams_by_channel):
     embed = embeds.Embed()
     embed.set_author(name="Streams", icon_url=TWITCH_ICON_URL)
     for channel, streams in sorted(streams_by_channel.items(), key=lambda x: x[0].position):
-        stream_links = [f"[{stream}](https://twitch.tv/{stream})" for stream in sorted(streams)]
-        embed.add_field(name=channel.name, value=", ".join(stream_links), inline=False)
+        embed.add_field(name=channel.name, value=", ".join(streams).replace('_', '\_'), inline=False)
     return embed

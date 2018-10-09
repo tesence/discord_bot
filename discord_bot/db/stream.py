@@ -81,3 +81,18 @@ class ChannelStreamDBDriver(base.DBDriver):
 
     def __init__(self, pool, loop):
         super(ChannelStreamDBDriver, self).__init__(pool, loop, ChannelStream)
+
+    async def get_stream_list(self, guild_id, guild_only=True):
+        c_table = Channel.__tablename__
+        s_table = Stream.__tablename__
+        cs_table = ChannelStream.__tablename__
+
+        query = \
+            f"SELECT {c_table}.channel_id, {s_table}.stream_name FROM {cs_table} " \
+            f"JOIN (SELECT id as channel_id, name as channel_name, guild_id FROM {c_table}) {c_table} " \
+            f"ON {cs_table}.channel_id = {c_table}.channel_id " \
+            f"JOIN (SELECT id, name as stream_name FROM {s_table}) {s_table} " \
+            f"ON {cs_table}.stream_id = {s_table}.id "
+        if guild_only:
+            query += f"WHERE {c_table}.guild_id = {guild_id}"
+        return await self.pool.fetch(query)

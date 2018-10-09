@@ -6,12 +6,12 @@ from discord import errors
 from discord.ext import commands
 
 from discord_bot import api
+from discord_bot.client import checks
 from discord_bot import config
 from discord_bot import cogs
 from discord_bot.cogs.stream import embeds
 from discord_bot import db
 from discord_bot import Emoji
-from discord_bot import utils
 
 LOG = logging.getLogger('bot')
 
@@ -198,11 +198,9 @@ class StreamManager(cogs.DBCogMixin):
     async def list(self, ctx):
         """ Show the list of the current tracked streams """
 
-        channel_streams = await self.channel_stream_db_driver.list()
+        records = await self.channel_stream_db_driver.get_stream_list(ctx.guild.id)
 
-        if channel_streams:
-
-            streams = {stream.id: stream for stream in await self.stream_db_driver.list()}
+        if records:
 
             # Build the output data by storing every stream names notified for each discord channel
             # {
@@ -211,10 +209,10 @@ class StreamManager(cogs.DBCogMixin):
             #   <discord_channel_3>: ["stream_name_1", "stream_name_3", ...]
             # }
             streams_by_channel = collections.defaultdict(list)
-            for cs in await self.channel_stream_db_driver.list():
-                channel = self.bot.get_channel(cs.channel_id)
-                stream = streams[cs.stream_id]
-                streams_by_channel[channel].append(stream.name)
+            for record in records:
+                channel_id, stream_name = record.values()
+                channel = self.bot.get_channel(channel_id)
+                streams_by_channel[channel].append(stream_name)
 
             # Build an embed displaying the output data.
             # - The discord channels are sorted in the same order as on the server
@@ -271,7 +269,7 @@ class StreamManager(cogs.DBCogMixin):
         return True
 
     @stream.command()
-    @commands.check(utils.check_is_admin)
+    @commands.check(checks.is_admin)
     async def add(self, ctx, *stream_names):
         """ Track a list of streams in a channel """
         if not stream_names:
@@ -281,7 +279,7 @@ class StreamManager(cogs.DBCogMixin):
             await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
 
     @stream.command()
-    @commands.check(utils.check_is_admin)
+    @commands.check(checks.is_admin)
     async def everyone(self, ctx, *stream_names):
         """ Track a list of streams in a channel (with @everyone) """
         if not stream_names:
@@ -291,7 +289,7 @@ class StreamManager(cogs.DBCogMixin):
             await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
 
     @stream.command()
-    @commands.check(utils.check_is_admin)
+    @commands.check(checks.is_admin)
     async def here(self, ctx, *stream_names):
         """ Track a list of streams in a channel (with @here) """
         if not stream_names:
@@ -343,7 +341,7 @@ class StreamManager(cogs.DBCogMixin):
         return True
 
     @stream.command()
-    @commands.check(utils.check_is_admin)
+    @commands.check(checks.is_admin)
     async def remove(self, ctx, *stream_names):
         """ Stop tracking a list of streams in a channel """
         if not stream_names:
