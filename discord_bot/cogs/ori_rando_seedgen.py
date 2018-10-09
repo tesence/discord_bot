@@ -10,14 +10,11 @@ from discord.ext import commands
 from discord.ext.commands.cooldowns import BucketType
 
 from discord_bot.api import ori_randomizer
-from discord_bot import cfg
+from discord_bot import config
 from discord_bot import cogs
 from discord_bot import utils
 
-CONF = cfg.CONF
 LOG = logging.getLogger('bot')
-
-CONF_VARIABLES = ['SEEDGEN_API_URL']
 
 SEED_FILENAME = "randomizer.dat"
 SPOILER_FILENAME = "spoiler.txt"
@@ -27,7 +24,7 @@ DOWNLOAD_MESSAGES_FILE_PATH = "data/download_messages.json"
 class OriRandoSeedGenCommands(cogs.CogMixin):
 
     def __init__(self, bot):
-        super(OriRandoSeedGenCommands, self).__init__(bot, *CONF_VARIABLES)
+        super(OriRandoSeedGenCommands, self).__init__(bot)
         type(self).__name__ = "Ori rando commands"
         self.client = ori_randomizer.OriRandomizerAPIClient(self.bot.loop)
 
@@ -50,7 +47,7 @@ class OriRandoSeedGenCommands(cogs.CogMixin):
         return "Downloading the seed"
 
     @commands.command()
-    @commands.cooldown(1, getattr(CONF, 'SEEDGEN_COOLDOWN', 0), BucketType.guild)
+    @commands.cooldown(1, getattr(config, 'SEEDGEN_COOLDOWN', 0), BucketType.guild)
     async def seed(self, ctx, *, args=""):
         """Generate a seed for the Ori randomizer
 
@@ -125,10 +122,10 @@ class OriRandoSeedGenCommands(cogs.CogMixin):
             seed_header = data['players'][0]['seed'].split("\n")[0]
             message = f"Seed requested by **{ctx.author.display_name}**\n"
             message += f"`{seed_header}`\n"
-            message += f"**Spoiler link**: {CONF.SEEDGEN_API_URL + data['players'][0]['spoiler_url']}\n"
+            message += f"**Spoiler link**: {ori_randomizer.SEEDGEN_API_URL + data['players'][0]['spoiler_url']}\n"
             if "tracking" in flags:
-                message += f"**Map**: {CONF.SEEDGEN_API_URL + data['map_url']}\n"
-                message += f"**History**: {CONF.SEEDGEN_API_URL + data['history_url']}\n"
+                message += f"**Map**: {ori_randomizer.SEEDGEN_API_URL + data['map_url']}\n"
+                message += f"**History**: {ori_randomizer.SEEDGEN_API_URL + data['history_url']}\n"
 
             await download_message.delete()
             await self.bot.send(ctx.channel, message,

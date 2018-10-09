@@ -43,9 +43,6 @@ Create a postgresSQL database. The tables will be generated automatically.
 Create a python file and fill it as follow
 
 ```
-# cfg.py
-# Configurations variables
-
 # CLIENT
 COMMAND_PREFIX = "!"
 ADMIN_ROLES = <list of roles that have admin rights>
@@ -53,18 +50,15 @@ LOADED_EXTENSIONS = ["stream", "dab", "ori_rando_seedgen", "ori_rando_role", "or
 DISCORD_BOT_TOKEN = <discord bot token>
 
 # TWITCH COG
-TWITCH_API_URL = "https://api.twitch.tv/kraken"
-TWITCH_API_ACCEPT = "application/vnd.twitchtv.v5+json"
 TWITCH_API_CLIENT_ID = <twitch client id>
-MIN_OFFLINE_DURATION = 60
-AUTO_DELETE_OFFLINE_STREAMS = True
+# MIN_OFFLINE_DURATION = 60
+# AUTO_DELETE_OFFLINE_STREAMS = False
 
 # DAB COG
-DAB_COOLDOWN = 120
+# DAB_COOLDOWN = 0
 
 # ORI RANDO COG
-SEEDGEN_API_URL = "http://orirandocoopserver.appspot.com"
-SEEDGEN_COOLDOWN = 10
+# SEEDGEN_COOLDOWN = 0
 RANDO_ROLE = "Looking For Rando"
 
 # DATABASE

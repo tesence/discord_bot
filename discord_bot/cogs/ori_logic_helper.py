@@ -3,10 +3,9 @@ from collections import defaultdict
 
 from discord.ext import commands
 
-from discord_bot import cfg
+from discord_bot.api import ori_randomizer
 from discord_bot import cogs
 
-CONF = cfg.CONF
 LOG = logging.getLogger('bot')
 
 SKILLS = {
@@ -37,13 +36,11 @@ CELLS_STONES = {
 TP_NAMES = ["swamp", "grove", "valley", "grotto", "forlorn", "sorrow"]
 PRESETS = ["casual", "standard", "expert", "master", "hard", "ohko", "0xp", "glitched"]
 
-CONF_VARIABLES = ['SEEDGEN_API_URL']
-
 
 class OriLogicHelperCommands(cogs.CogMixin):
 
     def __init__(self, bot):
-        super(OriLogicHelperCommands, self).__init__(bot, *CONF_VARIABLES)
+        super(OriLogicHelperCommands, self).__init__(bot)
         type(self).__name__ = "Ori rando commands"
 
     @commands.command()
@@ -112,7 +109,7 @@ class OriLogicHelperCommands(cogs.CogMixin):
             else:
                 LOG.error(f"Unrecognized pickup {name}")
 
-        base_url = f"{CONF.SEEDGEN_API_URL}/logichelper?"
+        base_url = f"{ori_randomizer.SEEDGEN_API_URL}/logichelper?"
         args = [f"pathmode={preset}"]
         for item, cnt in cells_stones.items():
             args.append(f"{item}={cnt}")

@@ -21,4 +21,4 @@ class Config:
             raise type(e)(message)
 
 
-CONF = Config()
+config = Config()

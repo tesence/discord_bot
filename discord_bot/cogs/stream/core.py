@@ -6,18 +6,19 @@ from discord import errors
 from discord.ext import commands
 
 from discord_bot import api
-from discord_bot import cfg
+from discord_bot import config
 from discord_bot import cogs
 from discord_bot.cogs.stream import embeds
 from discord_bot import db
 from discord_bot import Emoji
 from discord_bot import utils
 
-CONF = cfg.CONF
 LOG = logging.getLogger('bot')
 
-CONF_VARIABLES = ['TWITCH_API_URL', 'TWITCH_API_ACCEPT', 'TWITCH_API_CLIENT_ID',
-                  'MIN_OFFLINE_DURATION']
+CONF_VARIABLES = ['TWITCH_API_CLIENT_ID']
+
+DEFAULT_MIN_DURATION = 60
+DEFAULT_POLL_RATE = 10
 
 
 class MissingStreamName(commands.MissingRequiredArgument):
@@ -80,7 +81,7 @@ class StreamManager(cogs.DBCogMixin):
             """
             for n in stream.notifications:
                 try:
-                    if getattr(CONF, 'AUTO_DELETE_OFFLINE_STREAMS', True):
+                    if getattr(config, 'AUTO_DELETE_OFFLINE_STREAMS', True):
                         await n.delete()
                         LOG.info(f"The notification for '{stream.name}' in '{n.guild.name}#{n.channel.name}' has been "
                                  f"deleted")
@@ -178,11 +179,12 @@ class StreamManager(cogs.DBCogMixin):
                 # offline.
                 # To avoid spam if a stream keeps going online/offline because of Twitch or bad connections,
                 # we consider a stream as offline if it was offline for at least MIN_OFFLINE_DURATION
-                elif stream.online and stream.offline_duration > CONF.MIN_OFFLINE_DURATION:
+                elif stream.online and stream.offline_duration > getattr(config, 'MIN_OFFLINE_DURATION',
+                                                                         DEFAULT_MIN_DURATION):
                     LOG.info(f"{stream.name} is offline")
                     await on_stream_offline(stream, notified_channels)
                     stream.online = False
-            await asyncio.sleep(10)
+            await asyncio.sleep(DEFAULT_POLL_RATE)
 
     # COMMANDS
 

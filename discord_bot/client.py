@@ -2,11 +2,10 @@ import logging
 
 from discord.ext import commands
 
-from discord_bot import cfg
+from discord_bot import config
 from discord_bot import Emoji
 from discord_bot import utils
 
-CONF = cfg.CONF
 LOG = logging.getLogger('bot')
 
 
@@ -71,7 +70,7 @@ class Bot(commands.Bot):
 
     def load_extensions(self):
         """Load all the extensions"""
-        for extension in CONF.LOADED_EXTENSIONS:
+        for extension in config.LOADED_EXTENSIONS:
             try:
                 extension = f"cogs.{extension}"
                 self.load_extension(extension)
