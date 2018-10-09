@@ -5,15 +5,14 @@ import logging
 import asyncpg
 from asyncpg import exceptions
 
-from discord_bot import cfg
+from discord_bot import config
 
 
-CONF = cfg.CONF
 LOG = logging.getLogger('bot')
 
 
 async def get_pool():
-    return await asyncpg.create_pool(**CONF.DATABASE_CREDENTIALS, min_size=1, max_size=5)
+    return await asyncpg.create_pool(**config.DATABASE_CREDENTIALS, min_size=1, max_size=5)
 
 
 class Column:

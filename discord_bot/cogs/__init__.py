@@ -3,10 +3,9 @@ import logging
 
 from discord.ext.commands import errors
 
-from discord_bot import cfg
+from discord_bot import config
 from discord_bot import db
 
-CONF = cfg.CONF
 LOG = logging.getLogger('bot')
 
 DB_CONF_VARIABLES = ['DATABASE_CREDENTIALS']
@@ -28,12 +27,14 @@ class CogMixin:
         self._check_required_conf_variables()
 
     def _check_required_conf_variables(self):
+        if not self.conf_variables:
+            return
         LOG.debug(f"Checking configuration variables for the cog '{type(self).__name__}': {self.conf_variables}")
         for conf_variable in self.conf_variables:
-            if not hasattr(CONF, conf_variable):
+            if not hasattr(config, conf_variable):
                 msg = f"Missing the configuration variable: {conf_variable}"
                 raise MissingCogConfigurationVariable(msg)
-            elif getattr(CONF, conf_variable) is None:
+            elif getattr(config, conf_variable) is None:
                 msg = f"Bad configuration variable value: {conf_variable}"
                 raise BadCogConfigurationVariable(msg)
 

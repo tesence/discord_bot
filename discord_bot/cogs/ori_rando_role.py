@@ -3,11 +3,10 @@ import logging
 from discord.ext import commands
 from discord import utils as discord_utils
 
-from discord_bot import cfg
+from discord_bot import config
 from discord_bot import Emoji
 from discord_bot import cogs
 
-CONF = cfg.CONF
 LOG = logging.getLogger('bot')
 
 CONF_VARIABLES = ['RANDO_ROLE']
@@ -26,7 +25,7 @@ class OriRandoRoleCommands(cogs.CogMixin):
         if ctx.invoked_subcommand is None:
             await ctx.invoke(self.bot.get_command('help'), ctx.command.name)
         else:
-            self.rando_role = self.rando_role or discord_utils.get(ctx.guild.roles, name=CONF.RANDO_ROLE)
+            self.rando_role = self.rando_role or discord_utils.get(ctx.guild.roles, name=config.RANDO_ROLE)
 
     @looking_for_game.command()
     async def add(self, ctx):

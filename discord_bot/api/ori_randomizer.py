@@ -1,11 +1,10 @@
 import logging
 
 from discord_bot.api import base
-from discord_bot import cfg
 
-CONF = cfg.CONF
 LOG = logging.getLogger('bot')
 
+SEEDGEN_API_URL = "http://orirandocoopserver.appspot.com"
 LOGIC_MODES = ["casual", "standard", "expert", "master", "hard", "ohko", "0xp", "glitched"]
 KEY_MODES = ["default", "shards", "limitkeys", "clues"]
 PATH_DIFFICULTIES = ["easy", "normal", "hard"]
@@ -43,7 +42,7 @@ AMBIGUOUS_PRESETS = ["hard", "glitched", "ohko", "0xp"]
 class OriRandomizerAPIClient(base.APIClient):
 
     def __init__(self, loop):
-        super(OriRandomizerAPIClient, self).__init__(base_url=CONF.SEEDGEN_API_URL, loop=loop)
+        super(OriRandomizerAPIClient, self).__init__(base_url=SEEDGEN_API_URL, loop=loop)
 
     async def get_data(self, seed, preset, key_mode=None, path_diff=None, variations=[], logic_paths=[], flags=[]):
         """ Retrieve the seed and spoiler download links

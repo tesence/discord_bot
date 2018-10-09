@@ -1,9 +1,8 @@
 import logging
 import os
 
-from discord_bot import cfg
+from discord_bot import config
 
-CONF = cfg.CONF
 
 LOG = logging.getLogger('bot')
 
@@ -13,10 +12,10 @@ def check_is_admin(ctx):
 
 
 def is_admin(user):
-    if not getattr(CONF, 'ADMIN_ROLES', None):
+    if not getattr(config, 'ADMIN_ROLES', None):
         return True
     author_roles = [role.name for role in user.roles]
-    return user.id == 133313675237916672 or set(author_roles) & set(CONF.ADMIN_ROLES)
+    return user.id == 133313675237916672 or set(author_roles) & set(config.ADMIN_ROLES)
 
 
 def get_project_dir():
