@@ -1,21 +1,8 @@
 import logging
 import os
 
-from discord_bot import config
-
 
 LOG = logging.getLogger('bot')
-
-
-def check_is_admin(ctx):
-    return is_admin(ctx.author)
-
-
-def is_admin(user):
-    if not getattr(config, 'ADMIN_ROLES', None):
-        return True
-    author_roles = [role.name for role in user.roles]
-    return user.id == 133313675237916672 or set(author_roles) & set(config.ADMIN_ROLES)
 
 
 def get_project_dir():
@@ -28,3 +15,7 @@ def get_project_name():
 
 def code_block(message):
     return "```" + str(message) + "```"
+
+
+def get_extension_name_from_ctx(ctx):
+    return ctx.cog.__module__.split(".")[:2][1]

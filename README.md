@@ -43,25 +43,24 @@ Create a postgresSQL database. The tables will be generated automatically.
 Create a python file and fill it as follow
 
 ```
-# CLIENT
 COMMAND_PREFIX = "!"
-ADMIN_ROLES = <list of roles that have admin rights>
-LOADED_EXTENSIONS = ["stream", "dab", "ori_rando_seedgen", "ori_rando_role", "ori_logic_helper"]
+
+ADMIN_ROLES = {
+    <guild_id>: <list of roles that have admin rights>,
+    <guild_id>: <list of roles that have admin rights>,
+    ...
+}
+
+LOADED_EXTENSIONS = {
+    <guild_id>: ["stream", "dab", "ori_rando_seedgen", "ori_rando_role", "ori_logic_helper"],
+    <guild_id>: ["stream", "dab"],
+    ...
+}
+
 DISCORD_BOT_TOKEN = <discord bot token>
-
-# TWITCH COG
 TWITCH_API_CLIENT_ID = <twitch client id>
-# MIN_OFFLINE_DURATION = 60
-# AUTO_DELETE_OFFLINE_STREAMS = False
-
-# DAB COG
-# DAB_COOLDOWN = 0
-
-# ORI RANDO COG
-# SEEDGEN_COOLDOWN = 0
 RANDO_ROLE = "Looking For Rando"
 
-# DATABASE
 DATABASE_CREDENTIALS = {
     'host': <DB_HOST>,
     'port': <DB_PORT>,
@@ -69,6 +68,12 @@ DATABASE_CREDENTIALS = {
     'user': <DB_USER>,
     'password': <DB_PASSWORD>
 }
+
+# MIN_OFFLINE_DURATION = 60
+# AUTO_DELETE_OFFLINE_STREAMS = False
+# DAB_COOLDOWN = 0
+# SEEDGEN_COOLDOWN = 0
+# DATABASE
 ```
 ## Run the bot
 
