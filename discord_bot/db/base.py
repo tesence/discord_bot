@@ -39,13 +39,8 @@ class UniqueConstraint:
 
 
 class BaseModel:
-
     __tablename__ = None
     __table_args__ = None
-
-    def __init__(self, **kwargs):
-        for key, value in kwargs.items():
-            setattr(self, key, value)
 
 
 def transaction():
@@ -126,6 +121,9 @@ class DBDriver:
             parsed_conditions.append(f"{key} = {value}")
         return parsed_conditions
 
+    def _get_obj(self, record):
+        return self.model(**dict(record.items()))
+
     @transaction()
     async def get_size(self):
         try:
@@ -146,7 +144,7 @@ class DBDriver:
             query += ";"
             result = await self.pool.fetchrow(query)
             if result:
-                result = self.model(**dict(result.items()))
+                result = self._get_obj(result)
         except exceptions.PostgresError:
             LOG.exception(f"Cannot retrieve data for values: {conditions} ('{query}')")
         else:
@@ -160,17 +158,16 @@ class DBDriver:
             if conditions:
                 query += f" WHERE {' AND '.join(conditions)}"
             query += ";"
-            result = [self.model(**dict(e.items())) for e in await self.pool.fetch(query)]
+            results = [self._get_obj(r) for r in await self.pool.fetch(query)]
         except exceptions.PostgresError:
             LOG.exception(f"Cannot retrieve data for values: {conditions} ('{query}')")
         else:
-            return result
+            return results
 
     @transaction()
     async def create(self, **fields):
         try:
-            columns = ",".join(list(fields.keys()))
-
+            columns = ",".join(fields)
             values = []
             for value in fields.values():
                 if isinstance(value, str) or isinstance(value, int):
@@ -220,7 +217,7 @@ class DBDriver:
                 if join_type == "FULL JOIN":
                     query += f"OR WHERE {self.table_name}.{column_name} IS NULL "
             query += ";"
-            result = [self.model(**dict(e.items())) for e in await self.pool.fetch(query)]
+            result = await self.pool.fetch(query)
         except exceptions.PostgresError:
             LOG.exception(f"Cannot perform the join ('{query}')")
         else:

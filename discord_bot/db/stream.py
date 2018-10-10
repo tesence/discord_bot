@@ -19,6 +19,12 @@ class Channel(base.BaseModel):
     guild_id = base.Column('bigint', nullable=False)
     guild_name = base.Column('varchar(255)', nullable=False)
 
+    def __init__(self, **kwargs):
+        self.id = kwargs.pop('id')
+        self.name = kwargs.pop('name')
+        self.guild_id = kwargs.pop('guild_id')
+        self.guild_name = kwargs.pop('guild_name')
+
     def __repr__(self):
         return f"<{type(self).__name__} name={self.name} guild_name={self.guild_name}>"
 
@@ -30,6 +36,18 @@ class Stream(base.BaseModel):
     id = base.Column('varchar(255)', primary_key=True)
     name = base.Column('varchar(255)', nullable=False)
 
+    def __init__(self, **kwargs):
+        self.id = kwargs.pop('id')
+        self.name = kwargs.pop('name')
+        self.online = False
+        self.last_offline_date = None
+        self.notifications = []
+        self.display_name = None
+        self.title = None
+        self.game = None
+        self.logo = None
+        self.type = None
+
     def __repr__(self):
         return f"<{type(self).__name__} name={self.name}>"
 
@@ -40,17 +58,6 @@ class Stream(base.BaseModel):
             self.last_offline_date = now
         return (now - self.last_offline_date).seconds
 
-    def __init__(self, **kwargs):
-        super(Stream, self).__init__(**kwargs)
-        self.online = False
-        self.last_offline_date = None
-        self.notifications = []
-        self.display_name = None
-        self.title = None
-        self.game = None
-        self.logo = None
-        self.type = None
-
 
 class ChannelStream(base.BaseModel):
 
@@ -60,6 +67,11 @@ class ChannelStream(base.BaseModel):
     channel_id = base.Column('bigint', base.ForeignKey("channels", "id"))
     stream_id = base.Column('bigint', base.ForeignKey("streams", "id"))
     tags = base.Column('varchar(255)', nullable=True)
+
+    def __init__(self, **kwargs):
+        self.channel_id = kwargs.pop('channel_id')
+        self.stream_id = kwargs.pop('stream_id')
+        self.tags = kwargs.pop('tags')
 
     def __repr__(self):
         return f"<{type(self).__name__} stream_id={self.stream_id} channel_id={self.channel_id}>"
