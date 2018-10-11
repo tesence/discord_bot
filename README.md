@@ -51,6 +51,7 @@ ADMIN_ROLES = {
     ...
 }
 
+DEFAULT_LOADED_EXTENSIONS = ["stream", "dab", "ori_rando_seedgen", "ori_rando_role", "ori_logic_helper"]
 LOADED_EXTENSIONS = {
     <guild_id>: ["stream", "dab", "ori_rando_seedgen", "ori_rando_role", "ori_logic_helper"],
     <guild_id>: ["stream", "dab"],
