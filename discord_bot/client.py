@@ -8,8 +8,6 @@ from discord_bot import utils
 
 LOG = logging.getLogger('bot')
 
-DEFAULT_LOADED_EXTENSIONS = ["stream", "dab", "ori_rando_seedgen", "ori_rando_role", "ori_logic_helper"]
-
 
 class checks:
 
@@ -48,7 +46,7 @@ class Bot(commands.Bot):
 
         extension_name = utils.get_extension_name_from_ctx(ctx)
         extensions = config.LOADED_EXTENSIONS.get(ctx.guild.id)
-        allowed_extensions = extensions if config.LOADED_EXTENSIONS.get(ctx.guild.id) else DEFAULT_LOADED_EXTENSIONS
+        allowed_extensions = extensions if config.LOADED_EXTENSIONS.get(ctx.guild.id) else config.DEFAULT_LOADED_EXTENSIONS
         return extension_name in allowed_extensions
 
     async def on_command_error(self, ctx, error):
@@ -102,7 +100,7 @@ class Bot(commands.Bot):
 
     def load_extensions(self):
         """Load all the extensions"""
-        for extension in DEFAULT_LOADED_EXTENSIONS:
+        for extension in config.DEFAULT_LOADED_EXTENSIONS:
             try:
                 extension = f"cogs.{extension}"
                 self.load_extension(extension)
