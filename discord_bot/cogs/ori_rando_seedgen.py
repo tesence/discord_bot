@@ -20,6 +20,8 @@ SEED_FILENAME = "randomizer.dat"
 SPOILER_FILENAME = "spoiler.txt"
 DOWNLOAD_MESSAGES_FILE_PATH = "data/download_messages.json"
 
+DEFAULT_SEEDGEN_COOLDOWN = 0
+
 
 class OriRandoSeedGenCommands(cogs.CogMixin):
 
@@ -47,7 +49,7 @@ class OriRandoSeedGenCommands(cogs.CogMixin):
         return "Downloading the seed"
 
     @commands.command()
-    @commands.cooldown(1, getattr(config, 'SEEDGEN_COOLDOWN', 0), BucketType.guild)
+    @commands.cooldown(1, config.get('SEEDGEN_COOLDOWN', DEFAULT_SEEDGEN_COOLDOWN), BucketType.guild)
     async def seed(self, ctx, *, args=""):
         """Generate a seed for the Ori randomizer
 

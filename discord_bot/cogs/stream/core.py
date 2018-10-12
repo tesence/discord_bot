@@ -17,7 +17,7 @@ LOG = logging.getLogger('bot')
 
 CONF_VARIABLES = ['TWITCH_API_CLIENT_ID']
 
-DEFAULT_MIN_DURATION = 60
+DEFAULT_MIN_OFFLINE_DURATION = 60
 DEFAULT_POLL_RATE = 10
 
 
@@ -61,6 +61,8 @@ class StreamManager(cogs.DBCogMixin):
 
         LOG.debug("The polling has started")
 
+        MIN_OFFLINE_DURATION = config.get('MIN_OFFLINE_DURATION', DEFAULT_MIN_OFFLINE_DURATION)
+
         async def on_stream_online(stream, notified_channels):
             """ Method called if twitch stream goes online.
 
@@ -79,9 +81,10 @@ class StreamManager(cogs.DBCogMixin):
             :param stream: The stream going offline
             :param notified_channels: The discord channels in which the stream is tracked
             """
+
             for n in stream.notifications:
                 try:
-                    if getattr(config, 'AUTO_DELETE_OFFLINE_STREAMS', True):
+                    if config.get('AUTO_DELETE_OFFLINE_STREAMS', True):
                         await n.delete()
                         LOG.info(f"The notification for '{stream.name}' in '{n.guild.name}#{n.channel.name}' has been "
                                  f"deleted")
@@ -179,8 +182,7 @@ class StreamManager(cogs.DBCogMixin):
                 # offline.
                 # To avoid spam if a stream keeps going online/offline because of Twitch or bad connections,
                 # we consider a stream as offline if it was offline for at least MIN_OFFLINE_DURATION
-                elif stream.online and stream.offline_duration > getattr(config, 'MIN_OFFLINE_DURATION',
-                                                                         DEFAULT_MIN_DURATION):
+                elif stream.online and stream.offline_duration > MIN_OFFLINE_DURATION:
                     LOG.info(f"{stream.name} is offline")
                     await on_stream_offline(stream, notified_channels)
                     stream.online = False

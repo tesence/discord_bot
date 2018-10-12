@@ -40,54 +40,65 @@ Create a postgresSQL database. The tables will be generated automatically.
 
 ## Create a configuration file
 
-Create a python file and fill it as follow
+Create a first file `config.yaml` that will store all the unique bot variables
 
+```yaml
+COMMAND_PREFIX: "!"
+
+DISCORD_BOT_TOKEN: <discord bot token>
+TWITCH_API_CLIENT_ID: <twitch client id>
+
+RANDO_ROLE: "Looking For Rando"
+
+DATABASE_CREDENTIALS:
+  host: <DB_HOST>
+  port: <DB_PORT>
+  database: <DB_NAME>
+  user: <DB_USER>
+  password: <DB_PASSWORD>
 ```
-COMMAND_PREFIX = "!"
 
-ADMIN_ROLES = {
-    <guild_id>: <list of roles that have admin rights>,
-    <guild_id>: <list of roles that have admin rights>,
-    ...
-}
+A second file `default.yaml` that will store all the default values
 
-DEFAULT_LOADED_EXTENSIONS = ["stream", "dab", "ori_rando_seedgen", "ori_rando_role", "ori_logic_helper"]
-LOADED_EXTENSIONS = {
-    <guild_id>: ["stream", "dab", "ori_rando_seedgen", "ori_rando_role", "ori_logic_helper"],
-    <guild_id>: ["stream", "dab"],
-    ...
-}
-
-DISCORD_BOT_TOKEN = <discord bot token>
-TWITCH_API_CLIENT_ID = <twitch client id>
-RANDO_ROLE = "Looking For Rando"
-
-DATABASE_CREDENTIALS = {
-    'host': <DB_HOST>,
-    'port': <DB_PORT>,
-    'database': <DB_NAME>,
-    'user': <DB_USER>,
-    'password': <DB_PASSWORD>
-}
-
-# MIN_OFFLINE_DURATION = 60
-# AUTO_DELETE_OFFLINE_STREAMS = False
-# DAB_COOLDOWN = 0
-# SEEDGEN_COOLDOWN = 0
-# DATABASE
+```yaml
+EXTENSIONS:
+ - "stream"
+ - "dab"
+ - "ori_rando_seedgen"
+ - "ori_logic_helper"
 ```
+
+And a file for each guild the bot needs to behave differently. Allows to set variable that only exist at a guild level 
+like admin roles
+
+```yaml
+GUILD_ID: <guild_id>
+
+ADMIN_ROLES:
+ - "admin_role_1"
+ - "admin_role_2"
+ ...
+ 
+EXTENSIONS:
+ - "<allowed cog>"
+ - "<allowed cog>"
+ ...
+```
+
+These values will override the default ones for that specific guild.
+
 ## Run the bot
 
 In the project folder, run:
 
 ### Windows
 
-	.venv/Script/python.exe main.py --config-file /path/to/your/config/file.py --log-dir /path/to/the/log/folder
+	.venv/Script/python.exe main.py --config-dir /path/to/your/config/folder --log-dir /path/to/the/log/folder
 
 
 ### Linux
 
-	.venv/bin/python main.py --config-file /path/to/your/config/file.py --log-dir /path/to/the/log/folder
+	.venv/bin/python main.py --config-dir /path/to/your/config/folder --log-dir /path/to/the/log/folder
 
 ## COGS
 

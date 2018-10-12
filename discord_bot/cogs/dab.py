@@ -2,14 +2,14 @@ import logging
 import random
 
 from discord.ext import commands
+from discord_bot import config
 from discord.ext.commands.cooldowns import BucketType
 
-from discord_bot import config
 from discord_bot import cogs
 
 LOG = logging.getLogger('bot')
 
-DEFAULT_DAB_COOLDOWN = 0
+DEFAULT_DAB_COOLDOWN = 120
 
 
 class DabCommands(cogs.CogMixin):
@@ -19,7 +19,7 @@ class DabCommands(cogs.CogMixin):
         type(self).__name__ = "Dab commands"
 
     @commands.command()
-    @commands.cooldown(1, getattr(config, 'DAB_COOLDOWN', DEFAULT_DAB_COOLDOWN), BucketType.channel)
+    @commands.cooldown(1, config.get('DAB_COOLDOWN', DEFAULT_DAB_COOLDOWN), BucketType.channel)
     async def dab(self, ctx, *, dabbed=None):
         """Disrespect someone"""
         if not dabbed:

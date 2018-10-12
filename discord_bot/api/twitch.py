@@ -17,7 +17,7 @@ class TwitchAPIClient(base.APIClient):
 
     def __init__(self, loop):
         headers = {
-            "Client-ID": config.TWITCH_API_CLIENT_ID,
+            "Client-ID": config.get('TWITCH_API_CLIENT_ID'),
             "accept": "application/vnd.twitchtv.v5+json"
         }
         super(TwitchAPIClient, self).__init__(base_url=TWITCH_API_URL, headers=headers, loop=loop,
