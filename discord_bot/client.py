@@ -19,7 +19,7 @@ class checks:
 
     @staticmethod
     def _is_admin(member):
-        admin_roles = config.ADMIN_ROLES.get(member.guild.id, None)
+        admin_roles = config.get('ADMIN_ROLES', guild_id=member.guild.id)
         if admin_roles is None or member.id == checks.OWNER_ID:
             return True
         author_roles = [role.name for role in member.roles]
@@ -43,10 +43,10 @@ class Bot(commands.Bot):
     async def check_extension_access(self, ctx):
         if not getattr(ctx, 'cog'):
             return True
-
         extension_name = utils.get_extension_name_from_ctx(ctx)
-        extensions = config.LOADED_EXTENSIONS.get(ctx.guild.id)
-        allowed_extensions = extensions if config.LOADED_EXTENSIONS.get(ctx.guild.id) else config.DEFAULT_LOADED_EXTENSIONS
+        allowed_extensions = config.get('EXTENSIONS', guild_id=ctx.guild.id, default=True)
+        if allowed_extensions is None:
+            return True
         return extension_name in allowed_extensions
 
     async def on_command_error(self, ctx, error):
@@ -100,7 +100,9 @@ class Bot(commands.Bot):
 
     def load_extensions(self):
         """Load all the extensions"""
-        for extension in config.DEFAULT_LOADED_EXTENSIONS:
+        extensions_to_load = config.get('EXTENSIONS', default=True)
+        LOG.debug(f"Extensions to be loaded: {list(extensions_to_load)}")
+        for extension in extensions_to_load:
             try:
                 extension = f"cogs.{extension}"
                 self.load_extension(extension)

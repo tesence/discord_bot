@@ -12,7 +12,7 @@ LOG = logging.getLogger('bot')
 
 
 async def get_pool():
-    return await asyncpg.create_pool(**config.DATABASE_CREDENTIALS, min_size=1, max_size=5)
+    return await asyncpg.create_pool(**config.get('DATABASE_CREDENTIALS'), min_size=1, max_size=5)
 
 
 class Column:

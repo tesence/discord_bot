@@ -6,10 +6,10 @@ from logging.handlers import RotatingFileHandler
 LOG_PATTERN = logging.Formatter('%(asctime)s:%(levelname)s: [%(filename)s] %(message)s')
 
 
-def setup(log_dir, config_file):
+def setup(log_dir, config_dir):
 
     os.makedirs(log_dir, exist_ok=True)
-    conf_filename = os.path.basename(config_file).rsplit(".", 1)[0]
+    config_dirname = os.path.basename(config_dir)
 
     # write in the console
     steam_handler = logging.StreamHandler()
@@ -28,4 +28,4 @@ def setup(log_dir, config_file):
         if add_steam:
             logger.addHandler(steam_handler)
 
-    setup_logger("bot", conf_filename, True)
+    setup_logger("bot", config_dirname, True)

@@ -14,9 +14,9 @@ DB_CONF_VARIABLES = ['DATABASE_CREDENTIALS']
 class MissingCogConfigurationVariable(errors.CommandError):
     """Required configuration variable is missing"""
 
-
-class BadCogConfigurationVariable(errors.CommandError):
-    """Required configuration variable has a bad value"""
+    def __init__(self, config_variable):
+        message = f"Missing the configuration variable '{config_variable}'"
+        super(MissingCogConfigurationVariable, self).__init__(message)
 
 
 class CogMixin:
@@ -30,13 +30,9 @@ class CogMixin:
         if not self.conf_variables:
             return
         LOG.debug(f"Checking configuration variables for the cog '{type(self).__name__}': {self.conf_variables}")
-        for conf_variable in self.conf_variables:
-            if not hasattr(config, conf_variable):
-                msg = f"Missing the configuration variable: {conf_variable}"
-                raise MissingCogConfigurationVariable(msg)
-            elif getattr(config, conf_variable) is None:
-                msg = f"Bad configuration variable value: {conf_variable}"
-                raise BadCogConfigurationVariable(msg)
+        for config_variable in self.conf_variables:
+            if config_variable not in config:
+                raise MissingCogConfigurationVariable(config_variable)
 
 
 class DBCogMixin(CogMixin):

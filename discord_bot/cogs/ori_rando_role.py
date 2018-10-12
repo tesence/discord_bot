@@ -25,7 +25,8 @@ class OriRandoRoleCommands(cogs.CogMixin):
         if ctx.invoked_subcommand is None:
             await ctx.invoke(self.bot.get_command('help'), ctx.command.name)
         else:
-            self.rando_role = self.rando_role or discord_utils.get(ctx.guild.roles, name=config.RANDO_ROLE)
+            rando_role_name = config.get('RANDO_ROLE', guild_id=ctx.guild.id)
+            self.rando_role = discord_utils.get(ctx.guild.roles, name=rando_role_name)
 
     @looking_for_game.command()
     async def add(self, ctx):
