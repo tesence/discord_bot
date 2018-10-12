@@ -8,10 +8,7 @@ from discord_bot import config
 LOG = logging.getLogger('bot')
 
 TWITCH_API_URL = "https://api.twitch.tv/kraken"
-HEADERS = {
-    "Client-ID": config.TWITCH_API_CLIENT_ID,
-    "accept": "application/vnd.twitchtv.v5+json"
-}
+
 
 WARNING_EXCEPTIONS = (aiohttp.ClientPayloadError, aiohttp.ServerDisconnectedError)
 
@@ -19,7 +16,11 @@ WARNING_EXCEPTIONS = (aiohttp.ClientPayloadError, aiohttp.ServerDisconnectedErro
 class TwitchAPIClient(base.APIClient):
 
     def __init__(self, loop):
-        super(TwitchAPIClient, self).__init__(base_url=TWITCH_API_URL, headers=HEADERS, loop=loop,
+        headers = {
+            "Client-ID": config.TWITCH_API_CLIENT_ID,
+            "accept": "application/vnd.twitchtv.v5+json"
+        }
+        super(TwitchAPIClient, self).__init__(base_url=TWITCH_API_URL, headers=headers, loop=loop,
                                               warning_exceptions=WARNING_EXCEPTIONS)
 
     async def get_ids(self, *names):
