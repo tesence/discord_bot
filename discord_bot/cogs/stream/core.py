@@ -27,6 +27,13 @@ class MissingStreamName(commands.MissingRequiredArgument):
         self.message = "At least one stream name is required"
 
 
+class NotifiedChannel:
+
+    def __init__(self, channel, tags):
+        self.channel = channel
+        self.tags = tags
+
+
 class StreamManager(cogs.DBCogMixin):
 
     def __init__(self, bot):
@@ -118,15 +125,17 @@ class StreamManager(cogs.DBCogMixin):
         while True:
             # Build a dictionary to easily iterate through the tracked streams
             # {
-            #   "stream_id_1": [(<discord_channel_1>, everyone=True), (<discord_channel_2>, everyone=False|True), ...]
-            #   "stream_id_2": [(<discord_channel_2>, everyone=True), (<discord_channel_3>, everyone=False|True), ...]
-            #   "stream_id_3": [(<discord_channel_1>, everyone=True), (<discord_channel_3>, everyone=False|True), ...]
+            #   "stream_id_1": [(<discord_channel_1>, <tags>), (<discord_channel_2>, <tags>), ...]
+            #   "stream_id_2": [(<discord_channel_2>, <tags>), (<discord_channel_3>, <tags>), ...]
+            #   "stream_id_3": [(<discord_channel_1>, <tags>), (<discord_channel_3>, <tags>), ...]
             # }
             channels_by_stream_id = collections.defaultdict(list)
-            for cs in await self.channel_stream_db_driver.list():
-                channel = self.bot.get_channel(cs.channel_id)
-                NotifiedChannel = collections.namedtuple('NotifiedChannel', ['channel', 'tags'])
-                channels_by_stream_id[cs.stream_id].append(NotifiedChannel(channel, cs.tags))
+            for channel_stream in await self.channel_stream_db_driver.list():
+                channel = self.bot.get_channel(channel_stream.channel_id)
+                if not channel:
+                    LOG.warning(f"The channel '{channel_stream.channel_id}' does not exist in the bot's cache")
+                    continue
+                channels_by_stream_id[channel_stream.stream_id].append(NotifiedChannel(channel, channel_stream.tags))
 
             # Get the status of all tracked streams
             status = await self.client.get_status(*self.streams_by_id)
