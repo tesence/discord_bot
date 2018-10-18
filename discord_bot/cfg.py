@@ -35,9 +35,9 @@ class Config:
             value = self.attrs[guild_id].get(key)
 
         if default:
-            value = value or self.attrs['default'].get(key)
+            value = value if value is not None else self.attrs['default'].get(key)
 
-        return value or default_value
+        return value if value is not None else default_value
 
     def _load_file(self, path, name):
         with open(os.path.join(path, name), 'r') as f:
