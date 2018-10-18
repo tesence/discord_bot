@@ -9,13 +9,11 @@ from discord_bot import cogs
 
 LOG = logging.getLogger('bot')
 
-CONF_VARIABLES = ['RANDO_ROLE']
-
 
 class OriRandoRoleCommands(cogs.CogMixin):
 
     def __init__(self, bot):
-        super(OriRandoRoleCommands, self).__init__(bot, *CONF_VARIABLES)
+        super(OriRandoRoleCommands, self).__init__(bot)
         type(self).__name__ = "Ori rando commands"
         self.rando_role = None
 
@@ -27,6 +25,8 @@ class OriRandoRoleCommands(cogs.CogMixin):
         else:
             rando_role_name = config.get('RANDO_ROLE', guild_id=ctx.guild.id)
             self.rando_role = discord_utils.get(ctx.guild.roles, name=rando_role_name)
+            if not self.rando_role:
+                raise cogs.MissingCogConfigurationVariable('RANDO_ROLE')
 
     @looking_for_game.command()
     async def add(self, ctx):
