@@ -91,7 +91,7 @@ class StreamManager(cogs.DBCogMixin):
 
             for n in stream.notifications:
                 try:
-                    if config.get('AUTO_DELETE_OFFLINE_STREAMS', True):
+                    if config.get('AUTO_DELETE_OFFLINE_STREAMS', True, guild_id=n.channel.guild.id, default=True):
                         await n.delete()
                         LOG.info(f"The notification for '{stream.name}' in '{n.guild.name}#{n.channel.name}' has been "
                                  f"deleted")
