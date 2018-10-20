@@ -26,22 +26,19 @@ class Config:
     def __contains__(self, item):
         return item in self.attrs
 
-    def get(self, key, default_value=None, guild_id=None, default=False):
-        if key in self.attrs:
-            return self.attrs.get(key, default_value)
-
-        value = None
-        if self.attrs.get(guild_id, None):
-            value = self.attrs[guild_id].get(key)
-
-        if default:
-            value = value if value is not None else self.attrs['default'].get(key)
-
-        return value if value is not None else default_value
-
-    def _load_file(self, path, name):
+    @staticmethod
+    def _load_file(path, name):
         with open(os.path.join(path, name), 'r') as f:
             return yaml.safe_load(f) or {}
+
+    def get(self, key, default_value=None, guild_id=None, default=False):
+        candidates = (
+            self.attrs.get(key, None),
+            self.attrs[guild_id].get(key, None) if self.attrs.get(guild_id, None) else None,
+            self.attrs['default'].get(key, None) if default else None,
+            default_value
+        )
+        return next((c for c in candidates if c is not None), None)
 
     def load(self, config_folder):
         if not os.path.isdir(config_folder):
