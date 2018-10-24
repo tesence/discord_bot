@@ -40,9 +40,9 @@ class StreamManager(cogs.DBCogMixin):
         type(self).__name__ = "Stream commands"
         super(StreamManager, self).__init__(bot, *CONF_VARIABLES)
         self.client = api.TwitchAPIClient(self.bot.loop)
-        asyncio.ensure_future(self.configure_database(), loop=self.bot.loop)
+        asyncio.ensure_future(self.init(), loop=self.bot.loop)
 
-    async def configure_database(self):
+    async def init(self):
         await self.connection_ready.wait()
 
         self.stream_db_driver = db.StreamDBDriver(self.pool, self.bot.loop)
@@ -60,11 +60,12 @@ class StreamManager(cogs.DBCogMixin):
 
         self.streams_by_id = {s.id: s for s in await self.stream_db_driver.list()}
 
-    async def on_ready(self):
-        asyncio.ensure_future(self.poll_streams(), loop=self.bot.loop)
+        await self.poll_streams()
 
     async def poll_streams(self):
         """Poll twitch every X seconds."""
+
+        await self.bot.wait_until_ready()
 
         LOG.debug("The polling has started")
 
