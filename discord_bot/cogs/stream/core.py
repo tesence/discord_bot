@@ -80,7 +80,9 @@ class StreamManager(cogs.DBCogMixin):
             # Send the notifications in every discord channel the stream has been tracked
             for notified_channel in notified_channels:
                 message, embed = embeds.get_notification(stream, notified_channel.tags)
-                notification = await self.bot.send(notified_channel.channel, message, embed=embed, reaction=True)
+                guild_id = notified_channel.channel.guild.id
+                reaction = not config.get('AUTO_DELETE_OFFLINE_STREAMS', True, guild_id=guild_id, default=True)
+                notification = await self.bot.send(notified_channel.channel, message, embed=embed, reaction=reaction)
                 stream.notifications.append(notification)
 
         async def on_stream_offline(stream, notified_channels):
