@@ -84,6 +84,8 @@ class StreamManager(cogs.DBCogMixin):
                 reaction = not config.get('AUTO_DELETE_OFFLINE_STREAMS', True, guild_id=guild_id, default=True)
                 notification = await self.bot.send(notified_channel.channel, message, embed=embed, reaction=reaction)
                 stream.notifications.append(notification)
+            channels_str = [f"'{n.channel.guild.name}#{n.channel.name}'" for n in stream.notifications]
+            LOG.debug(f"Current notifications for '{stream.name}' after going online: {', '.join(channels_str)}")
 
         async def on_stream_offline(stream, notified_channels):
             """Method called if the twitch stream is going offline.
@@ -108,6 +110,8 @@ class StreamManager(cogs.DBCogMixin):
                 except errors.NotFound:
                     LOG.warning(f"The notification for '{stream.name}' sent at '{n.created_at}' in "
                                 f"'{n.guild.name}#{n.channel.name}' does not exist or has been deleted")
+            channels_str = [f"'{n.channel.guild.name}#{n.channel.name}'" for n in stream.notifications]
+            LOG.debug(f"Current notifications for '{stream.name}' after going offline: {', '.join(channels_str)}")
 
         async def on_stream_update(stream, title=None, game=None):
             for n in stream.notifications:
