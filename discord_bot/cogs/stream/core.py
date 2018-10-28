@@ -95,7 +95,7 @@ class StreamManager(cogs.DBCogMixin):
             :param notified_channels: The discord channels in which the stream is tracked
             """
 
-            for n in stream.notifications:
+            for n in stream.notifications[:]:
                 try:
                     if config.get('AUTO_DELETE_OFFLINE_STREAMS', True, guild_id=n.channel.guild.id, default=True):
                         await n.delete()
