@@ -40,6 +40,7 @@ class StreamManager(cogs.DBCogMixin):
         type(self).__name__ = "Stream commands"
         super(StreamManager, self).__init__(bot, *CONF_VARIABLES)
         self.client = api.TwitchAPIClient(self.bot.loop)
+        self.task = None
         asyncio.ensure_future(self.init(), loop=self.bot.loop)
 
     async def init(self):
@@ -60,7 +61,7 @@ class StreamManager(cogs.DBCogMixin):
 
         self.streams_by_id = {s.id: s for s in await self.stream_db_driver.list()}
 
-        await self.poll_streams()
+        self.task = asyncio.ensure_future(self.poll_streams(), loop=self.bot.loop)
 
     async def poll_streams(self):
         """Poll twitch every X seconds."""
@@ -285,6 +286,14 @@ class StreamManager(cogs.DBCogMixin):
         else:
             LOG.warning(f"'{stream_name}' is already track in the channel {channel.guild.name}#{channel.name}")
         return True
+
+    @stream.command()
+    @commands.check(checks.is_admin)
+    async def reload(self, ctx):
+        if self.task:
+            LOG.debug("Reloading the poll task...")
+            self.task.cancel()
+            self.task = asyncio.ensure_future(self.poll_streams(), loop=self.bot.loop)
 
     @stream.command()
     @commands.check(checks.is_admin)
