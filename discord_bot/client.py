@@ -33,6 +33,7 @@ class Bot(commands.Bot):
         super(Bot, self).__init__(*args, command_prefix=commands.when_mentioned_or(command_prefix), **kwargs)
         self.add_check(self.check_extension_access)
         self.load_extensions()
+        self.add_command(self.reload)
 
     async def on_ready(self):
         LOG.debug(f"Bot is connected | user id: {self.user.id} | username: {self.user.name}")
@@ -44,6 +45,8 @@ class Bot(commands.Bot):
         if not getattr(ctx, 'cog'):
             return True
         extension_name = utils.get_extension_name_from_ctx(ctx)
+        if extension_name in __file__:
+            return True
         allowed_extensions = config.get('EXTENSIONS', guild_id=ctx.guild.id, default=True)
         if allowed_extensions is None:
             return True
@@ -103,8 +106,11 @@ class Bot(commands.Bot):
         extensions_to_load = config.get('EXTENSIONS', default=True)
         LOG.debug(f"Extensions to be loaded: {list(extensions_to_load)}")
         for extension in extensions_to_load:
+            extension = f"cogs.{extension}"
+            if extension in self.extensions:
+                LOG.debug(f"The extension '{extension}' is already loaded")
+                continue
             try:
-                extension = f"cogs.{extension}"
                 self.load_extension(extension)
                 LOG.debug(f"The extension '{extension}' has been successfully loaded")
             except:
@@ -117,3 +123,8 @@ class Bot(commands.Bot):
         if reaction:
             await message.add_reaction(Emoji.WASTEBASKET)
         return message
+
+    @commands.command()
+    async def reload(self, ctx):
+        config.load()
+        self.load_extensions()

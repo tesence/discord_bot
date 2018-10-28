@@ -1,5 +1,8 @@
 import os
+import logging
 import yaml
+
+LOG = logging.getLogger('bot')
 
 
 class ConfigurationFolderNotFound(Exception):
@@ -21,6 +24,7 @@ class MissingGuildIDError(Exception):
 class Config:
 
     def __init__(self):
+        self.config_folder = None
         self.attrs = {}
 
     def __contains__(self, item):
@@ -40,14 +44,15 @@ class Config:
         )
         return next((c for c in candidates if c is not None), None)
 
-    def load(self, config_folder):
-        if not os.path.isdir(config_folder):
-            return ConfigurationFolderNotFound(config_folder)
-
-        candidates = [f for f in os.listdir(config_folder) if f.endswith('.yaml')]
+    def load(self, config_folder=None):
+        self.config_folder = config_folder or self.config_folder
+        if not os.path.isdir(self.config_folder):
+            return ConfigurationFolderNotFound(self.config_folder)
+        self.attrs = {} if self.attrs else self.attrs
+        candidates = [f for f in os.listdir(self.config_folder) if f.endswith('.yaml')]
         for candidate in candidates:
             candidate_name = candidate.rsplit(".", 1)[0]
-            data = self._load_file(config_folder, candidate)
+            data = self._load_file(self.config_folder, candidate)
             if candidate_name == "config":
                 self.attrs.update(data)
             elif candidate_name == "default":
@@ -57,6 +62,7 @@ class Config:
                 if data and not guild_id:
                     raise MissingGuildIDError(candidate)
                 self.attrs.update({guild_id: data})
+        LOG.debug(f"Loaded configuration: {self.attrs}")
 
 
 config = Config()
