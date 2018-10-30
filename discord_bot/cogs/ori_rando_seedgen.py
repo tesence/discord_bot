@@ -65,7 +65,7 @@ class OriRandoSeedGenCommands(cogs.CogMixin):
 
         - flags: tracking, verbose_paths, classic_gen, hard-path, easy-path
         """
-
+        channel_repr = utils.get_channel_repr(ctx.channel)
         seed_codes = re.findall('[^"]*(".*")', args)
         LOG.debug(f"Valid seed codes found: {seed_codes}")
         seed = seed_codes[0][1:-1] if seed_codes else str(random.randint(1, 1000000000))
@@ -96,8 +96,8 @@ class OriRandoSeedGenCommands(cogs.CogMixin):
         logic_paths = get_matching(ori_randomizer.LOGIC_PATHS)
         flags = get_matching(ori_randomizer.FLAGS)
 
-        LOG.debug(f"seeds_codes={seed_codes}, presets={logic_presets}, key_modes={key_modes}, variations={variations}, "
-                  f"paths={logic_paths}, flags={flags}")
+        LOG.debug(f"[{channel_repr}] seeds_codes={seed_codes}, presets={logic_presets}, key_modes={key_modes}, "
+                  f"variations={variations}, paths={logic_paths}, flags={flags}")
 
         variations = variations or ["forcetrees"]
 
@@ -113,7 +113,7 @@ class OriRandoSeedGenCommands(cogs.CogMixin):
         download_message = await self.bot.send(ctx.channel, f"{self._get_download_message()}...")
         try:
             # Download the seed data
-            LOG.debug(f"Downloading the seed data: '{download_message.content}''")
+            LOG.debug(f"[{channel_repr}] Downloading the seed data: '{download_message.content}''")
             data = await self.client.get_data(seed, logic_preset, key_mode, path_diff, variations, logic_paths, flags)
 
             # Store the data into file buffers
@@ -133,10 +133,10 @@ class OriRandoSeedGenCommands(cogs.CogMixin):
             await self.bot.send(ctx.channel, message,
                                 files=[discord.File(seed_buffer, filename=SEED_FILENAME),
                                        discord.File(spoiler_buffer, filename=SPOILER_FILENAME)])
-            LOG.debug(f"The files have correctly been sent in Discord")
+            LOG.debug(f"[{channel_repr}] The files have correctly been sent in Discord")
         except:
             error_message = "An error has occured while generating the seed"
-            LOG.exception(error_message)
+            LOG.exception(f"[{channel_repr}] {error_message}")
             await download_message.edit(content=f"```{error_message}. Please try again later.```")
 
 

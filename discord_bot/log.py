@@ -3,7 +3,7 @@ import os
 from logging.handlers import RotatingFileHandler
 
 
-LOG_PATTERN = logging.Formatter('%(asctime)s:%(levelname)s: [%(filename)s] %(message)s')
+LOG_PATTERN = logging.Formatter('%(asctime)s:%(levelname)s: %(message)s')
 
 
 def setup(log_dir, config_dir):

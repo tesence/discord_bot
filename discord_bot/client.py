@@ -36,10 +36,12 @@ class Bot(commands.Bot):
         self.add_command(self.reload)
 
     async def on_ready(self):
-        LOG.debug(f"Bot is connected | user id: {self.user.id} | username: {self.user.name}")
+        LOG.debug(f"Bot is connected | username: {self.user} | user id: {self.user.id}")
+        LOG.debug(f"Guilds: {', '.join(f'{guild.name}#{guild.id}' for guild in self.guilds)}")
 
     async def on_command(self, ctx):
-        LOG.debug(f"Command '{ctx.command.name}' called by '{ctx.author.display_name}': '{ctx.message.content}'")
+        LOG.debug(f"[{utils.get_channel_repr(ctx.channel)}] Command '{ctx.command.name}' called by "
+                  f"'{ctx.author.display_name}': '{ctx.message.content}'")
 
     async def check_extension_access(self, ctx):
         if not getattr(ctx, 'cog'):
@@ -60,20 +62,21 @@ class Bot(commands.Bot):
 
         error = getattr(error, 'original', error)
 
+        channel_repr = utils.get_channel_repr(ctx.channel)
         if isinstance(error, commands.MissingRequiredArgument):
-            LOG.warning(f"Missing argument in command {ctx.command}: {error.message}")
+            LOG.warning(f"[{channel_repr}] Missing argument in command {ctx.command}: {error.message}")
             message = "An argument is missing\n\n"
             message += f"{ctx.command.signature}"
             await self.send(ctx.channel, message, code_block=True)
         elif isinstance(error, commands.CommandOnCooldown):
-            LOG.warning(f"{ctx.author.name} tried to use the command '{ctx.command.name}' while it was still on "
-                        f"cooldown for {round(error.retry_after, 2)}s")
+            LOG.warning(f"[{channel_repr}] '{ctx.author.name}' tried to use the command '{ctx.command.name}' while it "
+                        f"was still on cooldown for {round(error.retry_after, 2)}s")
             await ctx.message.add_reaction(Emoji.ARROWS_COUNTERCLOCKWISE)
         elif isinstance(error, commands.CheckFailure):
-            LOG.error(f"The extension '{utils.get_extension_name_from_ctx(ctx)}' is not enabled on the guild "
-                      f"'{ctx.guild.name}#{ctx.guild.id}'")
+            LOG.error(f"[{channel_repr}] The extension '{utils.get_extension_name_from_ctx(ctx)}' is not enabled on "
+                      f"the guild '{ctx.guild.name}#{ctx.guild.id}'")
         else:
-            LOG.warning(f"Exception '{type(error).__name__}' raised in command '{ctx.command}'",
+            LOG.warning(f"[{channel_repr}] Exception '{type(error).__name__}' raised in command '{ctx.command}'",
                         exc_info=(type(error), error, error.__traceback__))
 
     async def on_raw_reaction_add(self, payload):
@@ -89,8 +92,10 @@ class Bot(commands.Bot):
         is_bot_reaction = user.id == self.user.id
 
         if is_bot_message and not is_bot_reaction and emoji == Emoji.WASTEBASKET and checks._is_admin(user):
+            channel_repr = utils.get_channel_repr(channel)
             await message.delete()
-            log = f"{user.name} has deleted the message '{message.content}' from {message.author.name} "
+            log = f"[{channel_repr}] {user.name} has deleted the message '{message.content}' from " \
+                  f"{message.author.name} "
             if embed:
                 log += f"(Embed fields: {embed.to_dict()['fields']})"
             LOG.debug(log)
