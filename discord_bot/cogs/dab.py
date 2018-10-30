@@ -4,6 +4,7 @@ import random
 from discord.ext import commands
 from discord_bot import config
 from discord.ext.commands.cooldowns import BucketType
+from discord_bot import utils
 
 from discord_bot import cogs
 
@@ -22,12 +23,13 @@ class DabCommands(cogs.CogMixin):
     @commands.cooldown(1, config.get('DAB_COOLDOWN', DEFAULT_DAB_COOLDOWN), BucketType.channel)
     async def dab(self, ctx, *, dabbed=None):
         """Disrespect someone"""
+        channel_repr = utils.get_channel_repr(ctx.channel)
         if not dabbed:
             await ctx.invoke(self.bot.get_command('help'), ctx.command.name)
         elif "@here" not in dabbed and "@everyone" not in dabbed:
             times = random.randint(0, 100)
             answer = f"{ctx.author.display_name} dabs on {dabbed} {times} times!"
-            LOG.info(answer)
+            LOG.info(f"[{channel_repr}] {answer}")
             await self.bot.send(ctx.channel, answer)
 
 

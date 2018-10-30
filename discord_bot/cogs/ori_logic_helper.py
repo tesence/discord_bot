@@ -5,6 +5,7 @@ from discord.ext import commands
 
 from discord_bot.api import ori_randomizer
 from discord_bot import cogs
+from discord_bot import utils
 
 LOG = logging.getLogger('bot')
 
@@ -60,7 +61,7 @@ class OriLogicHelperCommands(cogs.CogMixin):
             standard logic, 2 keystones, 1 mapstone, charge jump: !logic CJ KSx2 Mapstone
             expert logic, Bash+Grenade, 4 Energy: !logic expert Bash Grenade Energyx4
         """
-
+        channel_repr = utils.get_channel_repr(ctx.channel)
         args = [arg.lower() for arg in args]
 
         preset = "standard"
@@ -72,7 +73,7 @@ class OriLogicHelperCommands(cogs.CogMixin):
         for arg in args:
             if arg in PRESETS:
                 if preset != "standard":
-                    LOG.debug(f"Got multiple presets. Using the latest {arg}")
+                    LOG.debug(f"[{channel_repr}] Got multiple presets. Using the latest {arg}")
                 preset = arg
                 continue
             if 'x' in arg:
@@ -80,34 +81,35 @@ class OriLogicHelperCommands(cogs.CogMixin):
                 try:
                     cnt = int(cnt)
                 except ValueError:
-                    LOG.debug(f"Failed to get count from {arg}, will attempt to continue assuming there's only 1...")
+                    LOG.debug(f"[{channel_repr}]  Failed to get count from {arg}, will attempt to continue assuming "
+                              f"there's only 1...")
                     cnt = 1
             else:
                 name = arg
                 cnt = 1
             if name in SKILLS:
                 skills.add(SKILLS[name])
-                LOG.debug(f"Recognized {name} as {SKILLS[name]}")
+                LOG.debug(f"[{channel_repr}] Recognized {name} as {SKILLS[name]}")
                 continue
             elif name in EVENTS:
                 events.add(EVENTS[name])
-                LOG.debug(f"Recognized {name} as {EVENTS[name]}")
+                LOG.debug(f"[{channel_repr}] Recognized {name} as {EVENTS[name]}")
                 continue
             elif name in CELLS_STONES:
                 cells_stones[CELLS_STONES[name]] += cnt
-                LOG.debug(f"Recognized {name} as {CELLS_STONES[name]}")
+                LOG.debug(f"[{channel_repr}] Recognized {name} as {CELLS_STONES[name]}")
                 continue
             elif "tp" in name:
                 trimmed = name.replace("tp", "")
                 if trimmed in TP_NAMES:
                     tps.add("TP|"+trimmed.capitalize())
-                    LOG.debug(f"Recognized Teleporter {name}")
+                    LOG.debug(f"[{channel_repr}] Recognized Teleporter {name}")
                     continue
                 else:  
-                    LOG.error(f"Unrecognized Teleporter {name}")
+                    LOG.error(f"[{channel_repr}] Unrecognized Teleporter {name}")
                     continue
             else:
-                LOG.error(f"Unrecognized pickup {name}")
+                LOG.error(f"[{channel_repr}] Unrecognized pickup {name}")
 
         base_url = f"{ori_randomizer.SEEDGEN_API_URL}/logichelper?"
         args = [f"pathmode={preset}"]
@@ -122,10 +124,10 @@ class OriLogicHelperCommands(cogs.CogMixin):
 
         url = base_url + "&".join(args)
 
-        LOG.debug(f"Finished parsing. final url: {url}")
+        LOG.debug(f"[{channel_repr}] Finished parsing. final url: {url}")
 
         await self.bot.send(ctx.channel, f"Logic Helper Link: {url}")
-        LOG.debug("Sent URL to discord")
+        LOG.debug("[{channel_repr}] Sent URL to discord")
 
 
 def setup(bot):

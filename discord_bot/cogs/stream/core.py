@@ -12,6 +12,7 @@ from discord_bot import cogs
 from discord_bot.cogs.stream import embeds
 from discord_bot import db
 from discord_bot import Emoji
+from discord_bot import utils
 
 LOG = logging.getLogger('bot')
 
@@ -85,8 +86,8 @@ class StreamManager(cogs.DBCogMixin):
                 reaction = not config.get('AUTO_DELETE_OFFLINE_STREAMS', True, guild_id=guild_id, default=True)
                 notification = await self.bot.send(notified_channel.channel, message, embed=embed, reaction=reaction)
                 stream.notifications.append(notification)
-            channels_str = [f"'{n.channel.guild.name}#{n.channel.name}'" for n in stream.notifications]
-            LOG.debug(f"Current notifications for '{stream.name}' after going online: {', '.join(channels_str)}")
+                channel_repr = utils.get_channel_repr(notified_channel.channel)
+                LOG.debug(f"[{channel_repr}] Notification for '{stream.name}' sent")
 
         async def on_stream_offline(stream, notified_channels):
             """Method called if the twitch stream is going offline.
@@ -96,39 +97,39 @@ class StreamManager(cogs.DBCogMixin):
             """
 
             for n in stream.notifications[:]:
+                channel_repr = utils.get_channel_repr(channel)
                 try:
                     if config.get('AUTO_DELETE_OFFLINE_STREAMS', True, guild_id=n.channel.guild.id, default=True):
                         await n.delete()
-                        LOG.info(f"The notification for '{stream.name}' in '{n.guild.name}#{n.channel.name}' has been "
-                                 f"deleted")
+                        LOG.debug(f"[{channel_repr}] Notification for '{stream.name}' deleted")
                     else:
                         embed = stream.notifications[0].embeds[0]
                         offline_embed = embeds.get_offline_embed(embed)
                         await n.edit(content="", embed=offline_embed)
-                        LOG.info(f"The notification for '{stream.name}' in '{n.guild.name}#{n.channel.name}' has been "
-                                 f"edited")
+                        LOG.debug(f"[{channel_repr}] Notification for '{stream.name}' edited")
                     stream.notifications.remove(n)
                 except errors.NotFound:
-                    LOG.warning(f"The notification for '{stream.name}' sent at '{n.created_at}' in "
-                                f"'{n.guild.name}#{n.channel.name}' does not exist or has been deleted")
-            channels_str = [f"'{n.channel.guild.name}#{n.channel.name}'" for n in stream.notifications]
-            LOG.debug(f"Current notifications for '{stream.name}' after going offline: {', '.join(channels_str)}")
+                    LOG.warning(f"[{channel_repr}] The notification for '{stream.name}' sent at '{n.created_at}' does "
+                                f"not exist or has been deleted")
 
         async def on_stream_update(stream, title=None, game=None):
             for n in stream.notifications:
+                channel_repr = utils.get_channel_repr(channel)
                 try:
                     embed = n.embeds[0]
                     fields = embed.fields
                     if not stream.title == title:
-                        LOG.info(f"{stream.name} has changed the stream title from '{stream.title}' to '{title}'")
+                        LOG.info(f"[{channel_repr}] '{stream.name}' has changed the stream title from '{stream.title}' "
+                                 f"to '{title}'")
                         embed.set_field_at(index=0, name=fields[0].name, value=title, inline=fields[0].inline)
                     if not stream.game == game:
-                        LOG.info(f"{stream.name} has changed the stream game from '{stream.game}' to '{game}'")
+                        LOG.info(f"[{channel_repr}] '{stream.name}' has changed the stream game from '{stream.game}' "
+                                 f"to '{game}'")
                         embed.set_field_at(index=1, name=fields[1].name, value=game, inline=fields[1].inline)
                     await n.edit(embed=embed)
                 except errors.NotFound:
-                    LOG.warning(f"The notification for '{stream.name}' sent at '{n.created_at}' in "
-                                f"'{n.guild.name}#{n.channel.name}' does not exist or has been deleted")
+                    LOG.warning(f"[{channel_repr}] The notification for '{stream.name}' sent at '{n.created_at}' does "
+                                f"not exist or has been deleted")
 
         while True:
             # Build a dictionary to easily iterate through the tracked streams
@@ -189,9 +190,7 @@ class StreamManager(cogs.DBCogMixin):
 
                     # If the stream was not online during the previous iteration, the stream just went online
                     if not stream.online:
-                        channels_str = [f"'{nc.channel.guild.name}#{nc.channel.name}'" for nc in notified_channels]
-                        LOG.info(f"Notification sent for '{stream.name}' (title='{stream.title}', "
-                                 f"game='{stream.game}') in channels: {', '.join(channels_str)}")
+                        LOG.info(f"'{stream.name}' is online")
                         await on_stream_online(stream, notified_channels)
                         stream.online = True
 
@@ -200,7 +199,7 @@ class StreamManager(cogs.DBCogMixin):
                 # To avoid spam if a stream keeps going online/offline because of Twitch or bad connections,
                 # we consider a stream as offline if it was offline for at least MIN_OFFLINE_DURATION
                 elif stream.online and stream.offline_duration > MIN_OFFLINE_DURATION:
-                    LOG.info(f"{stream.name} is offline")
+                    LOG.info(f"'{stream.name}' is offline")
                     await on_stream_offline(stream, notified_channels)
                     stream.online = False
             await asyncio.sleep(DEFAULT_POLL_RATE)
@@ -249,13 +248,14 @@ class StreamManager(cogs.DBCogMixin):
         :param tags: List of tags to add to the notification
         """
         stream_ids_by_name = await self.client.get_ids(*stream_names)
+        channel_repr = utils.get_channel_repr(channel)
         if stream_ids_by_name:
             if not await self.channel_db_driver.get(id=channel.id):
                 # Store the discord channel in the database if nothing was tracked in it before
                 await self.channel_db_driver.create(id=channel.id, name=channel.name, guild_id=channel.guild.id,
                                                     guild_name=channel.guild.name)
             else:
-                LOG.debug(f"The channel '{channel.name}#{channel.id}' has already been stored in the database")
+                LOG.debug(f"[{channel_repr}] The channel has already been stored in the database")
             tasks = [self._add_stream(channel, name, id, tags) for name, id in stream_ids_by_name.items()]
             return await asyncio.gather(*tasks, loop=self.bot.loop)
 
@@ -268,23 +268,25 @@ class StreamManager(cogs.DBCogMixin):
         :param tags: List of tags to add to the notification
         """
         channel_stream = await self.channel_stream_db_driver.get(channel_id=channel.id, stream_id=stream_id)
+        channel_repr = utils.get_channel_repr(channel)
         if not channel_stream:
             if not await self.stream_db_driver.get(id=stream_id):
                 # Store the twitch stream in the database if it wasn't tracked anywhere before
                 stream = await self.stream_db_driver.create(id=stream_id, name=stream_name)
                 self.streams_by_id[stream_id] = stream
             else:
-                LOG.debug(f"The stream '{stream_name}#{stream_id}' has already been stored in the database")
-            LOG.info(f"'{stream_name}' is now tracked in the channel '{channel.guild.name}#{channel.name}'")
+                LOG.debug(f"[{channel_repr}] The stream '{stream_name}' has already been stored in the "
+                          f"database")
+            LOG.info(f"[{channel_repr}] '{stream_name}' is now tracked in the channel")
 
             # Create a new relation between the twitch stream and the discord channel
             await self.channel_stream_db_driver.create(channel_id=channel.id, stream_id=stream_id, tags=tags)
         elif not channel_stream.tags == tags:
             await self.channel_stream_db_driver.update('tags', tags, channel_id=channel.id, stream_id=stream_id)
-            LOG.info(f"The notification tags for '{stream_name}' has been changed from '{channel_stream.tags}' "
-                     f"to '{tags}'")
+            LOG.info(f"[{channel_repr}] The notification tags for '{stream_name}' has been changed from "
+                     f"'{channel_stream.tags}' to '{tags}'")
         else:
-            LOG.warning(f"'{stream_name}' is already track in the channel {channel.guild.name}#{channel.name}")
+            LOG.warning(f"[{channel_repr}] '{stream_name}' is already track in the channel")
         return True
 
     @stream.command()
@@ -332,6 +334,7 @@ class StreamManager(cogs.DBCogMixin):
         :param stream_names: The streams to stop tracking
         """
         stream_ids_by_name = await self.client.get_ids(*stream_names)
+        channel_repr = utils.get_channel_repr(channel)
         if stream_ids_by_name:
             tasks = [self._remove_stream(channel, name, id) for name, id in stream_ids_by_name.items()]
             result = await asyncio.gather(*tasks, loop=self.bot.loop)
@@ -339,8 +342,8 @@ class StreamManager(cogs.DBCogMixin):
             # Remove the discord channel from the database if there no streams notified in it anymore
             if not await self.channel_stream_db_driver.get(channel_id=channel.id) and \
                     await self.channel_db_driver.get(id=channel.id):
-                LOG.debug(f"There is no stream tracked in the channel '{channel.guild.name}#{channel.name}', the "
-                          f"channel is deleted from the database")
+                LOG.debug(f"[{channel_repr}] There is no stream tracked in the channel anymore, the  channel is "
+                          f"deleted from the database")
                 asyncio.ensure_future(self.channel_db_driver.delete(id=channel.id), loop=self.bot.loop)
             return result
 
@@ -352,19 +355,20 @@ class StreamManager(cogs.DBCogMixin):
         :param stream_id: The stream_id to stop tracking
         """
         channel_stream = await self.channel_stream_db_driver.get(channel_id=channel.id, stream_id=stream_id)
+        channel_repr = utils.get_channel_repr(channel)
         if channel_stream:
             # Remove the relation between the twitch stream and the discord channel
             await self.channel_stream_db_driver.delete(channel_id=channel.id, stream_id=stream_id)
-            LOG.info(f"{stream_name} is no longer tracked in '{channel.guild.name}#{channel.name}'")
+            LOG.info(f"[{channel_repr}] '{stream_name}' is no longer tracked in the channel")
 
             # Remove the twitch stream from the database of it's not notified anymore
             if not await self.channel_stream_db_driver.get(stream_id=stream_id):
-                LOG.debug(f"The stream '{stream_name}#{stream_id}' is no longer tracked in any channel, the stream is "
-                          f"deleted from the database")
+                LOG.debug(f"[{channel_repr}] The stream '{stream_name}' is no longer tracked in any channel, the "
+                          f"stream is deleted from the database")
                 del self.streams_by_id[stream_id]
                 asyncio.ensure_future(self.stream_db_driver.delete(id=stream_id), loop=self.bot.loop)
         else:
-            LOG.debug(f"{stream_name} is not tracked in the channel '{channel.guild.name}#{channel.name}'")
+            LOG.debug(f"[{channel_repr}] '{stream_name}' is not tracked in the channel")
         return True
 
     @stream.command()
