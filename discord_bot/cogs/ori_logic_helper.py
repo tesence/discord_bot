@@ -105,7 +105,7 @@ class OriLogicHelperCommands(cogs.CogMixin):
                     tps.add("TP|"+trimmed.capitalize())
                     LOG.debug(f"[{channel_repr}] Recognized Teleporter {name}")
                     continue
-                else:  
+                else:
                     LOG.error(f"[{channel_repr}] Unrecognized Teleporter {name}")
                     continue
             else:

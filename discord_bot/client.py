@@ -1,5 +1,6 @@
 import logging
 
+import discord
 from discord.ext import commands
 
 from discord_bot import config
@@ -118,7 +119,7 @@ class Bot(commands.Bot):
             try:
                 self.load_extension(extension)
                 LOG.debug(f"The extension '{extension}' has been successfully loaded")
-            except:
+            except (discord.ClientException, ModuleNotFoundError):
                 LOG.exception(f"Failed to load extension '{extension}'")
 
     async def send(self, channel, content, reaction=False, code_block=False, **kwargs):

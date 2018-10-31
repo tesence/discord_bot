@@ -33,7 +33,7 @@ class TwitchAPIClient(base.APIClient):
         if body:
             try:
                 data = {user['name']: user['_id'] for user in body['users']}
-            except:
+            except (AttributeError, KeyError, ValueError):
                 LOG.exception(f"Cannot retrieve channel ids")
             else:
                 return data
@@ -48,7 +48,7 @@ class TwitchAPIClient(base.APIClient):
         if body:
             try:
                 data = {str(stream['channel']['_id']): stream for stream in body['streams']}
-            except:
+            except (AttributeError, KeyError, ValueError):
                 LOG.exception(f"Cannot retrieve stream data")
             else:
                 return data
