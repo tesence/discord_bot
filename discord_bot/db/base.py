@@ -17,8 +17,8 @@ async def get_pool():
 
 class Column:
 
-    def __init__(self, type, foreign_key=None, primary_key=False, nullable=True, default=None):
-        self.type = type
+    def __init__(self, column_type, foreign_key=None, primary_key=False, nullable=True, default=None):
+        self.type = column_type
         self.foreign_key = foreign_key
         self.primary_key = primary_key
         self.nullable = nullable
