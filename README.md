@@ -1,5 +1,7 @@
 # Discord Bot
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/902886185fd2476dadab0cb1a4c4f3a9)](https://app.codacy.com/app/tesence/discord_bot?utm_source=github.com&utm_medium=referral&utm_content=tesence/discord_bot&utm_campaign=Badge_Grade_Dashboard)
+
 A Discord Bot based on asynchronous programming (asyncio)
 
 - Notify twitch streams status
