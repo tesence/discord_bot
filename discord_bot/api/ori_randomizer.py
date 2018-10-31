@@ -44,7 +44,7 @@ class OriRandomizerAPIClient(base.APIClient):
     def __init__(self, loop):
         super(OriRandomizerAPIClient, self).__init__(base_url=SEEDGEN_API_URL, loop=loop)
 
-    async def get_data(self, seed, preset, key_mode=None, path_diff=None, variations=[], logic_paths=[], flags=[]):
+    async def get_data(self, seed, preset, key_mode=None, path_diff=None, variations=(), logic_paths=(), flags=()):
         """ Retrieve the seed and spoiler download links
 
         :param seed: The seed number
@@ -76,11 +76,11 @@ class OriRandomizerAPIClient(base.APIClient):
         elif preset in HARD_PRESETS:
             params.add(("path_diff", "Hard"))
 
-        logic_paths = set(PRESETS[preset] + logic_paths)
+        logic_paths = set(PRESETS[preset]) | set(logic_paths)
         params = params | {("path", path) for path in logic_paths}
 
         if preset in PRESET_VARS:
-            variations = set(variations + PRESET_VARS[preset])
+            variations = set(variations) | set(PRESET_VARS[preset])
         params = params | {("var", VARIATIONS[v]) for v in variations}
 
         LOG.debug(f"Parameters used for the seed generation: {params}")

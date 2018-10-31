@@ -32,7 +32,7 @@ class APIClient:
             LOG.warning(f"{ERROR_MESSAGE} '{endpoint}' ({type(e).__name__})")
         except self.error_exceptions as e:
             LOG.exception(f"{ERROR_MESSAGE} '{endpoint}' ({type(e).__name__})")
-        except:
+        except aiohttp.ClientError:
             LOG.exception(f"Unexpected API error")
 
     async def get(self, uri):
