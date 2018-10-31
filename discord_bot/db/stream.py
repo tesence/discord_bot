@@ -1,10 +1,7 @@
 from datetime import datetime
 import logging
 
-from asyncpg import exceptions
-
 from discord_bot.db import base
-from discord_bot.db.base import transaction
 
 
 LOG = logging.getLogger('bot')
