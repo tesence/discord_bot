@@ -1,6 +1,6 @@
 import logging
 
-from discord_bot.api import base
+from gumo.api import base
 
 LOG = logging.getLogger('bot')
 

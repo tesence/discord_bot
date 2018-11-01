@@ -2,9 +2,9 @@ import logging
 
 from discord.ext import commands
 
-from discord_bot import config
-from discord_bot import cogs
-from discord_bot.cogs.utils import role
+from gumo import config
+from gumo import cogs
+from gumo.cogs.utils import role
 
 LOG = logging.getLogger('bot')
 

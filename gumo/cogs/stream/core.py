@@ -5,14 +5,14 @@ import logging
 from discord import errors
 from discord.ext import commands
 
-from discord_bot import api
-from discord_bot.client import checks
-from discord_bot import config
-from discord_bot import cogs
-from discord_bot.cogs.stream import embeds
-from discord_bot import db
-from discord_bot import Emoji
-from discord_bot import utils
+from gumo import api
+from gumo.client import checks
+from gumo import config
+from gumo import cogs
+from gumo.cogs.stream import embeds
+from gumo import db
+from gumo import Emoji
+from gumo import utils
 
 LOG = logging.getLogger('bot')
 

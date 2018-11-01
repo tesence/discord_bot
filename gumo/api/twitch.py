@@ -1,8 +1,8 @@
 import aiohttp
 import logging
 
-from discord_bot.api import base
-from discord_bot import config
+from gumo.api import base
+from gumo import config
 
 
 LOG = logging.getLogger('bot')

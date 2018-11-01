@@ -28,7 +28,7 @@ Clone the repository
 
 ::
 
-   git clone https://github.com/tesence/discord_bot.git
+   git clone https://github.com/tesence/GumoBot.git
 
 Windows
 -------
@@ -113,7 +113,6 @@ Run the bot
 
 In the project folder, run:
 
-.. _windows-1:
 
 Windows
 -------
@@ -122,7 +121,6 @@ Windows
 
    .venv/Script/python.exe main.py --config-dir /path/to/your/config/folder --log-dir /path/to/the/log/folder
 
-.. _linux-1:
 
 Linux
 -----

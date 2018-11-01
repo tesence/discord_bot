@@ -3,8 +3,8 @@ import logging
 
 from discord.ext.commands import errors
 
-from discord_bot import config
-from discord_bot import db
+from gumo import config
+from gumo import db
 
 LOG = logging.getLogger('bot')
 
