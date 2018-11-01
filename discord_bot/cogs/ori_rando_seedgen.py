@@ -56,13 +56,10 @@ class OriRandoSeedGenCommands(cogs.CogMixin):
         Default: standard, clues, forcetrees
 
         - presets: casual, standard, expert, master, hard, ohko, 0xp, glitched
-
         - modes: shards, limitkeys, clues, default
-
-        - logic paths: normal, speed, dbash, extended, extended-damage, lure, speed-lure, lure-hard, dboost, dboost-light, dboost-hard, cdash, cdash-farming, extreme, timed-level, glitched
-
+        - logic paths: normal, speed, dbash, extended, extended-damage, lure, speed-lure, lure-hard, dboost,
+          dboost-light, dboost-hard, cdash, cdash-farming, extreme, timed-level, glitched
         - variations: forcetrees, entrance, hard, starved, ohko, nonprogressmapstones, 0xp, noplants, noteleporters
-
         - flags: tracking, verbose_paths, classic_gen, hard-path, easy-path
         """
         channel_repr = utils.get_channel_repr(ctx.channel)

@@ -53,8 +53,10 @@ class OriLogicHelperCommands(cogs.CogMixin):
         Default: standard, no items
 
         - presets: casual, standard, expert, master, hard, ohko, 0xp, glitched
-
-        - items: WallJump (WJ), ChargeFlame (CF), DoubleJump (DJ), Bash (BS), Stomp (ST), Glide (GL), Climb (CL), ChargeJump (CJ), Dash (DA), Grenade (GR), WaterVein (WV), GumonSeal (GS), Sunstone (SS), Health (HC), Energy (EC), Keystone (KS), Mapstone (MS), Water, Wind, GrottoTP, GroveTP, SwampTP, ValleyTP, SorrowTP, ForlornTP
+        - items: WallJump (WJ), ChargeFlame (CF), DoubleJump (DJ), Bash (BS), Stomp (ST), Glide (GL), Climb (CL),
+          ChargeJump (CJ), Dash (DA), Grenade (GR), WaterVein (WV), GumonSeal (GS), Sunstone (SS), Health (HC),
+          Energy (EC), Keystone (KS), Mapstone (MS), Water, Wind, GrottoTP, GroveTP, SwampTP, ValleyTP, SorrowTP,
+          ForlornTP
 
         Denote multiples by appending "xN" to it, without a space.
         Examples:
