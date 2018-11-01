@@ -9,10 +9,10 @@ import discord
 from discord.ext import commands
 from discord.ext.commands.cooldowns import BucketType
 
-from discord_bot.api import ori_randomizer
-from discord_bot import config
-from discord_bot import cogs
-from discord_bot import utils
+from gumo.api import ori_randomizer
+from gumo import config
+from gumo import cogs
+from gumo import utils
 
 LOG = logging.getLogger('bot')
 

@@ -2,11 +2,11 @@ import logging
 import random
 
 from discord.ext import commands
-from discord_bot import config
+from gumo import config
 from discord.ext.commands.cooldowns import BucketType
-from discord_bot import utils
+from gumo import utils
 
-from discord_bot import cogs
+from gumo import cogs
 
 LOG = logging.getLogger('bot')
 

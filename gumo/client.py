@@ -3,9 +3,9 @@ import logging
 import discord
 from discord.ext import commands
 
-from discord_bot import config
-from discord_bot import Emoji
-from discord_bot import utils
+from gumo import config
+from gumo import Emoji
+from gumo import utils
 
 LOG = logging.getLogger('bot')
 

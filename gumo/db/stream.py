@@ -1,7 +1,7 @@
 from datetime import datetime
 import logging
 
-from discord_bot.db import base
+from gumo.db import base
 
 
 LOG = logging.getLogger('bot')

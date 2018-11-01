@@ -2,7 +2,7 @@ import logging
 
 from discord.ext.commands import converter
 
-from discord_bot import Emoji
+from gumo import Emoji
 
 
 LOG = logging.getLogger('bot')

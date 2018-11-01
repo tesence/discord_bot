@@ -3,10 +3,10 @@
 import argparse
 import sys
 
-from discord_bot import config
-from discord_bot import client
-from discord_bot import log
-from discord_bot import utils
+from gumo import config
+from gumo import client
+from gumo import log
+from gumo import utils
 
 parser = argparse.ArgumentParser("Start the Discord bot")
 parser.add_argument('--config-dir', '-c', dest='config_folder', help="Bot configuration folder")

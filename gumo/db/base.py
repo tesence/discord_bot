@@ -5,7 +5,7 @@ import logging
 import asyncpg
 from asyncpg import exceptions
 
-from discord_bot import config
+from gumo import config
 
 
 LOG = logging.getLogger('bot')

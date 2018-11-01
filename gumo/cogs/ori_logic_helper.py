@@ -3,9 +3,9 @@ from collections import defaultdict
 
 from discord.ext import commands
 
-from discord_bot.api import ori_randomizer
-from discord_bot import cogs
-from discord_bot import utils
+from gumo.api import ori_randomizer
+from gumo import cogs
+from gumo import utils
 
 LOG = logging.getLogger('bot')
 
