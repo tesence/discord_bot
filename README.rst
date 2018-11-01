@@ -251,3 +251,8 @@ moderator.
 .. |seedgen| image:: img/seedgen.png?raw=True
    :class: align-center
 
+
+
+.. image:: https://api.codacy.com/project/badge/Grade/902886185fd2476dadab0cb1a4c4f3a9
+   :alt: Codacy Badge
+   :target: https://app.codacy.com/app/tesence/GumoBot?utm_source=github.com&utm_medium=referral&utm_content=tesence/GumoBot&utm_campaign=Badge_Grade_Settings
