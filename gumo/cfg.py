@@ -45,10 +45,11 @@ class Config:
         return next((c for c in candidates if c is not None), None)
 
     def load(self, config_folder=None):
-        self.config_folder = config_folder or self.config_folder
+        if not config_folder:
+            self.config_folder = config_folder
         if not os.path.isdir(self.config_folder):
-            return ConfigurationFolderNotFound(self.config_folder)
-        self.attrs = {} if self.attrs else self.attrs
+            raise ConfigurationFolderNotFound(self.config_folder)
+        self.attrs = {}
         candidates = [f for f in os.listdir(self.config_folder) if f.endswith('.yaml')]
         for candidate in candidates:
             candidate_name = candidate.rsplit(".", 1)[0]
