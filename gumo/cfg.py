@@ -9,10 +9,6 @@ class ConfigurationFolderNotFound(Exception):
     """Configuration folder does not exist"""
 
 
-class ConfigurationVariableNotFound(Exception):
-    """Configuration variable does not exist"""
-
-
 class MissingGuildIDError(Exception):
     """Configuration file is missing a guild id"""
 
@@ -45,7 +41,7 @@ class Config:
         return next((c for c in candidates if c is not None), None)
 
     def load(self, config_folder=None):
-        if not config_folder:
+        if config_folder:
             self.config_folder = config_folder
         if not os.path.isdir(self.config_folder):
             raise ConfigurationFolderNotFound(self.config_folder)
