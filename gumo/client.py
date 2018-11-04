@@ -3,6 +3,7 @@ import logging
 import discord
 from discord.ext import commands
 
+from gumo import check
 from gumo import config
 from gumo import Emoji
 from gumo import utils
@@ -10,31 +11,14 @@ from gumo import utils
 LOG = logging.getLogger('bot')
 
 
-class checks:
-
-    OWNER_ID = 133313675237916672
-
-    @staticmethod
-    def is_admin(ctx):
-        return checks._is_admin(ctx.author)
-
-    @staticmethod
-    def _is_admin(member):
-        admin_roles = config.get('ADMIN_ROLES', guild_id=member.guild.id)
-        if admin_roles is None or member.id == checks.OWNER_ID:
-            return True
-        author_roles = [role.name for role in member.roles]
-        return set(author_roles) & set(admin_roles)
-
-
 class Bot(commands.Bot):
 
     def __init__(self, *args, **kwargs):
         command_prefix = kwargs.pop('command_prefix')
         super(Bot, self).__init__(*args, command_prefix=commands.when_mentioned_or(command_prefix), **kwargs)
+        self.add_command(self.reload)
         self.add_check(self.check_extension_access)
         self.load_extensions()
-        self.add_command(self.reload)
 
     async def on_ready(self):
         LOG.debug(f"Bot is connected | username: {self.user} | user id: {self.user.id}")
@@ -74,8 +58,7 @@ class Bot(commands.Bot):
                         f"was still on cooldown for {round(error.retry_after, 2)}s")
             await ctx.message.add_reaction(Emoji.ARROWS_COUNTERCLOCKWISE)
         elif isinstance(error, commands.CheckFailure):
-            LOG.error(f"[{channel_repr}] The extension '{utils.get_extension_name_from_ctx(ctx)}' is not enabled on "
-                      f"the guild '{ctx.guild.name}#{ctx.guild.id}'")
+            LOG.error(f"[{channel_repr}] Check failed: {error.message} ({type(error).__name__})")
         else:
             LOG.warning(f"[{channel_repr}] Exception '{type(error).__name__}' raised in command '{ctx.command}'",
                         exc_info=(type(error), error, error.__traceback__))
@@ -92,7 +75,7 @@ class Bot(commands.Bot):
         is_bot_message = author.id == self.user.id
         is_bot_reaction = user.id == self.user.id
 
-        if is_bot_message and not is_bot_reaction and emoji == Emoji.WASTEBASKET and checks._is_admin(user):
+        if is_bot_message and not is_bot_reaction and emoji == Emoji.WASTEBASKET and user.id == self.owner_id:
             channel_repr = utils.get_channel_repr(channel)
             await message.delete()
             log = f"[{channel_repr}] {user.name} has deleted the message '{message.content}' from " \
@@ -131,6 +114,7 @@ class Bot(commands.Bot):
         return message
 
     @commands.command()
+    @check.is_owner()
     async def reload(self, ctx):
         config.load()
         self.load_extensions()

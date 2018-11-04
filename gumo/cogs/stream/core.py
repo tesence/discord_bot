@@ -6,7 +6,7 @@ from discord import errors
 from discord.ext import commands
 
 from gumo import api
-from gumo.client import checks
+from gumo import check
 from gumo import config
 from gumo import cogs
 from gumo.cogs.stream import embeds
@@ -290,7 +290,7 @@ class StreamManager(cogs.DBCogMixin):
         return True
 
     @stream.command()
-    @commands.check(checks.is_admin)
+    @check.is_owner()
     async def reload(self, ctx):
         if self.task:
             LOG.debug("Reloading the poll task...")
@@ -298,7 +298,7 @@ class StreamManager(cogs.DBCogMixin):
             self.task = asyncio.ensure_future(self.poll_streams(), loop=self.bot.loop)
 
     @stream.command()
-    @commands.check(checks.is_admin)
+    @check.is_admin()
     async def add(self, ctx, *stream_names):
         """ Track a list of streams in a channel """
         if not stream_names:
@@ -308,7 +308,7 @@ class StreamManager(cogs.DBCogMixin):
             await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
 
     @stream.command()
-    @commands.check(checks.is_admin)
+    @check.is_admin()
     async def everyone(self, ctx, *stream_names):
         """ Track a list of streams in a channel (with @everyone) """
         if not stream_names:
@@ -318,7 +318,7 @@ class StreamManager(cogs.DBCogMixin):
             await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
 
     @stream.command()
-    @commands.check(checks.is_admin)
+    @check.is_admin()
     async def here(self, ctx, *stream_names):
         """ Track a list of streams in a channel (with @here) """
         if not stream_names:
@@ -372,7 +372,7 @@ class StreamManager(cogs.DBCogMixin):
         return True
 
     @stream.command()
-    @commands.check(checks.is_admin)
+    @check.is_admin()
     async def remove(self, ctx, *stream_names):
         """ Stop tracking a list of streams in a channel """
         if not stream_names:
