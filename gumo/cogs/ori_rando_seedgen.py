@@ -61,6 +61,8 @@ class OriRandoSeedGenCommands(cogs.CogMixin):
           dboost-light, dboost-hard, cdash, cdash-farming, extreme, timed-level, glitched
         - variations: forcetrees, entrance, hard, starved, ohko, nonprogressmapstones, 0xp, noplants, noteleporters
         - flags: tracking, verbose_paths, classic_gen, hard-path, easy-path
+
+        A seed name can be set using double quotes
         """
         channel_repr = utils.get_channel_repr(ctx.channel)
         seed_codes = re.findall('[^"]*(".*")', args)

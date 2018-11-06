@@ -206,6 +206,8 @@ Optional arguments
    nonprogressmapstones, 0xp, noplants, noteleporters
 -  flags: tracking, verbose_paths, classic_gen, hard-path, easy-path
 
+A seed name can be set using double quotes
+
 |seedgen|
 
 Logic helper link generation
