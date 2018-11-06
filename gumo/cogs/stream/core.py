@@ -97,7 +97,7 @@ class StreamManager(cogs.DBCogMixin):
             """
 
             for n in stream.notifications[:]:
-                channel_repr = utils.get_channel_repr(channel)
+                channel_repr = utils.get_channel_repr(n.channel)
                 try:
                     if config.get('AUTO_DELETE_OFFLINE_STREAMS', True, guild_id=n.channel.guild.id, default=True):
                         await n.delete()

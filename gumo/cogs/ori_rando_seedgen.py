@@ -110,7 +110,7 @@ class OriRandoSeedGenCommands(cogs.CogMixin):
         download_message = await self.bot.send(ctx.channel, f"{self._get_download_message()}...")
         try:
             # Download the seed data
-            LOG.debug(f"[{channel_repr}] Downloading the seed data: '{download_message.content}''")
+            LOG.debug(f"[{channel_repr}] Downloading the seed data: '{download_message.content}'")
             data = await self.client.get_data(seed, logic_preset, key_mode, path_diff, variations, logic_paths, flags)
 
             # Store the data into file buffers
