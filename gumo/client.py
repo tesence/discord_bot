@@ -75,7 +75,7 @@ class Bot(commands.Bot):
         is_bot_message = author.id == self.user.id
         is_bot_reaction = user.id == self.user.id
 
-        if is_bot_message and not is_bot_reaction and emoji == Emoji.WASTEBASKET and user.id == self.owner_id:
+        if is_bot_message and not is_bot_reaction and emoji == Emoji.WASTEBASKET and await self.is_owner(user):
             channel_repr = utils.get_channel_repr(channel)
             await message.delete()
             log = f"[{channel_repr}] {user.name} has deleted the message '{message.content}' from " \
