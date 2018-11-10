@@ -23,3 +23,10 @@ def get_extension_name_from_ctx(ctx):
 
 def get_channel_repr(channel):
     return f"{channel.guild.name}#{channel.name}"
+
+
+class MultiKeyDict(dict):
+
+    def __setitem__(self, key, value):
+        for k in key:
+            super(MultiKeyDict, self).__setitem__(k, value)

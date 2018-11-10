@@ -4,39 +4,37 @@ from gumo.api import base
 
 LOG = logging.getLogger('bot')
 
-SEEDGEN_API_URL = "http://orirandocoopserver.appspot.com"
-LOGIC_MODES = ["casual", "standard", "expert", "master", "hard", "ohko", "0xp", "glitched"]
-KEY_MODES = ["default", "shards", "limitkeys", "clues"]
+SEEDGEN_API_URL = "http://orirando.com"
+
+LOGIC_MODES = ["casual", "standard", "expert", "master", "0xp", "glitched"]
+KEY_MODES = ["default", "shards", "limitkeys", "clues", "free"]
+
 PATH_DIFFICULTIES = ["easy", "normal", "hard"]
-LOGIC_PATHS = ["normal", "speed", "dbash", "extended", "extended-damage", "lure", "speed-lure", "lure-hard", "dboost",
-               "dboost-light", "dboost-hard", "cdash", "cdash-farming", "extreme", "timed-level", "glitched"]
+
+LOGIC_PATHS = [
+    "casual-core", "casual-dboost",
+    "standard-core", "standard-dboost", "standard-lure", "standard-abilities",
+    "expert-core", "expert-dboost", "expert-lure", "expert-abilities",
+    "master-core", "master-dboost", "master-lure", "master-abilities",
+    "dbash", "gjump", "glitched", "timed-level", "insane"
+]
 
 # map of lowercase variation to correctly capitalized one.
-VARIATIONS = {v.lower(): v for v in ["0XP", "NonProgressMapStones", "Entrance", "ForceMapStones",
-                                     "ForceRandomEscape", "ForceTrees", "Hard", "NoPlants", "NoTeleporters", "OHKO",
-                                     "Starved", "BonusPickups"]}
+VARIATIONS = {v.lower(): v for v in ["Starved", "Hard", "OHKO", "0XP", "Open", "Closed", "DoubleSkills",
+                                     "StrictMapstones", "BonusPickups", "NonProgressMapStones"]}
 
 FLAGS = ["tracking", "classic_gen", "verbose_paths"]
-
 HARD_PRESETS = ["master", "glitched"]
+PRESET_VARS = {"master": ["starved"]}
 
-PRESET_VARS = {"master": ["starved"], "hard": ["hard"], "ohko": ["ohko", "hard"], "0xp": ["hard", "0xp"]}
+PRESETS = {}
+PRESETS['casual'] = ["casual-core", "casual-dboost"]
+PRESETS['standard'] = PRESETS['casual'] + ["standard-core", "standard-dboost", "standard-lure", "standard-abilities"]
+PRESETS['expert'] = PRESETS['standard'] + ["expert-core", "expert-dboost", "expert-lure", "expert-abilities", "dbash"]
+PRESETS['master'] = PRESETS['expert'] + ["master-core", "master-dboost", "master-lure", "master-abilities", "gjump"]
+PRESETS['glitched'] = PRESETS['expert'] + ["glitched", "timed-level"]
 
-PRESETS = {
-    "casual": ["normal", "dboost-light"],
-    "standard": ["normal", "speed", "lure", "dboost-light"],
-    "dboost": ["normal", "speed", "lure", "dboost", "dboost-light"],
-    "expert": ["normal", "speed", "lure", "speed-lure", "dboost", "dboost-light", "cdash", "extended",
-               "extended-damage"],
-    "master": ["normal", "speed", "lure", "speed-lure", "dboost", "dboost-light", "dboost-hard", "cdash", "dbash",
-               "extended", "extended-damage", "lure-hard", "extreme"],
-    "hard": ["normal", "speed", "lure", "dboost-light", "cdash", "dbash", "extended"],
-    "ohko": ["normal", "speed", "lure", "cdash", "dbash", "extended"],
-    "0xp": ["normal", "speed", "lure", "dboost-light"],
-    "glitched": ["normal", "speed", "lure", "speed-lure", "dboost", "dboost-light", "dboost-hard", "cdash", "dbash",
-                 "extended", "lure-hard", "timed-level", "glitched", "extended-damage", "extreme"]
-}
-AMBIGUOUS_PRESETS = ["hard", "glitched", "ohko", "0xp"]
+AMBIGUOUS_PRESETS = ["glitched"]
 
 
 class OriRandomizerAPIClient(base.APIClient):
@@ -44,15 +42,17 @@ class OriRandomizerAPIClient(base.APIClient):
     def __init__(self, loop):
         super(OriRandomizerAPIClient, self).__init__(base_url=SEEDGEN_API_URL, loop=loop)
 
-    async def get_data(self, seed, preset, key_mode=None, path_diff=None, variations=(), logic_paths=(), flags=()):
+    async def get_data(self, seed, preset, key_mode=None, path_diff=None, goal_modes=(), variations=(), logic_paths=(),
+                       flags=()):
         """ Retrieve the seed and spoiler download links
 
         :param seed: The seed number
         :param preset: The seed logic mode preset
         :param key_mode: The seed mode
         :param path_diff: The seed path difficulty
+        :param goal_modes: The goal modes
         :param variations: An optional list of variations
-        :param logic_paths: An optional list of addtional logic paths
+        :param logic_paths: An optional list of additional logic paths
         :param flags: Any other flags
         :return: seed and spoiler data
         """
@@ -71,6 +71,20 @@ class OriRandomizerAPIClient(base.APIClient):
         if key_mode:
             params.add(("key_mode", key_mode.capitalize()))
 
+        for goal_mode in goal_modes:
+            if goal_mode[0] == "WorldTour":
+                params.add(("var", goal_mode[0]))
+                if goal_mode[1]:
+                    params.add(("relics", goal_mode[1]))
+            elif goal_mode[0] == "WarmthFrags":
+                params.add(("var", goal_mode[0]))
+                if goal_mode[1]:
+                    params.add(("frags_req ", goal_mode[1]))
+                if goal_mode[2]:
+                    params.add(("frags", goal_mode[2]))
+            else:
+                params.add(("var", goal_mode[0]))
+
         if path_diff:
             params.add(("path_diff", path_diff.capitalize()))
         elif preset in HARD_PRESETS:
@@ -82,6 +96,9 @@ class OriRandomizerAPIClient(base.APIClient):
         if preset in PRESET_VARS:
             variations = set(variations) | set(PRESET_VARS[preset])
         params = params | {("var", VARIATIONS[v]) for v in variations}
+
+        if "closed" not in variations:
+            params.add(('var', 'Open'))
 
         LOG.debug(f"Parameters used for the seed generation: {params}")
 

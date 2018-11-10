@@ -20,6 +20,12 @@ SEED_FILENAME = "randomizer.dat"
 SPOILER_FILENAME = "spoiler.txt"
 DOWNLOAD_MESSAGES_FILE_PATH = "data/download_messages.json"
 
+GOAL_MODES = utils.MultiKeyDict()
+GOAL_MODES['ft', 'forcetrees', 'force-trees'] = "ForceTrees"
+GOAL_MODES['wt', 'worldtour', 'world-tour'] = "WorldTour"
+GOAL_MODES['wf', 'warmthfragments', 'warmth-fragments'] = "WarmthFrags"
+GOAL_MODES['fm', 'forcemapstones', 'force-mapstones'] = "ForceMapStones"
+
 DEFAULT_SEEDGEN_COOLDOWN = 0
 
 
@@ -53,14 +59,9 @@ class OriRandoSeedGenCommands(cogs.CogMixin):
     async def seed(self, ctx, *, args=""):
         """Generate a seed for the Ori randomizer
 
-        Default: standard, clues, forcetrees
+        Default: standard, clues, forcetrees, open
 
-        - presets: casual, standard, expert, master, hard, ohko, 0xp, glitched
-        - modes: shards, limitkeys, clues, default
-        - logic paths: normal, speed, dbash, extended, extended-damage, lure, speed-lure, lure-hard, dboost,
-          dboost-light, dboost-hard, cdash, cdash-farming, extreme, timed-level, glitched
-        - variations: forcetrees, entrance, hard, starved, ohko, nonprogressmapstones, 0xp, noplants, noteleporters
-        - flags: tracking, verbose_paths, classic_gen, hard-path, easy-path
+        TODO: Write this
 
         A seed name can be set using double quotes
         """
@@ -72,6 +73,21 @@ class OriRandoSeedGenCommands(cogs.CogMixin):
         for seed_code in seed_codes:
             args = args.replace(seed_code, "")
         args = [arg.lower() for arg in args.split()]
+
+        goal_modes = []
+        for arg in args:
+            token, _, value = arg.partition('=')
+            if token in GOAL_MODES:
+                token = GOAL_MODES[token]
+                if token == "ForceTrees" or token == "ForceMapStones":
+                    goal_modes.append((token,))
+                elif token == "WorldTour":
+                    goal_modes.append((token, value if value.isdigit() else None))
+                elif token == "WarmthFrags":
+                    frags_req, _, frags = value.partition("/")
+                    goal_modes.append((token,
+                                       frags_req if frags_req.isdigit() else None,
+                                       frags if frags.isdigit() else None))
 
         def get_matching(target_list):
             matching_vals = [arg for arg in args if arg in target_list]
@@ -96,9 +112,7 @@ class OriRandoSeedGenCommands(cogs.CogMixin):
         flags = get_matching(ori_randomizer.FLAGS)
 
         LOG.debug(f"[{channel_repr}] seeds_codes={seed_codes}, presets={logic_presets}, key_modes={key_modes}, "
-                  f"variations={variations}, paths={logic_paths}, flags={flags}")
-
-        variations = variations or ["forcetrees"]
+                  f"goal_modes={goal_modes}, variations={variations}, paths={logic_paths}, flags={flags}")
 
         path_diff = None
         if "hard-path" in args:
@@ -113,7 +127,8 @@ class OriRandoSeedGenCommands(cogs.CogMixin):
         try:
             # Download the seed data
             LOG.debug(f"[{channel_repr}] Downloading the seed data: '{download_message.content}'")
-            data = await self.client.get_data(seed, logic_preset, key_mode, path_diff, variations, logic_paths, flags)
+            data = await self.client.get_data(seed, logic_preset, key_mode, path_diff, goal_modes, variations,
+                                              logic_paths, flags)
 
             # Store the data into file buffers
             seed_buffer = io.BytesIO(bytes(data['players'][0]['seed'], encoding="utf8"))
