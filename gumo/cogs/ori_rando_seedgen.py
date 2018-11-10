@@ -1,3 +1,4 @@
+from datetime import datetime
 import io
 import json
 import logging
@@ -54,26 +55,14 @@ class OriRandoSeedGenCommands(cogs.CogMixin):
                 LOG.exception(f"Cannot load the file '{DOWNLOAD_MESSAGES_FILE_PATH}'")
         return "Downloading the seed"
 
-    @commands.command()
-    @commands.cooldown(1, config.get('SEEDGEN_COOLDOWN', DEFAULT_SEEDGEN_COOLDOWN), BucketType.guild)
-    async def seed(self, ctx, *, args=""):
-        """Generate a seed for the Ori randomizer
-
-        Default: standard, clues, forcetrees, open
-
-        TODO: Write this
-
-        A seed name can be set using double quotes
-        """
-        channel_repr = utils.get_channel_repr(ctx.channel)
+    @staticmethod
+    def _pop_seed_codes(args):
         seed_codes = re.findall('[^"]*(".*")', args)
-        LOG.debug(f"Valid seed codes found: {seed_codes}")
-        seed = seed_codes[0][1:-1] if seed_codes else str(random.randint(1, 1000000000))
-
         for seed_code in seed_codes:
             args = args.replace(seed_code, "")
-        args = [arg.lower() for arg in args.split()]
+        return args, seed_codes
 
+    async def _get_seed_data(self, seed_name, args):
         goal_modes = []
         for arg in args:
             token, _, value = arg.partition('=')
@@ -111,7 +100,7 @@ class OriRandoSeedGenCommands(cogs.CogMixin):
         logic_paths = get_matching(ori_randomizer.LOGIC_PATHS)
         flags = get_matching(ori_randomizer.FLAGS)
 
-        LOG.debug(f"[{channel_repr}] seeds_codes={seed_codes}, presets={logic_presets}, key_modes={key_modes}, "
+        LOG.debug(f" presets={logic_presets}, key_modes={key_modes}, "
                   f"goal_modes={goal_modes}, variations={variations}, paths={logic_paths}, flags={flags}")
 
         path_diff = None
@@ -122,36 +111,75 @@ class OriRandoSeedGenCommands(cogs.CogMixin):
 
         logic_preset = logic_presets[0] if logic_presets else 'standard'
         key_mode = key_modes[0] if key_modes else None
-
-        download_message = await self.bot.send(ctx.channel, f"{self._get_download_message()}...")
         try:
-            # Download the seed data
-            LOG.debug(f"[{channel_repr}] Downloading the seed data: '{download_message.content}'")
-            data = await self.client.get_data(seed, logic_preset, key_mode, path_diff, goal_modes, variations,
+            data = await self.client.get_data(seed_name, logic_preset, key_mode, path_diff, goal_modes, variations,
                                               logic_paths, flags)
+        except:
+            LOG.error("Cannot download the seed data")
+        else:
+            return data
 
-            # Store the data into file buffers
-            seed_buffer = io.BytesIO(bytes(data['players'][0]['seed'], encoding="utf8"))
-            spoiler_buffer = io.BytesIO(bytes(data['players'][0]['spoiler'], encoding="utf8"))
+    async def _send_seed(self, ctx, data):
+        channel_repr = utils.get_channel_repr(ctx.channel)
 
-            # Send the files in the chat
-            seed_header = data['players'][0]['seed'].split("\n")[0]
-            message = f"Seed requested by **{ctx.author.display_name}**\n"
-            message += f"`{seed_header}`\n"
-            message += f"**Spoiler link**: {ori_randomizer.SEEDGEN_API_URL + data['players'][0]['spoiler_url']}\n"
-            if "tracking" in flags:
-                message += f"**Map**: {ori_randomizer.SEEDGEN_API_URL + data['map_url']}\n"
-                message += f"**History**: {ori_randomizer.SEEDGEN_API_URL + data['history_url']}\n"
+        # Store the data into file buffers
+        seed_buffer = io.BytesIO(bytes(data['players'][0]['seed'], encoding="utf8"))
+        spoiler_buffer = io.BytesIO(bytes(data['players'][0]['spoiler'], encoding="utf8"))
 
+        # Send the files in the chat
+        seed_header = data['players'][0]['seed'].split("\n")[0]
+        message = f"Seed requested by **{ctx.author.display_name}**\n"
+        message += f"`{seed_header}`\n"
+        message += f"**Spoiler link**: {ori_randomizer.SEEDGEN_API_URL + data['players'][0]['spoiler_url']}\n"
+        if "map_url" in data and "history_url" in data:
+            message += f"**Map**: {ori_randomizer.SEEDGEN_API_URL + data['map_url']}\n"
+            message += f"**History**: {ori_randomizer.SEEDGEN_API_URL + data['history_url']}\n"
+
+        await self.bot.send(ctx.channel, message,
+                            files=[discord.File(seed_buffer, filename=SEED_FILENAME),
+                                   discord.File(spoiler_buffer, filename=SPOILER_FILENAME)])
+        LOG.debug(f"[{channel_repr}] The files have correctly been sent in Discord")
+
+    async def _seed(self, ctx, args, seed_name=None):
+        channel_repr = utils.get_channel_repr(ctx.channel)
+        if not seed_name:
+            seed_name = str(random.randint(1, 1000000000))
+        args = [arg.lower() for arg in args.split()]
+        download_message = await self.bot.send(ctx.channel, f"{self._get_download_message()}...")
+        LOG.debug(f"[{channel_repr}] Downloading the seed data: '{download_message.content}'")
+        try:
+            data = await self._get_seed_data(seed_name, args)
+            if data:
+                await self._send_seed(ctx, data)
             await download_message.delete()
-            await self.bot.send(ctx.channel, message,
-                                files=[discord.File(seed_buffer, filename=SEED_FILENAME),
-                                       discord.File(spoiler_buffer, filename=SPOILER_FILENAME)])
-            LOG.debug(f"[{channel_repr}] The files have correctly been sent in Discord")
         except:
             error_message = "An error has occured while generating the seed"
             LOG.exception(f"[{channel_repr}] {error_message}")
             await download_message.edit(content=f"```{error_message}. Please try again later.```")
+
+    @commands.command()
+    @commands.cooldown(1, config.get('SEEDGEN_COOLDOWN', DEFAULT_SEEDGEN_COOLDOWN), BucketType.guild)
+    async def seed(self, ctx, *, args=""):
+        """Generate a seed for the Ori randomizer
+
+        TODO: Write this
+        """
+        channel_repr = utils.get_channel_repr(ctx.channel)
+        args, seed_codes = self._pop_seed_codes(args)
+        LOG.debug(f"[{channel_repr}] Valid seed codes found: {seed_codes}")
+        seed_name = seed_codes[0][1:-1] if seed_codes else None
+        await self._seed(ctx, args, seed_name)
+
+    @commands.command()
+    @commands.cooldown(1, config.get('SEEDGEN_COOLDOWN', DEFAULT_SEEDGEN_COOLDOWN), BucketType.guild)
+    async def daily(self, ctx, *, args=""):
+        """Generate a daily seed for the Ori randomizer
+
+        TODO: Write this
+        """
+        args, _ = self._pop_seed_codes(args)
+        seed_name = datetime.now().strftime("%Y-%m-%d")
+        await self._seed(ctx, args, seed_name)
 
 
 def setup(bot):
