@@ -179,7 +179,7 @@ class OriRandoSeedGenCommands(cogs.CogMixin):
         TODO: Write this
         """
         args, _ = self._pop_seed_codes(args)
-        seed_name = datetime.now().strftime("%Y-%m-%d")
+        seed_name = pytz.UTC.localize(datetime.now()).astimezone(pytz.timezone('US/Pacific')).strftime("%Y-%m-%d")
         await self._seed(ctx, args, seed_name)
 
 
