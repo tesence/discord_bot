@@ -20,7 +20,7 @@ LOGIC_PATHS = [
 ]
 
 # map of lowercase variation to correctly capitalized one.
-VARIATIONS = {v.lower(): v for v in ["Starved", "Hard", "OHKO", "0XP", "Open", "Closed", "DoubleSkills",
+VARIATIONS = {v.lower(): v for v in ["Starved", "Hard", "OHKO", "0XP", "Closed", "DoubleSkills",
                                      "StrictMapstones", "BonusPickups", "NonProgressMapStones"]}
 
 FLAGS = ["tracking", "classic_gen", "verbose_paths"]

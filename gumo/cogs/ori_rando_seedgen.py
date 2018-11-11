@@ -25,7 +25,7 @@ DOWNLOAD_MESSAGES_FILE_PATH = "data/download_messages.json"
 GOAL_MODES = utils.MultiKeyDict()
 GOAL_MODES['ft', 'forcetrees', 'force-trees'] = "ForceTrees"
 GOAL_MODES['wt', 'worldtour', 'world-tour'] = "WorldTour"
-GOAL_MODES['wf', 'warmthfragments', 'warmth-fragments'] = "WarmthFrags"
+GOAL_MODES['wf', 'warmthfrags', 'warmth-frags'] = "WarmthFrags"
 GOAL_MODES['fm', 'forcemapstones', 'force-mapstones'] = "ForceMapStones"
 
 DEFAULT_SEEDGEN_COOLDOWN = 0
