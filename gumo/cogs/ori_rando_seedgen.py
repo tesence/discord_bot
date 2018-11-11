@@ -9,6 +9,7 @@ import re
 import discord
 from discord.ext import commands
 from discord.ext.commands.cooldowns import BucketType
+import pytz
 
 from gumo.api import ori_randomizer
 from gumo import config
@@ -100,8 +101,8 @@ class OriRandoSeedGenCommands(cogs.CogMixin):
         logic_paths = get_matching(ori_randomizer.LOGIC_PATHS)
         flags = get_matching(ori_randomizer.FLAGS)
 
-        LOG.debug(f" presets={logic_presets}, key_modes={key_modes}, "
-                  f"goal_modes={goal_modes}, variations={variations}, paths={logic_paths}, flags={flags}")
+        LOG.debug(f"presets={logic_presets}, key_modes={key_modes}, goal_modes={goal_modes}, variations={variations}, "
+                  f"paths={logic_paths}, flags={flags}")
 
         path_diff = None
         if "hard-path" in args:
@@ -153,7 +154,7 @@ class OriRandoSeedGenCommands(cogs.CogMixin):
                 await self._send_seed(ctx, data)
             await download_message.delete()
         except:
-            error_message = "An error has occured while generating the seed"
+            error_message = "An error has occurred while generating the seed"
             LOG.exception(f"[{channel_repr}] {error_message}")
             await download_message.edit(content=f"```{error_message}. Please try again later.```")
 

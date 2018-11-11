@@ -6,7 +6,7 @@ LOG = logging.getLogger('bot')
 
 SEEDGEN_API_URL = "http://orirando.com"
 
-LOGIC_MODES = ["casual", "standard", "expert", "master", "0xp", "glitched"]
+LOGIC_MODES = ["casual", "standard", "expert", "master", "glitched"]
 KEY_MODES = ["default", "shards", "limitkeys", "clues", "free"]
 
 PATH_DIFFICULTIES = ["easy", "normal", "hard"]
@@ -79,7 +79,7 @@ class OriRandomizerAPIClient(base.APIClient):
             elif goal_mode[0] == "WarmthFrags":
                 params.add(("var", goal_mode[0]))
                 if goal_mode[1]:
-                    params.add(("frags_req ", goal_mode[1]))
+                    params.add(("frags_req", goal_mode[1]))
                 if goal_mode[2]:
                     params.add(("frags", goal_mode[2]))
             else:
@@ -102,5 +102,5 @@ class OriRandomizerAPIClient(base.APIClient):
 
         LOG.debug(f"Parameters used for the seed generation: {params}")
 
-        url = "/generator/json?" + "&".join([f"{param[0]}={param[1]}" for param in params])
+        url = "/generator/json?" + "&".join([f"{key}={value}" for key, value in params])
         return await self.get(url)
