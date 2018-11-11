@@ -163,7 +163,23 @@ class OriRandoSeedGenCommands(cogs.CogMixin):
     async def seed(self, ctx, *, args=""):
         """Generate a seed for the Ori randomizer
 
-        TODO: Write this
+
+        Default options: Standard,Clues,Open,ForceTrees
+
+        - presets: casual, standard, expert, master, glitched
+
+        - key modes: default, limitkeys, clues, shards
+
+        - goal modes: ft (ForceTrees), wt (WorldTour), wf (WarmthFrags), fm (ForceMapstones)
+
+        - logic paths: casual-core, casual-dboost, standard-core, standard-dboost, standard-lure, standard-abilities,
+          expert-core, expert-dboost, expert-lure, expert-abilities, master-core, master-dboost, master-lure,
+          master-abilities, dbash, gjump, glitched, timed-level, insane
+
+        - variations: starved, hard, OHKO, 0XP, closed, doubleskills, strictmapstones, bonuspickups,
+          nonprogressmapstones
+
+        - flags: tracking, verbose_paths, classic_gen, hard-path, easy-path
         """
         channel_repr = utils.get_channel_repr(ctx.channel)
         args, seed_codes = self._pop_seed_codes(args)
@@ -176,7 +192,7 @@ class OriRandoSeedGenCommands(cogs.CogMixin):
     async def daily(self, ctx, *, args=""):
         """Generate a daily seed for the Ori randomizer
 
-        TODO: Write this
+        Type '!help seed' to get the list of valid parameters
         """
         args, _ = self._pop_seed_codes(args)
         seed_name = pytz.UTC.localize(datetime.now()).astimezone(pytz.timezone('US/Pacific')).strftime("%Y-%m-%d")
