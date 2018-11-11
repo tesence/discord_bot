@@ -35,7 +35,7 @@ CELLS_STONES = {
     'mapstone': "MS", 'ms': "MS",
 }
 TP_NAMES = ["swamp", "grove", "valley", "grotto", "forlorn", "sorrow"]
-PRESETS = ["casual", "standard", "expert", "master", "hard", "ohko", "0xp", "glitched"]
+PRESETS = ["casual", "standard", "expert", "master", "glitched"]
 
 
 class OriLogicHelperCommands(cogs.CogMixin):
@@ -52,7 +52,7 @@ class OriLogicHelperCommands(cogs.CogMixin):
 
         Default: standard, no items
 
-        - presets: casual, standard, expert, master, hard, ohko, 0xp, glitched
+        - presets: casual, standard, expert, master, glitched
         - items: WallJump (WJ), ChargeFlame (CF), DoubleJump (DJ), Bash (BS), Stomp (ST), Glide (GL), Climb (CL),
           ChargeJump (CJ), Dash (DA), Grenade (GR), WaterVein (WV), GumonSeal (GS), Sunstone (SS), Health (HC),
           Energy (EC), Keystone (KS), Mapstone (MS), Water, Wind, GrottoTP, GroveTP, SwampTP, ValleyTP, SorrowTP,
