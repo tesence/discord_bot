@@ -85,6 +85,9 @@ class OriRandomizerAPIClient(base.APIClient):
             else:
                 params.add(("var", goal_mode[0]))
 
+        if not goal_modes:
+            params.add(("var", "ForceTrees"))
+
         if path_diff:
             params.add(("path_diff", path_diff.capitalize()))
         elif preset in HARD_PRESETS:
