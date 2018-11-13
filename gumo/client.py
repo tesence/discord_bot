@@ -3,13 +3,14 @@ import logging
 import discord
 from discord.ext import commands
 
-from gumo import check
 from gumo import config
 from gumo import help_formatter
 from gumo import Emoji
 from gumo import utils
 
 LOG = logging.getLogger('bot')
+
+DEFAULT_EXTENSIONS = ['admin']
 
 
 class Bot(commands.Bot):
@@ -18,7 +19,6 @@ class Bot(commands.Bot):
         command_prefix = kwargs.pop('command_prefix')
         super(Bot, self).__init__(*args, command_prefix=commands.when_mentioned_or(command_prefix),
                                   formatter=help_formatter.HelpFormatter(), **kwargs)
-        self.add_command(self.reload)
         self.add_check(self.check_extension_access)
         self.load_extensions()
 
@@ -34,10 +34,8 @@ class Bot(commands.Bot):
         if not getattr(ctx, 'cog'):
             return True
         extension_name = utils.get_extension_name_from_ctx(ctx)
-        if extension_name in __file__:
-            return True
         allowed_extensions = config.get('EXTENSIONS', guild_id=ctx.guild.id, default=True)
-        if allowed_extensions is None:
+        if extension_name in DEFAULT_EXTENSIONS or allowed_extensions is None:
             return True
         return extension_name in allowed_extensions
 
@@ -96,7 +94,7 @@ class Bot(commands.Bot):
         """Load all the extensions"""
         extensions_to_load = config.get('EXTENSIONS', default=True)
         LOG.debug(f"Extensions to be loaded: {list(extensions_to_load)}")
-        for extension in extensions_to_load:
+        for extension in extensions_to_load + DEFAULT_EXTENSIONS:
             extension = f"cogs.{extension}"
             if extension in self.extensions:
                 LOG.debug(f"The extension '{extension}' is already loaded")
@@ -114,9 +112,3 @@ class Bot(commands.Bot):
         if reaction:
             await message.add_reaction(Emoji.WASTEBASKET)
         return message
-
-    @commands.command()
-    @check.is_owner()
-    async def reload(self, ctx):
-        config.load()
-        self.load_extensions()
