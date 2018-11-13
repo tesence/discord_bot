@@ -5,7 +5,7 @@ from discord.ext import commands
 
 from gumo import check
 from gumo import config
-from gumo import help
+from gumo import help_formatter
 from gumo import Emoji
 from gumo import utils
 
@@ -17,7 +17,7 @@ class Bot(commands.Bot):
     def __init__(self, *args, **kwargs):
         command_prefix = kwargs.pop('command_prefix')
         super(Bot, self).__init__(*args, command_prefix=commands.when_mentioned_or(command_prefix),
-                                  formatter=help.HelpFormatter(), **kwargs)
+                                  formatter=help_formatter.HelpFormatter(), **kwargs)
         self.add_command(self.reload)
         self.add_check(self.check_extension_access)
         self.load_extensions()
