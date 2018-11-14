@@ -129,7 +129,7 @@ class OriLogicHelperCommands(cogs.CogMixin):
         LOG.debug(f"[{channel_repr}] Finished parsing. final url: {url}")
 
         await self.bot.send(ctx.channel, f"Logic Helper Link: {url}")
-        LOG.debug("[{channel_repr}] Sent URL to discord")
+        LOG.debug(f"[{channel_repr}] Sent URL to discord")
 
 
 def setup(bot):
