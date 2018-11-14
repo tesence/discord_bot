@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import os
@@ -25,6 +26,8 @@ class TagCommands(cogs.CogMixin):
         if not os.path.isfile(self.tag_file_absolute_path):
             self._save()
 
+        asyncio.ensure_future(self.refresh(), loop=self.bot.loop)
+
     def _load(self):
         with open(TAG_FILE_PATH, 'r') as tag_file:
             self.data.update(json.load(tag_file))
@@ -33,7 +36,8 @@ class TagCommands(cogs.CogMixin):
         with open(TAG_FILE_PATH, 'w') as tag_file:
             json.dump(self.data, tag_file, indent=2)
 
-    async def on_ready(self):
+    async def refresh(self):
+        await self.bot.wait_until_ready()
         self._load()
 
         # Get the list of guild that have the tag extension enabled
