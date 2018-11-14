@@ -12,7 +12,7 @@ LOG = logging.getLogger('bot')
 class AdminCommands(cogs.CogMixin):
 
     def __init__(self, bot):
-        cogs.CogMixin.__init__(self, bot)
+        super(AdminCommands, self).__init__(bot)
         type(self).__name__ = "Admin commands"
 
     async def __local_check(self, ctx):
