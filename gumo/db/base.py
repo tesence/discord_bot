@@ -1,5 +1,4 @@
 import asyncio
-import functools
 import logging
 
 import asyncpg
@@ -9,10 +8,6 @@ from gumo import config
 
 
 LOG = logging.getLogger('bot')
-
-
-async def get_pool():
-    return await asyncpg.create_pool(**config.get('DATABASE_CREDENTIALS'), min_size=1, max_size=5)
 
 
 class Column:
@@ -43,37 +38,27 @@ class BaseModel:
     __table_args__ = None
 
 
-def transaction():
-    def wrapper(func):
-        @functools.wraps(func)
-        async def wrapped(*args, **kwargs):
-            await args[0].ready.wait()
-            connection = await args[0].pool.acquire()
-            async with connection.transaction():
-                result = await func(*args, **kwargs)
-            await args[0].pool.release(connection)
-            return result
-        return wrapped
-    return wrapper
-
-
 class DBDriver:
 
-    def __init__(self, pool, loop, model):
-        self.pool = pool
+    def __init__(self, bot, loop, model):
+        self.bot = bot
         self.loop = loop
         self.model = model
         self.ready = asyncio.Event(loop=loop)
-        asyncio.ensure_future(self.configure(), loop=loop)
+        asyncio.ensure_future(self.init(), loop=loop)
 
     @property
     def table_name(self):
         return self.table_info['name']
 
-    async def configure(self):
+    async def init(self):
+        if not self.bot.pool:
+            self.bot.pool = await asyncpg.create_pool(**config.get('DATABASE_CREDENTIALS'), min_size=1, max_size=5)
         self._get_table_info()
         await self._create_table_if_not_exist()
         self.ready.set()
+        table_size = await self.get_size()
+        LOG.debug(f"Number of '{self.table_name}' found: {table_size}")
 
     def _get_table_info(self):
         self.table_info = {
@@ -106,7 +91,7 @@ class DBDriver:
             query = f"CREATE TABLE IF NOT EXISTS {self.table_info['name']}" \
                     f"({', '.join(column_definitions)});"
 
-            await self.pool.execute(query)
+            await self.bot.pool.execute(query)
         except exceptions.PostgresError:
             LOG.exception(f"Cannot create table {self.table_name}")
 
@@ -124,17 +109,15 @@ class DBDriver:
     def _get_obj(self, record):
         return self.model(**dict(record.items()))
 
-    @transaction()
     async def get_size(self):
         try:
             query = f"SELECT COUNT(*) FROM {self.table_name}"
-            result = list((await self.pool.fetchrow(query)).values())[0]
+            result = list((await self.bot.pool.fetchrow(query)).values())[0]
         except exceptions.PostgresError:
             LOG.exception(f"Cannot retrieve size for table '{self.table_name}' ('{query}')")
         else:
             return result
 
-    @transaction()
     async def get(self, **conditions):
         try:
             query = f"SELECT * FROM {self.table_name}"
@@ -142,7 +125,7 @@ class DBDriver:
             if conditions:
                 query += f" WHERE {' AND '.join(conditions)}"
             query += ";"
-            result = await self.pool.fetchrow(query)
+            result = await self.bot.pool.fetchrow(query)
             if result:
                 result = self._get_obj(result)
         except exceptions.PostgresError:
@@ -150,7 +133,6 @@ class DBDriver:
         else:
             return result
 
-    @transaction()
     async def list(self, **conditions):
         try:
             query = f"SELECT * FROM {self.table_name}"
@@ -158,13 +140,12 @@ class DBDriver:
             if conditions:
                 query += f" WHERE {' AND '.join(conditions)}"
             query += ";"
-            results = [self._get_obj(r) for r in await self.pool.fetch(query)]
+            results = [self._get_obj(r) for r in await self.bot.pool.fetch(query)]
         except exceptions.PostgresError:
             LOG.exception(f"Cannot retrieve data for values: {conditions} ('{query}')")
         else:
             return results
 
-    @transaction()
     async def create(self, **fields):
         try:
             columns = ",".join(fields)
@@ -178,14 +159,13 @@ class DBDriver:
                     values.append("NULL")
 
             query = f"INSERT INTO {self.table_name} ({columns}) VALUES ({', '.join(values)})"
-            await self.pool.execute(query)
+            await self.bot.pool.execute(query)
             result = await self.get(**fields)
         except exceptions.PostgresError:
             LOG.exception(f"Cannot create data for values: {fields} ('{query}')")
         else:
             return result
 
-    @transaction()
     async def delete(self, **conditions):
         try:
             query = f"DELETE FROM {self.table_name}"
@@ -193,20 +173,18 @@ class DBDriver:
             if conditions:
                 query += f" WHERE {' AND '.join(conditions)}"
             query += ";"
-            await self.pool.execute(query)
+            await self.bot.pool.execute(query)
         except exceptions.PostgresError:
             LOG.exception(f"Cannot delete data for conditions: {conditions} ('{query}')")
 
-    @transaction()
     async def update(self, column, value, **conditions):
         try:
             conditions = self._format_conditions(**conditions)
             query = f"UPDATE {self.table_name} SET {column} = '{value}' WHERE {' AND '.join(conditions)}"
-            await self.pool.execute(query)
+            await self.bot.pool.execute(query)
         except exceptions.PostgresError:
             LOG.exception(f"Cannot update data with values {column}:{value} for conditions {conditions} ('{query}')")
 
-    @transaction()
     async def join(self, join_type, joined_table_name, column_name, joined_column_name, intersection=True):
         try:
             query = f"SELECT * FROM {self.table_name} " \
@@ -217,7 +195,7 @@ class DBDriver:
                 if join_type == "FULL JOIN":
                     query += f"OR WHERE {self.table_name}.{column_name} IS NULL "
             query += ";"
-            result = await self.pool.fetch(query)
+            result = await self.bot.pool.fetch(query)
         except exceptions.PostgresError:
             LOG.exception(f"Cannot perform the join ('{query}')")
         else:

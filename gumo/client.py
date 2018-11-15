@@ -19,6 +19,7 @@ class Bot(commands.Bot):
         command_prefix = kwargs.pop('command_prefix')
         super(Bot, self).__init__(*args, command_prefix=commands.when_mentioned_or(command_prefix),
                                   formatter=help_formatter.HelpFormatter(), **kwargs)
+        self.pool = None
         self.add_check(self.check_extension_access)
         self.load_extensions()
 

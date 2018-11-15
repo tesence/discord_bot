@@ -21,6 +21,8 @@ CONF_VARIABLES = ['TWITCH_API_CLIENT_ID']
 DEFAULT_MIN_OFFLINE_DURATION = 60
 DEFAULT_POLL_RATE = 10
 
+MIN_OFFLINE_DURATION = config.get('MIN_OFFLINE_DURATION', DEFAULT_MIN_OFFLINE_DURATION)
+
 
 class MissingStreamName(commands.MissingRequiredArgument):
 
@@ -41,37 +43,26 @@ class StreamManager(cogs.DBCogMixin):
         type(self).__name__ = "Stream commands"
         super(StreamManager, self).__init__(bot, *CONF_VARIABLES)
         self.client = api.TwitchAPIClient(self.bot.loop)
+        self.stream_db_driver = db.StreamDBDriver(self.bot, self.bot.loop)
+        self.channel_db_driver = db.ChannelDBDriver(self.bot, self.bot.loop)
+        self.channel_stream_db_driver = db.ChannelStreamDBDriver(self.bot, self.bot.loop)
         self.task = None
+        self.streams_by_id = {}
+
         asyncio.ensure_future(self.init(), loop=self.bot.loop)
 
     async def init(self):
-        await self.connection_ready.wait()
-
-        self.stream_db_driver = db.StreamDBDriver(self.pool, self.bot.loop)
-        self.channel_db_driver = db.ChannelDBDriver(self.pool, self.bot.loop)
-        self.channel_stream_db_driver = db.ChannelStreamDBDriver(self.pool, self.bot.loop)
-
-        streams_table_size = await self.stream_db_driver.get_size()
-        LOG.debug(f"Number of streams loaded: {streams_table_size}")
-
-        channels_table_size = await self.channel_db_driver.get_size()
-        LOG.debug(f"Number of channels loaded: {channels_table_size}")
-
-        channel_streams_table_size = await self.channel_stream_db_driver.get_size()
-        LOG.debug(f"Number of relations stream-channel loaded: {channel_streams_table_size}")
+        await self.stream_db_driver.ready.wait()
+        await self.channel_db_driver.ready.wait()
+        await self.channel_stream_db_driver.ready.wait()
 
         self.streams_by_id = {s.id: s for s in await self.stream_db_driver.list()}
-
         self.task = asyncio.ensure_future(self.poll_streams(), loop=self.bot.loop)
 
     async def poll_streams(self):
         """Poll twitch every X seconds."""
-
         await self.bot.wait_until_ready()
-
         LOG.debug("The polling has started")
-
-        MIN_OFFLINE_DURATION = config.get('MIN_OFFLINE_DURATION', DEFAULT_MIN_OFFLINE_DURATION)
 
         async def on_stream_online(stream, notified_channels):
             """ Method called if twitch stream goes online.

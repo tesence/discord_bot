@@ -26,11 +26,11 @@ class TagCommands(cogs.DBCogMixin):
         super(TagCommands, self).__init__(bot)
         type(self).__name__ = "Tag commands"
         self.data = collections.defaultdict(dict)
+        self.driver = db.TagDBDriver(self.bot, loop=self.bot.loop)
         asyncio.ensure_future(self.init(), loop=self.bot.loop)
 
     async def init(self):
-        await self.connection_ready.wait()
-        self.driver = db.TagDBDriver(self.pool, loop=self.bot.loop)
+        await self.driver.ready.wait()
         tags = await self.driver.list()
         for tag in tags:
             self.data[tag.guild_id][tag.code] = tag

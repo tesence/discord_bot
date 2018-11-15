@@ -39,10 +39,3 @@ class DBCogMixin(CogMixin):
 
     def __init__(self, bot, *conf_variables):
         super(DBCogMixin, self).__init__(bot, *(list(conf_variables) + DB_CONF_VARIABLES))
-        self.pool = None
-        self.connection_ready = asyncio.Event(loop=self.bot.loop)
-        asyncio.ensure_future(self.setup_database_connection(), loop=self.bot.loop)
-
-    async def setup_database_connection(self):
-        self.pool = await db.get_pool()
-        self.connection_ready.set()

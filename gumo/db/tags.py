@@ -37,6 +37,6 @@ class TagDBDriver(base.DBDriver):
 
     async def increment_usage(self, code):
         try:
-            await self.pool.execute(f"UPDATE {self.table_name} SET usage = usage + 1 WHERE code = '{code}'")
+            await self.bot.pool.execute(f"UPDATE {self.table_name} SET usage = usage + 1 WHERE code = '{code}'")
         except exceptions.PostgresError:
             LOG.exception(f"Cannot update usage for tag {code}")
