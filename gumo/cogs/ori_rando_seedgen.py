@@ -176,7 +176,7 @@ class OriRandoSeedGenCommands(cogs.CogMixin):
           expert-core, expert-dboost, expert-lure, expert-abilities, master-core, master-dboost, master-lure,
           master-abilities, dbash, gjump, glitched, timed-level, insane
 
-        - variations: starved, hard, OHKO, 0XP, closed, doubleskills, strictmapstones, bonuspickups,
+        - variations: starved, hard, OHKO, 0XP, closeddungeons, openworld, doubleskills, strictmapstones, bonuspickups,
           nonprogressmapstones
 
         - flags: tracking, verbose_paths, classic_gen, hard-path, easy-path

@@ -20,7 +20,7 @@ LOGIC_PATHS = [
 ]
 
 # map of lowercase variation to correctly capitalized one.
-VARIATIONS = {v.lower(): v for v in ["Starved", "Hard", "OHKO", "0XP", "Closed", "DoubleSkills",
+VARIATIONS = {v.lower(): v for v in ["Starved", "Hard", "OHKO", "0XP", "ClosedDungeons", "OpenWorld", "DoubleSkills",
                                      "StrictMapstones", "BonusPickups", "NonProgressMapStones"]}
 
 FLAGS = ["tracking", "classic_gen", "verbose_paths"]
@@ -99,9 +99,6 @@ class OriRandomizerAPIClient(base.APIClient):
         if preset in PRESET_VARS:
             variations = set(variations) | set(PRESET_VARS[preset])
         params = params | {("var", VARIATIONS[v]) for v in variations}
-
-        if "closed" not in variations:
-            params.add(('var', 'Open'))
 
         LOG.debug(f"Parameters used for the seed generation: {params}")
 
