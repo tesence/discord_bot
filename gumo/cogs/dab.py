@@ -32,10 +32,6 @@ class DabCommands(cogs.CogMixin):
             LOG.info(f"[{channel_repr}] {answer}")
             await self.bot.send(ctx.channel, answer)
 
-    @commands.command()
-    async def ban(self, ctx, *, arg=None):
-        await self.bot.send(ctx.channel, f"{arg} has been banned", code_block=True)
-
 
 def setup(bot):
     bot.add_cog(DabCommands(bot))
