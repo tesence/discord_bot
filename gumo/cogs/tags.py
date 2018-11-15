@@ -1,67 +1,88 @@
 import asyncio
-import json
+import collections
 import logging
-import os
+import re
 
 from discord.ext import commands
 
-from gumo import config
+from gumo import check
 from gumo import cogs
+from gumo import db
+from gumo import Emoji
 from gumo import utils
 
 LOG = logging.getLogger('bot')
 
-TAG_FILE_PATH = "data/tags.json"
+REGEX = re.compile('^(.+)[^"]*(".*")$', re.MULTILINE | re.DOTALL)
 
 
-class TagCommands(cogs.CogMixin):
+class DuplicateTagError(commands.UserInputError):
+    """If a user tries to create a tag that already exists"""
+
+
+class TagCommands(cogs.DBCogMixin):
 
     def __init__(self, bot):
         super(TagCommands, self).__init__(bot)
         type(self).__name__ = "Tag commands"
-        self.tag_file_absolute_path = utils.get_project_dir() + "/" + TAG_FILE_PATH
-        self.data = {}
+        self.data = collections.defaultdict(dict)
+        asyncio.ensure_future(self.init(), loop=self.bot.loop)
 
-        # Create the file if it does not exist
-        if not os.path.isfile(self.tag_file_absolute_path):
-            self._save()
-
-        asyncio.ensure_future(self.refresh(), loop=self.bot.loop)
-
-    def _load(self):
-        with open(TAG_FILE_PATH, 'r') as tag_file:
-            self.data.update(json.load(tag_file))
-
-    def _save(self):
-        with open(TAG_FILE_PATH, 'w') as tag_file:
-            json.dump(self.data, tag_file, indent=2)
-
-    async def refresh(self):
-        await self.bot.wait_until_ready()
-        self._load()
-
-        # Get the list of guild that have the tag extension enabled
-        guilds = {g for g in self.bot.guilds if 'tags' in config.get('EXTENSIONS', guild_id=g.id, default=True)}
-
-        for guild in guilds:
-            guild_id = str(guild.id)
-            if guild_id not in self.data:
-                self.data[guild_id] = {}
-
-        self._save()
+    async def init(self):
+        await self.connection_ready.wait()
+        self.driver = db.TagDBDriver(self.pool, loop=self.bot.loop)
+        tags = await self.driver.list()
+        for tag in tags:
+            self.data[tag.guild_id][tag.code] = tag
 
     @commands.group(invoke_without_command=True)
-    async def tag(self, ctx, *, key):
+    async def tag(self, ctx, *, code):
         """Return a tag value"""
-        self._load()
-        tag = self.data[str(ctx.guild.id)].get(key)
-        if tag:
-            await self.bot.send(ctx.channel, tag)
+        channel_repr = utils.get_channel_repr(ctx.channel)
+        try:
+            tag = self.data[ctx.guild.id][code]
+            await self.driver.increment_usage(code)
+        except KeyError:
+            LOG.warning(f"[{channel_repr}] The tag '{code}' does not exist")
+        else:
+            await self.bot.send(ctx.channel, tag.content)
+
+    @tag.command(name='create', aliases=['add'])
+    async def create_tag(self, ctx, *, args):
+        """Create a tag
+
+        !tag create <code> "<content>"
+        """
+        if not re.match(REGEX, args):
+            return
+        code, content = re.match(REGEX, args).groups()
+        code = code.strip()
+        content = content[1:-1].strip()
+
+        if code in self.data[ctx.guild.id]:
+            raise DuplicateTagError(code)
+        tag = await self.driver.create(code=code, content=content, author_id=ctx.author.id, guild_id=ctx.guild.id,
+                                       created_at=str(ctx.message.created_at))
+        self.data[ctx.guild.id][code] = tag
+        await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
+
+    @tag.command(name='delete', aliases=['remove', 'rm'])
+    @check.is_admin()
+    async def delete_tag(self, ctx, *, code):
+        """Delete a tag"""
+        channel_repr = utils.get_channel_repr(ctx.channel)
+        try:
+            await self.driver.delete(code=code)
+            del self.data[ctx.guild.id][code]
+        except KeyError:
+            LOG.warning(f"[{channel_repr}] The tag '{code}' does not exist")
+        else:
+            await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
 
     @tag.command(name='list')
     async def list_tag(self, ctx):
         """Return the list of available tags"""
-        result = "**Available tags**: " + ', '.join(f'`{tag}`' for tag in self.data[str(ctx.guild.id)])
+        result = "**Available tags**: " + ', '.join(f'`{tag}`' for tag in self.data[ctx.guild.id])
         await self.bot.send(ctx.channel, result)
 
 
