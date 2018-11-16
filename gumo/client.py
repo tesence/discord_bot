@@ -13,11 +13,15 @@ LOG = logging.getLogger('bot')
 DEFAULT_EXTENSIONS = ['admin']
 
 
+async def get_prefix(bot, message):
+    prefix = config.get('COMMAND_PREFIX', guild_id=message.guild.id, default=True)
+    return commands.when_mentioned_or(prefix)(bot, message)
+
+
 class Bot(commands.Bot):
 
     def __init__(self, *args, **kwargs):
-        command_prefix = kwargs.pop('command_prefix')
-        super(Bot, self).__init__(*args, command_prefix=commands.when_mentioned_or(command_prefix),
+        super(Bot, self).__init__(*args, command_prefix=get_prefix,
                                   formatter=help_formatter.HelpFormatter(), **kwargs)
         self.pool = None
         self.add_check(self.check_extension_access)
@@ -87,7 +91,8 @@ class Bot(commands.Bot):
 
     async def start(self, *args, **kwargs):
         try:
-            await super(Bot, self).start(*args, **kwargs)
+            token = config.get('DISCORD_BOT_TOKEN')
+            await super(Bot, self).start(token, *args, **kwargs)
         except ConnectionError:
             LOG.exception("Cannot connect to the websocket")
 

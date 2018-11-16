@@ -59,12 +59,9 @@ Create configuration files
 
 Create a folder where you will store all the configuration files.
 
-Create a first file ``config.yaml`` that will store all the unique bot
-variables
+Create a first file ``credentials.yaml`` that will store all the bot credentials
 
 .. code:: yaml
-
-   COMMAND_PREFIX: "!"
 
    DISCORD_BOT_TOKEN: <discord bot token>
    TWITCH_API_CLIENT_ID: <twitch client id>
@@ -79,6 +76,8 @@ variables
 A second file ``default.yaml`` that will store all the default values
 
 .. code:: yaml
+
+   COMMAND_PREFIX: "!"
 
    EXTENSIONS:
     - "stream"

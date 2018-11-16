@@ -22,8 +22,8 @@ def main():
 
     sys.path.append(utils.get_project_name())
 
-    bot = client.Bot(command_prefix=config.get('COMMAND_PREFIX'))
-    bot.loop.run_until_complete(bot.start(config.get('DISCORD_BOT_TOKEN')))
+    bot = client.Bot()
+    bot.loop.run_until_complete(bot.start())
 
 
 if __name__ == "__main__":

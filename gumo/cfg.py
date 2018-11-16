@@ -50,7 +50,7 @@ class Config:
         for candidate in candidates:
             candidate_name = candidate.rsplit(".", 1)[0]
             data = self._load_file(self.config_folder, candidate)
-            if candidate_name == "config":
+            if candidate_name == "credentials":
                 self.attrs.update(data)
             elif candidate_name == "default":
                 self.attrs.update({'default': data})
