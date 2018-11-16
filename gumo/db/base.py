@@ -76,6 +76,8 @@ class DBDriver:
                     column_definition += " NOT NULL"
                 if column.primary_key:
                     column_definition += " PRIMARY KEY"
+                if column.default is not None:
+                    column_definition += f" DEFAULT {column.default}"
                 column_definitions.append(column_definition)
                 if column.foreign_key:
                     foreign_key = f"FOREIGN KEY ({column_name}) REFERENCES {column.foreign_key.model_name}" \

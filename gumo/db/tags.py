@@ -10,13 +10,14 @@ LOG = logging.getLogger('bot')
 class Tags(base.BaseModel):
 
     __tablename__ = "tags"
+    __table_args__ = base.UniqueConstraint('code', 'guild_id'),
 
-    code = base.Column('varchar(255)', primary_key=True)
+    code = base.Column('varchar(255)', nullable=False)
     content = base.Column('text', nullable=False)
     author_id = base.Column('bigint', nullable=False)
     guild_id = base.Column('bigint', nullable=False)
     created_at = base.Column('varchar(255)', nullable=False)
-    usage = base.Column('bigint', nullable=False)
+    usage = base.Column('bigint', nullable=False, default=0)
 
     def __init__(self, **kwargs):
         self.code = kwargs.pop('code')
@@ -31,9 +32,6 @@ class TagDBDriver(base.DBDriver):
 
     def __init__(self, pool, loop):
         super(TagDBDriver, self).__init__(pool, loop, Tags)
-
-    async def create(self, **fields):
-        return await super(TagDBDriver, self).create(usage=0, **fields)
 
     async def increment_usage(self, code):
         try:
