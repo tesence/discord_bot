@@ -6,7 +6,6 @@ import re
 from discord.ext import commands
 
 from gumo import check
-from gumo import cogs
 from gumo import db
 from gumo import Emoji
 from gumo import utils
@@ -20,13 +19,13 @@ class DuplicateTagError(commands.UserInputError):
     """If a user tries to create a tag that already exists"""
 
 
-class TagCommands(cogs.DBCogMixin):
+class TagCommands:
 
     def __init__(self, bot):
-        super(TagCommands, self).__init__(bot)
         type(self).__name__ = "Tag commands"
-        self.data = collections.defaultdict(dict)
+        self.bot = bot
         self.driver = db.TagDBDriver(self.bot, loop=self.bot.loop)
+        self.data = collections.defaultdict(dict)
         asyncio.ensure_future(self.init(), loop=self.bot.loop)
 
     async def init(self):

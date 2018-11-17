@@ -4,7 +4,6 @@ from collections import defaultdict
 from discord.ext import commands
 
 from gumo.api import ori_randomizer
-from gumo import cogs
 from gumo import utils
 
 LOG = logging.getLogger('bot')
@@ -38,11 +37,11 @@ TP_NAMES = ["swamp", "grove", "valley", "grotto", "forlorn", "sorrow"]
 PRESETS = ["casual", "standard", "expert", "master", "glitched"]
 
 
-class OriLogicHelperCommands(cogs.CogMixin):
+class OriLogicHelperCommands:
 
     def __init__(self, bot):
-        super(OriLogicHelperCommands, self).__init__(bot)
         type(self).__name__ = "Ori rando commands"
+        self.bot = bot
 
     @commands.command()
     async def logic(self, ctx, *args):

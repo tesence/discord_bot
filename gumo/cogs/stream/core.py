@@ -8,7 +8,6 @@ from discord.ext import commands
 from gumo import api
 from gumo import check
 from gumo import config
-from gumo import cogs
 from gumo.cogs.stream import embeds
 from gumo import db
 from gumo import Emoji
@@ -18,10 +17,9 @@ LOG = logging.getLogger('bot')
 
 CONF_VARIABLES = ['TWITCH_API_CLIENT_ID']
 
-DEFAULT_MIN_OFFLINE_DURATION = 60
-DEFAULT_POLL_RATE = 10
-
-MIN_OFFLINE_DURATION = config.get('MIN_OFFLINE_DURATION', DEFAULT_MIN_OFFLINE_DURATION)
+MIN_OFFLINE_DURATION = 60
+POLL_RATE = 10
+DEFAULT_AUTO_DELETE_OFFLINE_STREAMS = True
 
 
 class MissingStreamName(commands.MissingRequiredArgument):
@@ -37,11 +35,11 @@ class NotifiedChannel:
         self.tags = tags
 
 
-class StreamManager(cogs.DBCogMixin):
+class StreamManager:
 
     def __init__(self, bot):
         type(self).__name__ = "Stream commands"
-        super(StreamManager, self).__init__(bot, *CONF_VARIABLES)
+        self.bot = bot
         self.client = api.TwitchAPIClient(self.bot.loop)
         self.stream_db_driver = db.StreamDBDriver(self.bot, self.bot.loop)
         self.channel_db_driver = db.ChannelDBDriver(self.bot, self.bot.loop)
@@ -74,7 +72,8 @@ class StreamManager(cogs.DBCogMixin):
             for notified_channel in notified_channels:
                 message, embed = embeds.get_notification(stream, notified_channel.tags)
                 guild_id = notified_channel.channel.guild.id
-                reaction = not config.get('AUTO_DELETE_OFFLINE_STREAMS', True, guild_id=guild_id, default=True)
+                reaction = not config.get('AUTO_DELETE_OFFLINE_STREAMS', DEFAULT_AUTO_DELETE_OFFLINE_STREAMS,
+                                          guild_id=guild_id)
                 notification = await self.bot.send(notified_channel.channel, message, embed=embed, reaction=reaction)
                 stream.notifications.append(notification)
                 channel_repr = utils.get_channel_repr(notified_channel.channel)
@@ -90,7 +89,8 @@ class StreamManager(cogs.DBCogMixin):
             for n in stream.notifications[:]:
                 channel_repr = utils.get_channel_repr(n.channel)
                 try:
-                    if config.get('AUTO_DELETE_OFFLINE_STREAMS', True, guild_id=n.channel.guild.id, default=True):
+                    if config.get('AUTO_DELETE_OFFLINE_STREAMS', DEFAULT_AUTO_DELETE_OFFLINE_STREAMS,
+                                  guild_id=n.channel.guild.id):
                         await n.delete()
                         LOG.debug(f"[{channel_repr}] Notification for '{stream.name}' deleted")
                     else:
@@ -193,7 +193,7 @@ class StreamManager(cogs.DBCogMixin):
                     LOG.info(f"'{stream.name}' is offline")
                     await on_stream_offline(stream, notified_channels)
                     stream.online = False
-            await asyncio.sleep(DEFAULT_POLL_RATE)
+            await asyncio.sleep(POLL_RATE)
 
     # COMMANDS
 

@@ -4,19 +4,15 @@ from discord.ext import commands
 
 from gumo import check
 from gumo import config
-from gumo import cogs
 
 LOG = logging.getLogger('bot')
 
 
-class AdminCommands(cogs.CogMixin):
+class AdminCommands:
 
     def __init__(self, bot):
-        super(AdminCommands, self).__init__(bot)
         type(self).__name__ = "Admin commands"
-
-    async def __local_check(self, ctx):
-        return await self.bot.is_owner(ctx.author)
+        self.bot = bot
 
     @commands.command()
     @check.is_owner()

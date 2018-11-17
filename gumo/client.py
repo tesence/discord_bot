@@ -10,11 +10,14 @@ from gumo import utils
 
 LOG = logging.getLogger('bot')
 
-DEFAULT_EXTENSIONS = ['admin']
+GLOBAL_EXTENSIONS = {'admin'}
+
+DEFAULT_COMMAND_PREFIX = "!"
+DEFAULT_EXTENSIONS = {'ori_rando_seedgen', 'ori_logic_helper'}
 
 
 async def get_prefix(bot, message):
-    prefix = config.get('COMMAND_PREFIX', guild_id=message.guild.id, default=True)
+    prefix = config.get('COMMAND_PREFIX', DEFAULT_COMMAND_PREFIX, guild_id=message.guild.id)
     return commands.when_mentioned_or(prefix)(bot, message)
 
 
@@ -36,12 +39,12 @@ class Bot(commands.Bot):
                   f"'{ctx.author.display_name}': '{ctx.message.content}'")
 
     async def check_extension_access(self, ctx):
-        if not getattr(ctx, 'cog'):
+        if not getattr(ctx, "cog"):
             return True
         extension_name = utils.get_extension_name_from_ctx(ctx)
-        allowed_extensions = config.get('EXTENSIONS', guild_id=ctx.guild.id, default=True)
-        if extension_name in DEFAULT_EXTENSIONS or allowed_extensions is None:
+        if extension_name in GLOBAL_EXTENSIONS:
             return True
+        allowed_extensions = config.get('EXTENSIONS', DEFAULT_EXTENSIONS, guild_id=ctx.guild.id)
         return extension_name in allowed_extensions
 
     async def on_command_error(self, ctx, error):
@@ -54,7 +57,7 @@ class Bot(commands.Bot):
 
         channel_repr = utils.get_channel_repr(ctx.channel)
         if isinstance(error, commands.MissingRequiredArgument):
-            LOG.warning(f"[{channel_repr}] Missing argument in command {ctx.command}: {error.message}")
+            LOG.warning(f"[{channel_repr}] Missing argument in command {ctx.command}: {error.args[0]}")
             message = "An argument is missing\n\n"
             message += f"{ctx.command.signature}"
             await self.send(ctx.channel, message, code_block=True)
@@ -63,7 +66,7 @@ class Bot(commands.Bot):
                         f"was still on cooldown for {round(error.retry_after, 2)}s")
             await ctx.message.add_reaction(Emoji.ARROWS_COUNTERCLOCKWISE)
         elif isinstance(error, commands.CheckFailure):
-            LOG.error(f"[{channel_repr}] Check failed: {error.message} ({type(error).__name__})")
+            LOG.error(f"[{channel_repr}] Check failed: {error.args[0]} ({type(error).__name__})")
         else:
             LOG.warning(f"[{channel_repr}] Exception '{type(error).__name__}' raised in command '{ctx.command}'",
                         exc_info=(type(error), error, error.__traceback__))
@@ -83,24 +86,22 @@ class Bot(commands.Bot):
         if is_bot_message and not is_bot_reaction and emoji == Emoji.WASTEBASKET and await self.is_owner(user):
             channel_repr = utils.get_channel_repr(channel)
             await message.delete()
-            log = f"[{channel_repr}] {user.name} has deleted the message '{message.content}' from " \
-                  f"{message.author.name} "
+            log = f"[{channel_repr}] {user.name} has deleted the message '{message.content}' from {message.author.name}"
             if embed:
                 log += f"(Embed fields: {embed.to_dict()['fields']})"
             LOG.debug(log)
 
     async def start(self, *args, **kwargs):
         try:
-            token = config.get('DISCORD_BOT_TOKEN')
+            token = config.creds['DISCORD_BOT_TOKEN']
             await super(Bot, self).start(token, *args, **kwargs)
         except ConnectionError:
             LOG.exception("Cannot connect to the websocket")
 
     def load_extensions(self):
         """Load all the extensions"""
-        extensions_to_load = config.get('EXTENSIONS', default=True)
-        LOG.debug(f"Extensions to be loaded: {list(extensions_to_load)}")
-        for extension in extensions_to_load + DEFAULT_EXTENSIONS:
+        extensions_to_load = config.extensions_to_load
+        for extension in GLOBAL_EXTENSIONS | DEFAULT_EXTENSIONS | extensions_to_load:
             extension = f"cogs.{extension}"
             if extension in self.extensions:
                 LOG.debug(f"The extension '{extension}' is already loaded")

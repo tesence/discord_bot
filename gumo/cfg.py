@@ -21,24 +21,28 @@ class Config:
 
     def __init__(self):
         self.config_folder = None
+        self.creds = {}
         self.attrs = {}
 
-    def __contains__(self, item):
-        return item in self.attrs
+    @property
+    def extensions_to_load(self):
+        extensions_to_load = set()
+        for c in list(self.attrs.values()):
+            extensions = c.get('EXTENSIONS')
+            if extensions:
+                extensions_to_load = extensions_to_load | set(extensions)
+        return extensions_to_load
 
     @staticmethod
     def _load_file(path, name):
         with open(os.path.join(path, name), 'r') as f:
             return yaml.safe_load(f) or {}
 
-    def get(self, key, default_value=None, guild_id=None, default=False):
-        candidates = (
-            self.attrs.get(key, None),
-            self.attrs[guild_id].get(key, None) if self.attrs.get(guild_id, None) else None,
-            self.attrs['default'].get(key, None) if default else None,
-            default_value
-        )
-        return next((c for c in candidates if c is not None), None)
+    def get(self, key, default=None, guild_id=None):
+        result = default
+        if guild_id in self.attrs:
+            result = self.attrs[guild_id].get(key, default)
+        return result
 
     def load(self, config_folder=None):
         if config_folder:
@@ -51,14 +55,13 @@ class Config:
             candidate_name = candidate.rsplit(".", 1)[0]
             data = self._load_file(self.config_folder, candidate)
             if candidate_name == "credentials":
-                self.attrs.update(data)
-            elif candidate_name == "default":
-                self.attrs.update({'default': data})
+                self.creds.update(data)
             else:
                 guild_id = data.pop('GUILD_ID', None)
                 if data and not guild_id:
                     raise MissingGuildIDError(candidate)
                 self.attrs.update({guild_id: data})
+        LOG.debug(f"Loaded credentials: {self.creds}")
         LOG.debug(f"Loaded configuration: {self.attrs}")
 
 

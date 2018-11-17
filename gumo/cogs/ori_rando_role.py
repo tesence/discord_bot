@@ -3,18 +3,17 @@ import logging
 from discord.ext import commands
 
 from gumo import config
-from gumo import cogs
 from gumo.cogs.utils import role
 
 LOG = logging.getLogger('bot')
 
 
-class OriRandoRoleCommands(cogs.CogMixin, role.RoleCommands):
+class OriRandoRoleCommands(role.RoleCommands):
 
     def __init__(self, bot):
-        cogs.CogMixin.__init__(self, bot)
-        role.RoleCommands.__init__(self)
+        super(OriRandoRoleCommands, self).__init__()
         type(self).__name__ = "Ori rando commands"
+        self.bot = bot
         self.rando_role = None
 
     @commands.group(aliases=['lfg'])

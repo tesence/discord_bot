@@ -53,7 +53,8 @@ class DBDriver:
 
     async def init(self):
         if not self.bot.pool:
-            self.bot.pool = await asyncpg.create_pool(**config.get('DATABASE_CREDENTIALS'), min_size=1, max_size=5)
+            self.bot.pool = await asyncpg.create_pool(**config.creds['DATABASE_CREDENTIALS'],
+                                                      min_size=1, max_size=5)
         self._get_table_info()
         await self._create_table_if_not_exist()
         self.ready.set()

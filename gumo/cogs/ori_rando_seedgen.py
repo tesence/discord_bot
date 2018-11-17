@@ -12,8 +12,6 @@ from discord.ext.commands.cooldowns import BucketType
 import pytz
 
 from gumo.api import ori_randomizer
-from gumo import config
-from gumo import cogs
 from gumo import utils
 
 LOG = logging.getLogger('bot')
@@ -28,14 +26,14 @@ GOAL_MODES['wt', 'worldtour', 'world-tour'] = "WorldTour"
 GOAL_MODES['wf', 'warmthfrags', 'warmth-frags'] = "WarmthFrags"
 GOAL_MODES['fm', 'forcemapstones', 'force-mapstones'] = "ForceMapStones"
 
-DEFAULT_SEEDGEN_COOLDOWN = 0
+SEEDGEN_COOLDOWN = 0
 
 
-class OriRandoSeedGenCommands(cogs.CogMixin):
+class OriRandoSeedGenCommands:
 
     def __init__(self, bot):
-        super(OriRandoSeedGenCommands, self).__init__(bot)
         type(self).__name__ = "Ori rando commands"
+        self.bot = bot
         self.client = ori_randomizer.OriRandomizerAPIClient(self.bot.loop)
 
     @staticmethod
@@ -159,7 +157,7 @@ class OriRandoSeedGenCommands(cogs.CogMixin):
             await download_message.edit(content=f"```{error_message}. Please try again later.```")
 
     @commands.command()
-    @commands.cooldown(1, config.get('SEEDGEN_COOLDOWN', DEFAULT_SEEDGEN_COOLDOWN), BucketType.guild)
+    @commands.cooldown(1, SEEDGEN_COOLDOWN, BucketType.guild)
     async def seed(self, ctx, *, args=""):
         """Generate a seed for the Ori randomizer
 
@@ -188,7 +186,7 @@ class OriRandoSeedGenCommands(cogs.CogMixin):
         await self._seed(ctx, args, seed_name)
 
     @commands.command()
-    @commands.cooldown(1, config.get('SEEDGEN_COOLDOWN', DEFAULT_SEEDGEN_COOLDOWN), BucketType.guild)
+    @commands.cooldown(1, SEEDGEN_COOLDOWN, BucketType.guild)
     async def daily(self, ctx, *, args=""):
         """Generate a daily seed for the Ori randomizer
 
