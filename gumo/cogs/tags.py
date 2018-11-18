@@ -13,6 +13,7 @@ from gumo import utils
 LOG = logging.getLogger('bot')
 
 REGEX = re.compile('^(.+)[^"]*(".*")$', re.MULTILINE | re.DOTALL)
+EMOJI_REGEX = re.compile("^<:\w+:\d+>$")
 
 
 class DuplicateTagError(commands.UserInputError):
@@ -47,6 +48,7 @@ class TagCommands:
             await self.bot.send(ctx.channel, tag.content)
 
     @tag.command(name='create', aliases=['add'])
+    @check.is_admin()
     async def create_tag(self, ctx, *, args):
         """Create a tag
 
@@ -81,7 +83,8 @@ class TagCommands:
     @tag.command(name='list')
     async def list_tag(self, ctx):
         """Return the list of available tags"""
-        result = "**Available tags**: " + ', '.join(f'`{tag}`' for tag in self.data[ctx.guild.id])
+        result = [f'`{tag}`' if not re.match(EMOJI_REGEX, tag) else tag for tag in self.data[ctx.guild.id]]
+        result = "**Available tags**: " + ', '.join(tag for tag in result)
         await self.bot.send(ctx.channel, result)
 
 
