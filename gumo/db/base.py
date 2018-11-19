@@ -93,7 +93,6 @@ class DBDriver:
 
             query = f"CREATE TABLE IF NOT EXISTS {self.table_info['name']}" \
                     f"({', '.join(column_definitions)});"
-
             await self.bot.pool.execute(query)
         except exceptions.PostgresError:
             LOG.exception(f"Cannot create table {self.table_name}")
@@ -103,10 +102,11 @@ class DBDriver:
         parsed_conditions = []
         for key, value in conditions.items():
             if isinstance(value, str):
-                value = f"'{value}'"
-            elif value is None:
-                value = "NULL"
-            parsed_conditions.append(f"{key} = {value}")
+                parsed_conditions.append(f"{key} ILIKE '{value}'")
+            else:
+                if value is None:
+                    value = "NULL"
+                parsed_conditions.append(f"{key} = {value}")
         return parsed_conditions
 
     def _get_obj(self, record):

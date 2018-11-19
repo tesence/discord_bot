@@ -12,7 +12,7 @@ class Tags(base.BaseModel):
     __tablename__ = "tags"
     __table_args__ = base.UniqueConstraint('code', 'guild_id'),
 
-    code = base.Column('varchar(255)', nullable=False)
+    code = base.Column('citext', nullable=False)
     content = base.Column('text', nullable=False)
     author_id = base.Column('bigint', nullable=False)
     guild_id = base.Column('bigint', nullable=False)

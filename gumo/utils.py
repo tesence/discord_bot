@@ -1,8 +1,6 @@
 import logging
 import os
 
-from discord.ext.commands import converter
-
 LOG = logging.getLogger('bot')
 
 

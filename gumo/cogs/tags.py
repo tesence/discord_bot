@@ -33,14 +33,14 @@ class TagCommands:
         await self.driver.ready.wait()
         tags = await self.driver.list()
         for tag in tags:
-            self.data[tag.guild_id][tag.code] = tag
+            self.data[tag.guild_id][tag.code.lower()] = tag
 
     @commands.group(invoke_without_command=True)
     async def tag(self, ctx, *, code):
         """Return a tag value"""
         channel_repr = utils.get_channel_repr(ctx.channel)
         try:
-            tag = self.data[ctx.guild.id][code]
+            tag = self.data[ctx.guild.id][code.lower()]
             await self.driver.increment_usage(code)
         except KeyError:
             LOG.warning(f"[{channel_repr}] The tag '{code}' does not exist")
@@ -60,11 +60,11 @@ class TagCommands:
         code = code.strip()
         content = content[1:-1].strip()
 
-        if code in self.data[ctx.guild.id]:
+        if code.lower() in self.data[ctx.guild.id]:
             raise DuplicateTagError(code)
         tag = await self.driver.create(code=code, content=content, author_id=ctx.author.id, guild_id=ctx.guild.id,
                                        created_at=str(ctx.message.created_at))
-        self.data[ctx.guild.id][code] = tag
+        self.data[ctx.guild.id][code.lower()] = tag
         await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
 
     @tag.command(name='delete', aliases=['remove', 'rm'])
@@ -74,7 +74,7 @@ class TagCommands:
         channel_repr = utils.get_channel_repr(ctx.channel)
         try:
             await self.driver.delete(code=code)
-            del self.data[ctx.guild.id][code]
+            del self.data[ctx.guild.id][code.lower()]
         except KeyError:
             LOG.warning(f"[{channel_repr}] The tag '{code}' does not exist")
         else:
@@ -83,7 +83,7 @@ class TagCommands:
     @tag.command(name='list')
     async def list_tag(self, ctx):
         """Return the list of available tags"""
-        result = [f'`{tag}`' if not re.match(EMOJI_REGEX, tag) else tag for tag in self.data[ctx.guild.id]]
+        result = [f'`{tag.code}`' if not re.match(EMOJI_REGEX, tag.code) else tag.code for tag in self.data[ctx.guild.id].values()]
         result = "**Available tags**: " + ', '.join(tag for tag in result)
         await self.bot.send(ctx.channel, result)
 
