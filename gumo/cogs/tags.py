@@ -60,6 +60,9 @@ class TagCommands:
         code = code.strip()
         content = content[1:-1].strip()
 
+        if code.lower() in [c.name for c in ctx.command.parent.commands]:
+            LOG.warning("You cannot create a tag with the same name as a subcommand")
+            return
         if code.lower() in self.data[ctx.guild.id]:
             raise DuplicateTagError(code)
         tag = await self.driver.create(code=code, content=content, author_id=ctx.author.id, guild_id=ctx.guild.id,
