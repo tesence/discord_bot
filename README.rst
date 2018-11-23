@@ -14,6 +14,7 @@ A Discord Bot based on the Python framework
    -  Manage the randomizer community role
    -  Generate seeds within discord
    -  Generate logic helper links
+- Tags
 
 Setup environment (Python 3.6+ required)
 ========================================
@@ -73,18 +74,6 @@ Create a first file ``credentials.yaml`` that will store all the bot credentials
      user: <DB_USER>
      password: <DB_PASSWORD>
 
-A second file ``default.yaml`` that will store all the default values
-
-.. code:: yaml
-
-   COMMAND_PREFIX: "!"
-
-   EXTENSIONS:
-    - "stream"
-    - "dab"
-    - "ori_rando_seedgen"
-    - "ori_logic_helper"
-
 And a file for each guild in which the bot needs to behave differently.
 Allows to set variables that only exist at a guild level like admin
 roles
@@ -92,6 +81,8 @@ roles
 .. code:: yaml
 
    GUILD_ID: <guild_id>
+
+   COMMAND_PREFIX: "?"
 
    ADMIN_ROLES:
     - "admin_role_1"
@@ -196,16 +187,27 @@ Default seed flags: ``Standard,Clues,ForceTrees,balanced``
 
 Optional arguments
 
--  presets: casual, standard, expert, master, hard, ohko, 0xp, glitched
--  modes: shards, limitkeys, clues, default
--  logic paths: normal, speed, dbash, extended, extended-damage, lure,
-   speed-lure, lure-hard, dboost, dboost-light, dboost-hard, cdash,
-   cdash-farming, extreme, timed-level, glitched
--  variations: forcetrees, entrance, hard, starved, ohko,
-   nonprogressmapstones, 0xp, noplants, noteleporters
--  flags: tracking, verbose_paths, classic_gen, hard-path, easy-path
+- presets: casual, standard, expert, master, glitched
+- key modes: default, limitkeys, clues, shards
+- goal modes: ft (ForceTrees), wt (WorldTour), wf (WarmthFrags),
+  fm (ForceMapstones)
+- logic paths: casual-core, casual-dboost, standard-core, standard-dboost,
+  standard-lure, standard-abilities, expert-core, expert-dboost, expert-lure,
+  expert-abilities, master-core, master-dboost, master-lure,
+  master-abilities, dbash, gjump, glitched, timed-level, insane
+- variations: starved, hard, OHKO, 0XP, closeddungeons, openworld, doubleskills,
+  strictmapstones, bonuspickups, nonprogressmapstones
+- flags: tracking, verbose_paths, classic_gen, hard-path, easy-path
 
 A seed name can be set using double quotes
+
+::
+
+   !daily [list of options...]
+
+``!daily`` is similar to ``!seed``, it expects the same arguments, except a seed
+name, the command will ignore any custom seed name and will use the current date
+(Pacific Time) in the format ``YYYY-MM-DD``
 
 |seedgen|
 
@@ -240,6 +242,27 @@ A simple role command. The randomizer community role is used for members
 who want to be pinged when someone is looking for playing a randomizer
 seed, it allows people to easily opt in/out without having to ask a
 moderator.
+
+
+Tags
+----
+
+A classic tag command
+
+::
+
+   # Get the list of available tags
+   !tag list
+
+   # Use a tag
+   !tag <code>
+
+   # Create a tag (requires a role in ADMIN_ROLE)
+   !tag create <code> "<content>"
+
+   # Delete a tag (requires a role in ADMIN_ROLE)
+   !tag delete <code>
+
 
 .. |logo| image:: img/logo.png?raw=true
    :class: align-center
