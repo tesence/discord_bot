@@ -104,4 +104,4 @@ class ChannelStreamDBDriver(base.DBDriver):
             f"ON {cs_table}.stream_id = {s_table}.id "
         if guild_only:
             query += f"WHERE {c_table}.guild_id = {guild_id}"
-        return await self.pool.fetch(query)
+        return await self.bot.pool.fetch(query)
