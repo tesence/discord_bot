@@ -113,93 +113,58 @@ class DBDriver:
         return self.model(**dict(record.items()))
 
     async def get_size(self):
-        try:
-            query = f"SELECT COUNT(*) FROM {self.table_name}"
-            result = list((await self.bot.pool.fetchrow(query)).values())[0]
-        except exceptions.PostgresError:
-            LOG.exception(f"Cannot retrieve size for table '{self.table_name}' ('{query}')")
-        else:
-            return result
+        query = f"SELECT COUNT(*) FROM {self.table_name}"
+        return list((await self.bot.pool.fetchrow(query)).values())[0]
 
     async def get(self, **conditions):
-        try:
-            query = f"SELECT * FROM {self.table_name}"
-            conditions = self._format_conditions(**conditions)
-            if conditions:
-                query += f" WHERE {' AND '.join(conditions)}"
-            query += ";"
-            result = await self.bot.pool.fetchrow(query)
-            if result:
-                result = self._get_obj(result)
-        except exceptions.PostgresError:
-            LOG.exception(f"Cannot retrieve data for values: {conditions} ('{query}')")
-        else:
-            return result
+        query = f"SELECT * FROM {self.table_name}"
+        conditions = self._format_conditions(**conditions)
+        if conditions:
+            query += f" WHERE {' AND '.join(conditions)}"
+        query += ";"
+        result = await self.bot.pool.fetchrow(query)
+        if result:
+            result = self._get_obj(result)
+        return result
 
     async def list(self, **conditions):
-        try:
-            query = f"SELECT * FROM {self.table_name}"
-            conditions = self._format_conditions(**conditions)
-            if conditions:
-                query += f" WHERE {' AND '.join(conditions)}"
-            query += ";"
-            results = [self._get_obj(r) for r in await self.bot.pool.fetch(query)]
-        except exceptions.PostgresError:
-            LOG.exception(f"Cannot retrieve data for values: {conditions} ('{query}')")
-        else:
-            return results
+        query = f"SELECT * FROM {self.table_name}"
+        conditions = self._format_conditions(**conditions)
+        if conditions:
+            query += f" WHERE {' AND '.join(conditions)}"
+        query += ";"
+        return [self._get_obj(r) for r in await self.bot.pool.fetch(query)]
 
     async def create(self, **fields):
-        try:
-            columns = ",".join(fields)
-            values = []
-            for value in fields.values():
-                if isinstance(value, str) or isinstance(value, int):
-                    values.append(f"'{value}'")
-                elif value is not None:
-                    values.append(value)
-                else:
-                    values.append("NULL")
+        columns = ",".join(fields)
+        values = []
+        for value in fields.values():
+            if isinstance(value, str) or isinstance(value, int):
+                values.append(f"'{value}'")
+            elif value is not None:
+                values.append(value)
+            else:
+                values.append("NULL")
 
-            query = f"INSERT INTO {self.table_name} ({columns}) VALUES ({', '.join(values)})"
-            await self.bot.pool.execute(query)
-            result = await self.get(**fields)
-        except exceptions.PostgresError:
-            LOG.exception(f"Cannot create data for values: {fields} ('{query}')")
-        else:
-            return result
+        query = f"INSERT INTO {self.table_name} ({columns}) VALUES ({', '.join(values)}) RETURNING *"
+        result = await self.bot.pool.fetchrow(query)
+        if result:
+            result = self._get_obj(result)
+        return result
 
     async def delete(self, **conditions):
-        try:
-            query = f"DELETE FROM {self.table_name}"
-            conditions = self._format_conditions(**conditions)
-            if conditions:
-                query += f" WHERE {' AND '.join(conditions)}"
-            query += ";"
-            await self.bot.pool.execute(query)
-        except exceptions.PostgresError:
-            LOG.exception(f"Cannot delete data for conditions: {conditions} ('{query}')")
+        query = f"DELETE FROM {self.table_name}"
+        conditions = self._format_conditions(**conditions)
+        if conditions:
+            query += f" WHERE {' AND '.join(conditions)}"
+        query += ";"
+        await self.bot.pool.execute(query)
 
     async def update(self, column, value, **conditions):
-        try:
-            conditions = self._format_conditions(**conditions)
-            query = f"UPDATE {self.table_name} SET {column} = '{value}' WHERE {' AND '.join(conditions)}"
-            await self.bot.pool.execute(query)
-        except exceptions.PostgresError:
-            LOG.exception(f"Cannot update data with values {column}:{value} for conditions {conditions} ('{query}')")
+        conditions = self._format_conditions(**conditions)
+        query = f"UPDATE {self.table_name} SET {column} = '{value}' WHERE {' AND '.join(conditions)} RETURNING *"
+        result = await self.bot.pool.fetchrow(query)
+        if result:
+            result = self._get_obj(result)
+        return result
 
-    async def join(self, join_type, joined_table_name, column_name, joined_column_name, intersection=True):
-        try:
-            query = f"SELECT * FROM {self.table_name} " \
-                    f"{join_type} JOIN {joined_table_name} " \
-                    f"ON {self.table_name}.{column_name} = {joined_table_name}.{joined_column_name} "
-            if not intersection:
-                query += f"WHERE {joined_table_name}.{joined_column_name} IS NULL "
-                if join_type == "FULL JOIN":
-                    query += f"OR WHERE {self.table_name}.{column_name} IS NULL "
-            query += ";"
-            result = await self.bot.pool.fetch(query)
-        except exceptions.PostgresError:
-            LOG.exception(f"Cannot perform the join ('{query}')")
-        else:
-            return result

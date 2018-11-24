@@ -1,10 +1,14 @@
+import collections
 from datetime import datetime
 import logging
 
 from gumo.db import base
+from gumo.cogs.stream.models import NotificationHandler
 
 
 LOG = logging.getLogger('bot')
+
+DEFAULT_RECENT_NOTIFICATION_AGE = 300
 
 
 class Channel(base.BaseModel):
@@ -38,7 +42,7 @@ class Stream(base.BaseModel):
         self.name = kwargs.pop('name')
         self.online = False
         self.last_offline_date = None
-        self.notifications = []
+        self.notifications_by_channel_id = collections.defaultdict(list)
         self.display_name = None
         self.title = None
         self.game = None
@@ -49,11 +53,21 @@ class Stream(base.BaseModel):
         return f"<{type(self).__name__} name={self.name}>"
 
     @property
+    def notifications(self):
+        notifications = []
+        for channel_notifications in self.notifications_by_channel_id.values():
+            notifications += list(channel_notifications)
+        return notifications
+
+    @property
     def offline_duration(self):
-        now = datetime.now()
         if not self.last_offline_date:
-            self.last_offline_date = now
-        return (now - self.last_offline_date).seconds
+            return -1
+        return (datetime.utcnow() - self.last_offline_date).total_seconds()
+
+    def get_recent_notification(self, channel_id):
+        return next((notification for notification in self.notifications_by_channel_id[channel_id]
+                     if NotificationHandler.is_recent(notification)), None)
 
 
 class ChannelStream(base.BaseModel):

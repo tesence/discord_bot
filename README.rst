@@ -125,29 +125,21 @@ Commands
 Twitch
 ------
 
-The twitch stream support implements a system of notification. When a
+The twitch stream support implements a system of notifications. When a
 stream is online, a notification is sent in every discord channel where
-it has been tracked. By default, the notification is automatically
-deleted when the stream is offline. To prevent the bot from deleting the
-notification it is possible to set the variable
-``AUTO_DELETE_OFFLINE_STREAMS`` to False. The notification will then
-turn to grey when the stream is offline the bot will react to it with a
-wastebasket emoji. The notification will be deleted if the bot owner or
-a user with one of the roles listed in ``ADMIN_ROLES`` reacts to it
-aswell.
+it has been tracked. When the streamer stop streaming the notification turns
+to grey.
 
-::
+If the streamer starts streaming again less than **1 hour** later, the last
+notification will be edited, a new one will not be sent (to avoid spamming
+notifications if the streamer's internet connection is unstable).
 
-   AUTO_DELETE_OFFLINE_STREAMS = False
+**24 hours** after the notification turned to grey, the notification is deleted.
 
-Additional configuration variables
+These 2 values can be overriden using the configuration variables:
 
--  ``MIN_OFFLINE_DURATION`` Duration (in seconds) spent offline
-   (according to the API) after which the stream is considered offline for
-   the bot. It allows to avoid multiple notifications if the broadcaster
-   has some internet issues.
-
-   Recommended minimum value: ``60``
+- ``OLD_NOTIFICATION_LIFESPAN``
+- ``RECENT_NOTIFICATION_AGE``
 
 Here are the different commands:
 
