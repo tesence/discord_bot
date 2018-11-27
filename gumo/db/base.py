@@ -103,9 +103,9 @@ class DBDriver:
         for key, value in conditions.items():
             if isinstance(value, str):
                 parsed_conditions.append(f"{key} ILIKE '{value}'")
+            elif value is None:
+                parsed_conditions.append(f"{key} is NULL")
             else:
-                if value is None:
-                    value = "NULL"
                 parsed_conditions.append(f"{key} = {value}")
         return parsed_conditions
 
