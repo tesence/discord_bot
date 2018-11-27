@@ -11,6 +11,7 @@ from gumo import config
 from gumo.cogs.stream import embeds
 from gumo import db
 from gumo import Emoji
+from gumo import models
 from gumo import utils
 
 LOG = logging.getLogger('bot')
@@ -26,13 +27,6 @@ class MissingStreamName(commands.MissingRequiredArgument):
 
     def __init__(self):
         self.message = "At least one stream name is required"
-
-
-class NotifiedChannel:
-
-    def __init__(self, channel, tags):
-        self.channel = channel
-        self.tags = tags
 
 
 class StreamManager:
@@ -135,7 +129,7 @@ class StreamManager:
                 if not channel:
                     LOG.warning(f"The channel '{channel_stream.channel_id}' does not exist in the bot's cache")
                     continue
-                channels_by_stream_id[channel_stream.stream_id].append(NotifiedChannel(channel, channel_stream.tags))
+                channels_by_stream_id[channel_stream.stream_id].append(models.NotifiedChannel(channel, channel_stream.tags))
 
             # Get the status of all tracked streams
             status = await self.client.get_status(*self.streams_by_id)

@@ -12,6 +12,7 @@ from discord.ext.commands.cooldowns import BucketType
 import pytz
 
 from gumo.api import ori_randomizer
+from gumo import models
 from gumo import utils
 
 LOG = logging.getLogger('bot')
@@ -20,7 +21,7 @@ SEED_FILENAME = "randomizer.dat"
 SPOILER_FILENAME = "spoiler.txt"
 DOWNLOAD_MESSAGES_FILE_PATH = "data/download_messages.json"
 
-GOAL_MODES = utils.MultiKeyDict()
+GOAL_MODES = models.MultiKeyDict()
 GOAL_MODES['ft', 'forcetrees', 'force-trees'] = "ForceTrees"
 GOAL_MODES['wt', 'worldtour', 'world-tour'] = "WorldTour"
 GOAL_MODES['wf', 'warmthfrags', 'warmth-frags'] = "WarmthFrags"
