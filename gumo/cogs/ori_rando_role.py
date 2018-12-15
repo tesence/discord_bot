@@ -17,6 +17,7 @@ class OriRandoRoleCommands(role.RoleCommands):
         self.rando_role = None
 
     @commands.group(aliases=['lfg'])
+    @commands.guild_only()
     async def looking_for_game(self, ctx):
         """Add/remove the rando role
 
@@ -29,14 +30,16 @@ class OriRandoRoleCommands(role.RoleCommands):
             self.rando_role = config.get('RANDO_ROLE', guild_id=ctx.guild.id)
 
     @looking_for_game.command()
+    @commands.guild_only()
     async def add(self, ctx):
         """Add the rando role"""
-        await self.add_role(ctx, self.rando_role)
+        await self.add_roles(ctx, self.rando_role, guild=ctx.guild)
 
     @looking_for_game.command(aliases=['rm'])
+    @commands.guild_only()
     async def remove(self, ctx):
         """Remove the rando role"""
-        await self.remove_role(ctx, self.rando_role)
+        await self.remove_roles(ctx, self.rando_role, guild=ctx.guild)
 
 
 def setup(bot):

@@ -240,12 +240,14 @@ class StreamManager:
     # COMMANDS
 
     @commands.group()
+    @commands.guild_only()
     async def stream(self, ctx):
         """Manage tracked streams."""
         if ctx.invoked_subcommand is None:
             await ctx.invoke(self.bot.get_command('help'), ctx.command.name)
 
     @stream.command()
+    @commands.guild_only()
     async def list(self, ctx):
         """Show the list of the current tracked streams."""
         channel_repr = utils.get_channel_repr(ctx.channel)
@@ -330,6 +332,7 @@ class StreamManager:
         return True
 
     @stream.command()
+    @commands.guild_only()
     @check.is_admin()
     async def add(self, ctx, *stream_names):
         """Track a list of streams in a channel."""
@@ -340,6 +343,7 @@ class StreamManager:
             await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
 
     @stream.command()
+    @commands.guild_only()
     @check.is_admin()
     async def everyone(self, ctx, *stream_names):
         """Track a list of streams in a channel (with @everyone)."""
@@ -350,6 +354,7 @@ class StreamManager:
             await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
 
     @stream.command()
+    @commands.guild_only()
     @check.is_admin()
     async def here(self, ctx, *stream_names):
         """Track a list of streams in a channel (with @here)."""
@@ -406,6 +411,7 @@ class StreamManager:
         return True
 
     @stream.command()
+    @commands.guild_only()
     @check.is_admin()
     async def remove(self, ctx, *stream_names):
         """Stop tracking a list of streams in a channel."""

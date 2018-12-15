@@ -36,6 +36,7 @@ class TagCommands:
             self.data[tag.guild_id][tag.code.lower()] = tag
 
     @commands.group(invoke_without_command=True)
+    @commands.guild_only()
     async def tag(self, ctx, *, code):
         """Return a tag value"""
         channel_repr = utils.get_channel_repr(ctx.channel)
@@ -48,6 +49,7 @@ class TagCommands:
             await self.bot.send(ctx.channel, tag.content)
 
     @tag.command(name='create', aliases=['add'])
+    @commands.guild_only()
     @check.is_admin()
     async def create_tag(self, ctx, *, args):
         """Create a tag
@@ -71,6 +73,7 @@ class TagCommands:
         await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
 
     @tag.command(name='delete', aliases=['remove', 'rm'])
+    @commands.guild_only()
     @check.is_admin()
     async def delete_tag(self, ctx, *, code):
         """Delete a tag"""
@@ -84,6 +87,7 @@ class TagCommands:
             await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
 
     @tag.command(name='list')
+    @commands.guild_only()
     async def list_tag(self, ctx):
         """Return the list of available tags"""
         result = [f'`{tag.code}`' if not re.match(EMOJI_REGEX, tag.code) else tag.code for tag in self.data[ctx.guild.id].values()]

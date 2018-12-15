@@ -158,6 +158,7 @@ class OriRandoSeedGenCommands:
             await download_message.edit(content=f"```{error_message}. Please try again later.```")
 
     @commands.command()
+    @commands.guild_only()
     @commands.cooldown(1, SEEDGEN_COOLDOWN, BucketType.guild)
     async def seed(self, ctx, *, args=""):
         """Generate a seed for the Ori randomizer
@@ -187,6 +188,7 @@ class OriRandoSeedGenCommands:
         await self._seed(ctx, args, seed_name)
 
     @commands.command()
+    @commands.guild_only()
     @commands.cooldown(1, SEEDGEN_COOLDOWN, BucketType.guild)
     async def daily(self, ctx, *, args=""):
         """Generate a daily seed for the Ori randomizer

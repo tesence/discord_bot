@@ -1,6 +1,8 @@
 import logging
 import os
 
+import discord
+
 LOG = logging.getLogger('bot')
 
 
@@ -21,4 +23,8 @@ def get_extension_name_from_ctx(ctx):
 
 
 def get_channel_repr(channel):
-    return f"{channel.guild.name}#{channel.name}"
+    if isinstance(channel, discord.DMChannel):
+        repr = channel.recipient
+    else:
+        repr = f"{channel.guild.name}#{channel.name}"
+    return repr

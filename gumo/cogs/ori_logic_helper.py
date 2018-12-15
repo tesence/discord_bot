@@ -44,6 +44,7 @@ class OriLogicHelperCommands:
         self.bot = bot
 
     @commands.command()
+    @commands.guild_only()
     async def logic(self, ctx, *args):
         """Links a logic helper map using the supplied parameters
 

@@ -17,7 +17,10 @@ DEFAULT_EXTENSIONS = {'ori_rando_seedgen', 'ori_logic_helper'}
 
 
 async def get_prefix(bot, message):
-    prefix = config.get('COMMAND_PREFIX', DEFAULT_COMMAND_PREFIX, guild_id=message.guild.id)
+    if isinstance(message.channel, discord.DMChannel):
+        prefix = DEFAULT_COMMAND_PREFIX
+    else:
+        prefix = config.get('COMMAND_PREFIX', DEFAULT_COMMAND_PREFIX, guild_id=message.guild.id)
     return commands.when_mentioned_or(prefix)(bot, message)
 
 
@@ -39,6 +42,8 @@ class Bot(commands.Bot):
                   f"'{ctx.author.display_name}': '{ctx.message.content}'")
 
     async def check_extension_access(self, ctx):
+        if isinstance(ctx.channel, discord.DMChannel):
+            return True
         if not getattr(ctx, "cog"):
             return True
         extension_name = utils.get_extension_name_from_ctx(ctx)
@@ -73,7 +78,7 @@ class Bot(commands.Bot):
 
     async def on_raw_reaction_add(self, payload):
         channel = self.get_channel(payload.channel_id)
-        user = channel.guild.get_member(payload.user_id)
+        user = self.get_user(payload.user_id)
 
         message = await channel.get_message(payload.message_id)
         emoji = payload.emoji.name

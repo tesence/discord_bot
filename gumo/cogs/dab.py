@@ -18,6 +18,7 @@ class DabCommands:
         self.bot = bot
 
     @commands.command()
+    @commands.guild_only()
     @commands.cooldown(1, DAB_COOLDOWN, BucketType.channel)
     async def dab(self, ctx, *, dabbed=None):
         """Disrespect someone"""
