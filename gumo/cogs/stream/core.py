@@ -38,10 +38,17 @@ class StreamManager:
         self.stream_db_driver = db.StreamDBDriver(self.bot, self.bot.loop)
         self.channel_db_driver = db.ChannelDBDriver(self.bot, self.bot.loop)
         self.channel_stream_db_driver = db.ChannelStreamDBDriver(self.bot, self.bot.loop)
-        self.bot.stream_tasks = []
         self.cache = StreamCache()
 
+        self._cancel_tasks()
         asyncio.ensure_future(self.init(), loop=self.bot.loop)
+
+    def _cancel_tasks(self):
+        """Reload all the tasks"""
+        tasks = getattr(self.bot, 'stream_tasks', [])
+        for task in tasks:
+            task.cancel()
+        self.bot.stream_tasks = []
 
     async def init(self):
         """Initialize all the manager attributes and load the database data."""
@@ -58,6 +65,9 @@ class StreamManager:
         self.bot.stream_tasks.append(asyncio.ensure_future(self.delete_old_notifications(), loop=self.bot.loop))
 
         def task_done_callback(fut):
+            if fut.cancelled():
+                LOG.debug(f"The task has been cancelled: {fut}")
+                return
             error = fut.exception()
             LOG.error(f"A task ended unexpectedly: {fut} ", exc_info=(type(error), error, error.__traceback__))
 
@@ -168,7 +178,6 @@ class StreamManager:
         LOG.debug("The polling has started")
 
         while True:
-
             # Build a dictionary to easily iterate through the tracked streams
             # {
             #   "stream_id_1": [(<discord_channel_1>, <tags>), (<discord_channel_2>, <tags>), ...]
@@ -245,6 +254,15 @@ class StreamManager:
         """Manage tracked streams."""
         if ctx.invoked_subcommand is None:
             await ctx.invoke(self.bot.get_command('help'), ctx.command.name)
+
+    @stream.command()
+    @commands.guild_only()
+    @check.is_admin()
+    async def reload(self):
+        """Reload the running tasks"""
+        self._cancel_tasks()
+        self.bot.stream_tasks.append(asyncio.ensure_future(self.poll_streams(), loop=self.bot.loop))
+        self.bot.stream_tasks.append(asyncio.ensure_future(self.delete_old_notifications(), loop=self.bot.loop))
 
     @stream.command()
     @commands.guild_only()
