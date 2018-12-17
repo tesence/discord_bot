@@ -58,7 +58,11 @@ class Bot(commands.Bot):
         if hasattr(ctx.command, 'on_error'):
             return
 
+        ignored = (commands.CommandNotFound,)
         error = getattr(error, 'original', error)
+
+        if isinstance(error, ignored):
+            return
 
         channel_repr = utils.get_channel_repr(ctx.channel)
         if isinstance(error, commands.MissingRequiredArgument):
