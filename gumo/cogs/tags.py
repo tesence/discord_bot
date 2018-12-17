@@ -27,7 +27,7 @@ class TagCommands:
         self.bot = bot
         self.driver = db.TagDBDriver(self.bot, loop=self.bot.loop)
         self.data = collections.defaultdict(dict)
-        asyncio.ensure_future(self.init(), loop=self.bot.loop)
+        self.bot.loop.create_task(self.init())
 
     async def init(self):
         await self.driver.ready.wait()

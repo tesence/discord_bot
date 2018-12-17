@@ -41,7 +41,7 @@ class StreamManager:
         self.cache = StreamCache()
 
         self._cancel_tasks()
-        asyncio.ensure_future(self.init(), loop=self.bot.loop)
+        self.bot.loop.create_task(self.init())
 
     def _cancel_tasks(self):
         """Reload all the tasks"""
@@ -61,8 +61,8 @@ class StreamManager:
         self.cache.add_channel_streams(*await self.channel_stream_db_driver.list())
         await self.bot.wait_until_ready()
 
-        self.bot.stream_tasks.append(asyncio.ensure_future(self.poll_streams(), loop=self.bot.loop))
-        self.bot.stream_tasks.append(asyncio.ensure_future(self.delete_old_notifications(), loop=self.bot.loop))
+        self.bot.stream_tasks.append(self.bot.loop.create_task(self.poll_streams()))
+        self.bot.stream_tasks.append(self.bot.loop.create_task(self.delete_old_notifications()))
 
         def task_done_callback(fut):
             if fut.cancelled():
@@ -261,8 +261,8 @@ class StreamManager:
     async def reload(self):
         """Reload the running tasks"""
         self._cancel_tasks()
-        self.bot.stream_tasks.append(asyncio.ensure_future(self.poll_streams(), loop=self.bot.loop))
-        self.bot.stream_tasks.append(asyncio.ensure_future(self.delete_old_notifications(), loop=self.bot.loop))
+        self.bot.stream_tasks.append(self.bot.loop.create_task(self.poll_streams()))
+        self.bot.stream_tasks.append(self.bot.loop.create_task(self.delete_old_notifications()))
 
     @stream.command()
     @commands.guild_only()

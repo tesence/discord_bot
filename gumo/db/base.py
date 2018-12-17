@@ -45,7 +45,7 @@ class DBDriver:
         self.loop = loop
         self.model = model
         self.ready = asyncio.Event(loop=loop)
-        asyncio.ensure_future(self.init(), loop=loop)
+        loop.create_task(self.init())
 
     @property
     def table_name(self):
