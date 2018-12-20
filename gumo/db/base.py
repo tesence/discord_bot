@@ -40,12 +40,11 @@ class BaseModel:
 
 class DBDriver:
 
-    def __init__(self, bot, loop, model):
+    def __init__(self, bot, model):
         self.bot = bot
-        self.loop = loop
         self.model = model
-        self.ready = asyncio.Event(loop=loop)
-        loop.create_task(self.init())
+        self.ready = asyncio.Event(loop=bot.loop)
+        self.bot.loop.create_task(self.init())
 
     @property
     def table_name(self):

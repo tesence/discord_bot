@@ -9,15 +9,12 @@ from discord.ext import commands
 from gumo import api
 from gumo import check
 from gumo import config
-from gumo.cogs.stream.models import StreamCache, NotificationHandler, \
-    StreamListEmbed
+from gumo.cogs.stream.models import StreamCache, NotificationHandler, StreamListEmbed
 from gumo import db
-from gumo import Emoji
+from gumo import emoji
 from gumo import utils
 
 LOG = logging.getLogger('bot')
-
-CONF_VARIABLES = ['TWITCH_API_CLIENT_ID']
 
 MIN_OFFLINE_DURATION = 30
 POLL_RATE = 10
@@ -35,9 +32,9 @@ class StreamManager:
         type(self).__name__ = "Stream commands"
         self.bot = bot
         self.client = api.TwitchAPIClient(self.bot.loop)
-        self.stream_db_driver = db.StreamDBDriver(self.bot, self.bot.loop)
-        self.channel_db_driver = db.ChannelDBDriver(self.bot, self.bot.loop)
-        self.channel_stream_db_driver = db.ChannelStreamDBDriver(self.bot, self.bot.loop)
+        self.stream_db_driver = db.StreamDBDriver(self.bot)
+        self.channel_db_driver = db.ChannelDBDriver(self.bot)
+        self.channel_stream_db_driver = db.ChannelStreamDBDriver(self.bot)
         self.cache = StreamCache()
 
         self._cancel_tasks()
@@ -358,7 +355,7 @@ class StreamManager:
             raise MissingStreamName
         result = await self._add_streams(ctx.channel, *stream_names)
         if result and all(result):
-            await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
+            await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
 
     @stream.command()
     @commands.guild_only()
@@ -369,7 +366,7 @@ class StreamManager:
             raise MissingStreamName
         result = await self._add_streams(ctx.channel, *stream_names, tags="@everyone")
         if result and all(result):
-            await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
+            await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
 
     @stream.command()
     @commands.guild_only()
@@ -380,7 +377,7 @@ class StreamManager:
             raise MissingStreamName
         result = await self._add_streams(ctx.channel, *stream_names, tags="@here")
         if result and all(result):
-            await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
+            await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
 
     async def _remove_streams(self, channel, *stream_names):
         """Remove a list streams from a discord channel tracklist
@@ -437,4 +434,4 @@ class StreamManager:
             raise MissingStreamName
         result = await self._remove_streams(ctx.channel, *stream_names)
         if result and all(result):
-            await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
+            await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)

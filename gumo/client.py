@@ -5,7 +5,7 @@ from discord.ext import commands
 
 from gumo import config
 from gumo import help_formatter
-from gumo import Emoji
+from gumo import emoji
 from gumo import utils
 
 LOG = logging.getLogger('bot')
@@ -38,7 +38,7 @@ class Bot(commands.Bot):
         LOG.debug(f"Guilds: {', '.join(f'{guild.name}#{guild.id}' for guild in self.guilds)}")
 
     async def on_command(self, ctx):
-        LOG.debug(f"[{utils.get_channel_repr(ctx.channel)}] Command '{ctx.command.name}' called by "
+        LOG.debug(f"[{utils.get_channel_repr(ctx.channel)}] Command called by "
                   f"'{ctx.author.display_name}': '{ctx.message.content}'")
 
     async def check_extension_access(self, ctx):
@@ -73,7 +73,7 @@ class Bot(commands.Bot):
         elif isinstance(error, commands.CommandOnCooldown):
             LOG.warning(f"[{channel_repr}] '{ctx.author.name}' tried to use the command '{ctx.command.name}' while it "
                         f"was still on cooldown for {round(error.retry_after, 2)}s")
-            await ctx.message.add_reaction(Emoji.ARROWS_COUNTERCLOCKWISE)
+            await ctx.message.add_reaction(emoji.ARROWS_COUNTERCLOCKWISE)
         elif isinstance(error, commands.CheckFailure):
             LOG.error(f"[{channel_repr}] Check failed: {error.args[0]} ({type(error).__name__})")
         else:
@@ -85,14 +85,14 @@ class Bot(commands.Bot):
         user = self.get_user(payload.user_id)
 
         message = await channel.get_message(payload.message_id)
-        emoji = payload.emoji.name
+        payload_emoji = payload.emoji.name
         author = message.author
         embed = message.embeds[0] if message.embeds else None
 
         is_bot_message = author.id == self.user.id
         is_bot_reaction = user.id == self.user.id
 
-        if is_bot_message and not is_bot_reaction and emoji == Emoji.WASTEBASKET and await self.is_owner(user):
+        if is_bot_message and not is_bot_reaction and payload_emoji == emoji.WASTEBASKET and await self.is_owner(user):
             channel_repr = utils.get_channel_repr(channel)
             await message.delete()
             log = f"[{channel_repr}] {user.name} has deleted the message '{message.content}' from {message.author.name}"
@@ -126,5 +126,5 @@ class Bot(commands.Bot):
             content = utils.code_block(content)
         message = await channel.send(content=content, **kwargs)
         if reaction:
-            await message.add_reaction(Emoji.WASTEBASKET)
+            await message.add_reaction(emoji.WASTEBASKET)
         return message

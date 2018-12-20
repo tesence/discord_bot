@@ -1,4 +1,3 @@
-import asyncio
 import collections
 import logging
 import re
@@ -7,7 +6,7 @@ from discord.ext import commands
 
 from gumo import check
 from gumo import db
-from gumo import Emoji
+from gumo import emoji
 from gumo import utils
 
 LOG = logging.getLogger('bot')
@@ -25,7 +24,7 @@ class TagCommands:
     def __init__(self, bot):
         type(self).__name__ = "Tag commands"
         self.bot = bot
-        self.driver = db.TagDBDriver(self.bot, loop=self.bot.loop)
+        self.driver = db.TagDBDriver(self.bot)
         self.data = collections.defaultdict(dict)
         self.bot.loop.create_task(self.init())
 
@@ -70,7 +69,7 @@ class TagCommands:
         tag = await self.driver.create(code=code, content=content, author_id=ctx.author.id, guild_id=ctx.guild.id,
                                        created_at=str(ctx.message.created_at))
         self.data[ctx.guild.id][code.lower()] = tag
-        await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
+        await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
 
     @tag.command(name='delete', aliases=['remove', 'rm'])
     @commands.guild_only()
@@ -84,7 +83,7 @@ class TagCommands:
         except KeyError:
             LOG.warning(f"[{channel_repr}] The tag '{code}' does not exist")
         else:
-            await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
+            await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
 
     @tag.command(name='list')
     @commands.guild_only()

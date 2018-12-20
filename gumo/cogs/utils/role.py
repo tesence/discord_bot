@@ -3,7 +3,7 @@ import logging
 import discord
 from discord.ext.commands import converter
 
-from gumo import Emoji
+from gumo import emoji
 
 
 LOG = logging.getLogger('bot')
@@ -23,7 +23,7 @@ class RoleCommands:
         member = discord.utils.get(guild.members, id=ctx.author.id)
         if role not in member.roles:
             await member.add_roles(role)
-            await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
+            await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
             LOG.debug(f"{ctx.author.name} now has the role '{role.name}' in the guild '{guild.name}'")
 
     async def remove_roles(self, ctx, *role_names, guild=None):
@@ -35,5 +35,5 @@ class RoleCommands:
         member = discord.utils.get(guild.members, id=ctx.author.id)
         if role in member.roles:
             await member.remove_roles(role)
-            await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
+            await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
             LOG.debug(f"{ctx.author.name} no longer has the role '{role.name}' in the guild '{guild.name}'")

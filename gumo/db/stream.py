@@ -90,20 +90,20 @@ class ChannelStream(base.BaseModel):
 
 class ChannelDBDriver(base.DBDriver):
 
-    def __init__(self, pool, loop):
-        super(ChannelDBDriver, self).__init__(pool, loop, Channel)
+    def __init__(self, bot):
+        super(ChannelDBDriver, self).__init__(bot, Channel)
 
 
 class StreamDBDriver(base.DBDriver):
 
-    def __init__(self, pool, loop):
-        super(StreamDBDriver, self).__init__(pool, loop, Stream)
+    def __init__(self, bot):
+        super(StreamDBDriver, self).__init__(bot, Stream)
 
 
 class ChannelStreamDBDriver(base.DBDriver):
 
-    def __init__(self, pool, loop):
-        super(ChannelStreamDBDriver, self).__init__(pool, loop, ChannelStream)
+    def __init__(self, bot):
+        super(ChannelStreamDBDriver, self).__init__(bot, ChannelStream)
 
     async def get_stream_list(self, guild_id, guild_only=True):
         c_table = Channel.__tablename__
