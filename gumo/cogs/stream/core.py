@@ -438,7 +438,3 @@ class StreamManager:
         result = await self._remove_streams(ctx.channel, *stream_names)
         if result and all(result):
             await ctx.message.add_reaction(Emoji.WHITE_CHECK_MARK)
-
-
-def setup(bot):
-    bot.add_cog(StreamManager(bot))
