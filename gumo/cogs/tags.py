@@ -1,7 +1,7 @@
-import collections
 import logging
 import re
 
+import asyncpg
 from discord.ext import commands
 
 from gumo import check
@@ -15,37 +15,23 @@ REGEX = re.compile('^(.+)[^"]*(".*")$', re.MULTILINE | re.DOTALL)
 EMOJI_REGEX = re.compile("^<:\w+:\d+>$")
 
 
-class DuplicateTagError(commands.UserInputError):
-    """If a user tries to create a tag that already exists"""
-
-
 class TagCommands:
 
     def __init__(self, bot):
         type(self).__name__ = "Tag commands"
         self.bot = bot
         self.driver = db.TagDBDriver(self.bot)
-        self.data = collections.defaultdict(dict)
-        self.bot.loop.create_task(self.init())
-
-    async def init(self):
-        await self.driver.ready.wait()
-        tags = await self.driver.list()
-        for tag in tags:
-            self.data[tag.guild_id][tag.code.lower()] = tag
 
     @commands.group(invoke_without_command=True)
     @commands.guild_only()
     async def tag(self, ctx, *, code):
         """Return a tag value"""
         channel_repr = utils.get_channel_repr(ctx.channel)
-        try:
-            tag = self.data[ctx.guild.id][code.lower()]
-            await self.driver.increment_usage(code)
-        except KeyError:
-            LOG.warning(f"[{channel_repr}] The tag '{code}' does not exist")
-        else:
+        tag = await self.driver.increment_usage(code=code, guild_id=ctx.guild.id)
+        if tag:
             await self.bot.send(ctx.channel, tag.content)
+        else:
+            LOG.warning(f"[{channel_repr}] The tag '{code}' does not exist")
 
     @tag.command(name='create', aliases=['add'])
     @commands.guild_only()
@@ -64,12 +50,12 @@ class TagCommands:
         if code.lower() in [c.name for c in ctx.command.parent.commands]:
             LOG.warning("You cannot create a tag with the same name as a subcommand")
             return
-        if code.lower() in self.data[ctx.guild.id]:
-            raise DuplicateTagError(code)
-        tag = await self.driver.create(code=code, content=content, author_id=ctx.author.id, guild_id=ctx.guild.id,
-                                       created_at=str(ctx.message.created_at))
-        self.data[ctx.guild.id][code.lower()] = tag
-        await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
+        try:
+            await self.driver.create(code=code, content=content, author_id=ctx.author.id, guild_id=ctx.guild.id,
+                                     created_at=str(ctx.message.created_at))
+            await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
+        except asyncpg.UniqueViolationError:
+            LOG.warning(f"A tag with the code '{code}' already exists")
 
     @tag.command(name='delete', aliases=['remove', 'rm'])
     @commands.guild_only()
@@ -79,7 +65,6 @@ class TagCommands:
         channel_repr = utils.get_channel_repr(ctx.channel)
         try:
             await self.driver.delete(code=code)
-            del self.data[ctx.guild.id][code.lower()]
         except KeyError:
             LOG.warning(f"[{channel_repr}] The tag '{code}' does not exist")
         else:
@@ -89,7 +74,8 @@ class TagCommands:
     @commands.guild_only()
     async def list_tag(self, ctx):
         """Return the list of available tags"""
-        result = [f'`{tag.code}`' if not re.match(EMOJI_REGEX, tag.code) else tag.code for tag in self.data[ctx.guild.id].values()]
+        result = [f'`{tag.code}`' if not re.match(EMOJI_REGEX, tag.code) else tag.code
+                  for tag in await self.driver.list(guild_id=ctx.guild.id)]
         result = "**Available tags**: " + ', '.join(tag for tag in result)
         await self.bot.send(ctx.channel, result)
 

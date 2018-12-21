@@ -1,7 +1,5 @@
 import logging
 
-from asyncpg import exceptions
-
 from gumo.db import base
 
 LOG = logging.getLogger('bot')
@@ -33,8 +31,10 @@ class TagDBDriver(base.DBDriver):
     def __init__(self, bot):
         super(TagDBDriver, self).__init__(bot, Tags)
 
-    async def increment_usage(self, code):
-        try:
-            await self.bot.pool.execute(f"UPDATE {self.table_name} SET usage = usage + 1 WHERE code = '{code}'")
-        except exceptions.PostgresError:
-            LOG.exception(f"Cannot update usage for tag {code}")
+    async def increment_usage(self, code, guild_id=None):
+        query = f"UPDATE {self.table_name} SET usage = usage + 1 " \
+            f"WHERE code = '{code}' and guild_id = {guild_id} RETURNING *"
+        result = await self.bot.pool.fetchrow(query)
+        if result:
+            result = self._get_obj(result)
+        return result
