@@ -126,6 +126,14 @@ class DBDriver:
             result = self._get_obj(result)
         return result
 
+    async def exists(self, **conditions):
+        conditions = self._format_conditions(**conditions)
+        subquery = f"SELECT 1 FROM {self.table_name} "
+        if conditions:
+            subquery += f"WHERE {' AND '.join(conditions)}"
+        query = f"SELECT EXISTS({subquery})"
+        return list((await self.bot.pool.fetchrow(query)).values())[0]
+
     async def list(self, **conditions):
         query = f"SELECT * FROM {self.table_name}"
         conditions = self._format_conditions(**conditions)

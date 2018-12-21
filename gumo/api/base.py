@@ -28,8 +28,8 @@ class APIClient:
                 LOG.error(f"API Client error {url} ({status_code})")
             elif 500 <= status_code < 600:
                 LOG.warning(f"API Server error {url} ({status_code})")
-        except self.warning_exceptions as e:
-            LOG.warning(f"{ERROR_MESSAGE} '{endpoint}' ({type(e).__name__})")
+        except self.warning_exceptions:
+            pass
         except self.error_exceptions as e:
             LOG.exception(f"{ERROR_MESSAGE} '{endpoint}' ({type(e).__name__})")
         except aiohttp.ClientError:
