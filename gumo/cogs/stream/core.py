@@ -32,6 +32,7 @@ class StreamManager:
 
     def __init__(self, bot):
         type(self).__name__ = "Stream commands"
+        self.__module__ = "cogs.stream"
         self.bot = bot
         self.client = api.TwitchAPIClient(self.bot.loop)
         self.stream_db_driver = db.StreamDBDriver(self.bot)
