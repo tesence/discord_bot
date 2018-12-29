@@ -76,7 +76,7 @@ class ChannelStream(base.BaseModel):
     __table_args__ = base.UniqueConstraint("stream_id", "channel_id"),
 
     channel_id = base.Column('bigint', base.ForeignKey("channels", "id"))
-    stream_id = base.Column('bigint', base.ForeignKey("streams", "id"))
+    stream_id = base.Column('varchar(255)', base.ForeignKey("streams", "id"))
     tags = base.Column('varchar(255)', nullable=True)
 
     def __init__(self, **kwargs):

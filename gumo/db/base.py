@@ -35,7 +35,7 @@ class UniqueConstraint:
 
 class BaseModel:
     __tablename__ = None
-    __table_args__ = None
+    __table_args__ = ()
 
 
 class DBDriver:
@@ -43,34 +43,24 @@ class DBDriver:
     def __init__(self, bot, model):
         self.bot = bot
         self.model = model
+        self.table_name = self.model.__tablename__
+        self.table_args = self.model.__table_args__
+        self.table_columns = {attr: value for attr, value in vars(self.model).items() if isinstance(value, Column)}
         self.ready = asyncio.Event(loop=bot.loop)
         self.bot.loop.create_task(self.init())
 
-    @property
-    def table_name(self):
-        return self.table_info['name']
-
     async def init(self):
-        if not self.bot.pool:
-            self.bot.pool = await asyncpg.create_pool(**config.creds['DATABASE_CREDENTIALS'],
-                                                      min_size=1, max_size=5)
-        self._get_table_info()
-        await self._create_table_if_not_exist()
+        self.bot.pool = self.bot.pool or await asyncpg.create_pool(**config.creds['DATABASE_CREDENTIALS'],
+                                                                   min_size=1, max_size=5)
+        await self._create_table()
         self.ready.set()
-        table_size = await self.get_size()
-        LOG.debug(f"Number of '{self.table_name}' found: {table_size}")
+        size = await self.get_size()
+        LOG.debug(f"Number of '{self.table_name}' found: {size}")
 
-    def _get_table_info(self):
-        self.table_info = {
-            "name": vars(self.model).get('__tablename__'),
-            "args": vars(self.model).get('__table_args__'),
-            "columns": {attr: value for attr, value in vars(self.model).items() if isinstance(value, Column)}
-        }
-
-    async def _create_table_if_not_exist(self):
+    async def _create_table(self):
         try:
             column_definitions = []
-            for column_name, column in self.table_info['columns'].items():
+            for column_name, column in self.table_columns.items():
                 column_definition = f"{column_name} {column.type}"
                 if not column.nullable:
                     column_definition += " NOT NULL"
@@ -84,14 +74,12 @@ class DBDriver:
                                   f"({column.foreign_key.column_name})"
                     column_definitions.append(foreign_key)
 
-            if self.table_info['args']:
-                for arg in self.table_info['args']:
-                    if isinstance(arg, UniqueConstraint):
-                        constraint = f"CONSTRAINT {'_'.join(arg.column_names)} UNIQUE ({','.join(arg.column_names)})"
-                        column_definitions.append(constraint)
+            for arg in self.table_args:
+                if isinstance(arg, UniqueConstraint):
+                    constraint = f"CONSTRAINT {'_'.join(arg.column_names)} UNIQUE ({','.join(arg.column_names)})"
+                    column_definitions.append(constraint)
 
-            query = f"CREATE TABLE IF NOT EXISTS {self.table_info['name']}" \
-                    f"({', '.join(column_definitions)});"
+            query = f"CREATE TABLE IF NOT EXISTS {self.table_name} ({', '.join(column_definitions)});"
             await self.bot.pool.execute(query)
         except exceptions.PostgresError:
             LOG.exception(f"Cannot create table {self.table_name}")
@@ -101,7 +89,7 @@ class DBDriver:
         parsed_conditions = []
         for key, value in conditions.items():
             if isinstance(value, str):
-                parsed_conditions.append(f"{key} ILIKE '{value}'")
+                parsed_conditions.append(f"{key} = '{value}'")
             elif value is None:
                 parsed_conditions.append(f"{key} is NULL")
             else:
@@ -109,22 +97,20 @@ class DBDriver:
         return parsed_conditions
 
     def _get_obj(self, record):
-        return self.model(**dict(record.items()))
+        return self.model(**dict(record.items())) if record else None
 
     async def get_size(self):
         query = f"SELECT COUNT(*) FROM {self.table_name}"
-        return list((await self.bot.pool.fetchrow(query)).values())[0]
+        record = await self.bot.pool.fetchrow(query)
+        return record['count']
 
     async def get(self, **conditions):
         query = f"SELECT * FROM {self.table_name}"
         conditions = self._format_conditions(**conditions)
         if conditions:
             query += f" WHERE {' AND '.join(conditions)}"
-        query += ";"
-        result = await self.bot.pool.fetchrow(query)
-        if result:
-            result = self._get_obj(result)
-        return result
+        record = await self.bot.pool.fetchrow(query)
+        return self._get_obj(record)
 
     async def exists(self, **conditions):
         conditions = self._format_conditions(**conditions)
@@ -132,15 +118,16 @@ class DBDriver:
         if conditions:
             subquery += f"WHERE {' AND '.join(conditions)}"
         query = f"SELECT EXISTS({subquery})"
-        return list((await self.bot.pool.fetchrow(query)).values())[0]
+        record = await self.bot.pool.fetchrow(query)
+        return record['exists']
 
     async def list(self, **conditions):
         query = f"SELECT * FROM {self.table_name}"
         conditions = self._format_conditions(**conditions)
         if conditions:
             query += f" WHERE {' AND '.join(conditions)}"
-        query += ";"
-        return [self._get_obj(r) for r in await self.bot.pool.fetch(query)]
+        records = await self.bot.pool.fetch(query)
+        return [self._get_obj(r) for r in records]
 
     async def create(self, **fields):
         columns = ",".join(fields)
@@ -154,24 +141,18 @@ class DBDriver:
                 values.append("NULL")
 
         query = f"INSERT INTO {self.table_name} ({columns}) VALUES ({', '.join(values)}) RETURNING *"
-        result = await self.bot.pool.fetchrow(query)
-        if result:
-            result = self._get_obj(result)
-        return result
+        record = await self.bot.pool.fetchrow(query)
+        return self._get_obj(record)
 
     async def delete(self, **conditions):
         query = f"DELETE FROM {self.table_name}"
         conditions = self._format_conditions(**conditions)
         if conditions:
             query += f" WHERE {' AND '.join(conditions)}"
-        query += ";"
         await self.bot.pool.execute(query)
 
     async def update(self, column, value, **conditions):
         conditions = self._format_conditions(**conditions)
         query = f"UPDATE {self.table_name} SET {column} = '{value}' WHERE {' AND '.join(conditions)} RETURNING *"
-        result = await self.bot.pool.fetchrow(query)
-        if result:
-            result = self._get_obj(result)
-        return result
-
+        record = await self.bot.pool.fetchrow(query)
+        return self._get_obj(record)
