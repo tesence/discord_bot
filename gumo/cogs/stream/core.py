@@ -132,8 +132,8 @@ class StreamManager:
         for notification in online_notifications:
             channel = notification.channel
             channel_repr = utils.get_channel_repr(channel)
+            message, embed = NotificationHandler.get_info(stream)
             try:
-                message, embed = NotificationHandler.get_info(stream)
                 await notification.edit(content=message, embed=embed)
                 LOG.debug(f"[{channel_repr}] Notification for '{stream.name}' edited")
             except errors.NotFound:
@@ -150,22 +150,22 @@ class StreamManager:
         :param title: New title
         :param game: New game
         """
-        for notifications in stream.notifications_by_channel_id.values():
-            notification = next((notification for notification in notifications
-                                 if NotificationHandler.is_online(notification)), None)
+        online_notifications = [notification for notification in stream.notifications
+                                if NotificationHandler.is_online(notification)]
+        for notification in online_notifications:
             channel = notification.channel
             channel_repr = utils.get_channel_repr(channel)
+            _, embed = NotificationHandler.extract_info(notification)
+            fields = embed.fields
+            if not stream.title == title:
+                LOG.info(f"[{channel_repr}] '{stream.name}' has changed the stream title from "
+                         f"'{stream.title}' to '{title}'")
+                embed.set_field_at(index=0, name=fields[0].name, value=title, inline=fields[0].inline)
+            if not stream.game == game:
+                LOG.info(f"[{channel_repr}] '{stream.name}' has changed the stream game from "
+                         f"'{stream.game}' to '{game}'")
+                embed.set_field_at(index=1, name=fields[1].name, value=game, inline=fields[1].inline)
             try:
-                _, embed = NotificationHandler.extract_info(notification)
-                fields = embed.fields
-                if not stream.title == title:
-                    LOG.info(f"[{channel_repr}] '{stream.name}' has changed the stream title from "
-                             f"'{stream.title}' to '{title}'")
-                    embed.set_field_at(index=0, name=fields[0].name, value=title, inline=fields[0].inline)
-                if not stream.game == game:
-                    LOG.info(f"[{channel_repr}] '{stream.name}' has changed the stream game from "
-                             f"'{stream.game}' to '{game}'")
-                    embed.set_field_at(index=1, name=fields[1].name, value=game, inline=fields[1].inline)
                 await notification.edit(embed=embed)
             except errors.NotFound:
                 LOG.warning(f"[{channel_repr}] The notification for '{stream.name}' sent at "
