@@ -23,7 +23,9 @@ def main():
     sys.path.append(utils.get_project_name())
 
     bot = client.Bot()
-    bot.loop.run_until_complete(bot.start())
+
+    bot.loop.create_task(bot.start())
+    bot.loop.run_forever()
 
 
 if __name__ == "__main__":

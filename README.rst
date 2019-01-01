@@ -60,12 +60,15 @@ Create configuration files
 
 Create a folder where you will store all the configuration files.
 
-Create a first file ``credentials.yaml`` that will store all the bot credentials
+Create a first file ``global.yaml`` that will store all the bot credentials
 
 .. code:: yaml
 
    DISCORD_BOT_TOKEN: <discord bot token>
    TWITCH_API_CLIENT_ID: <twitch client id>
+   TWITCH_API_CLIENT_SECRET: <twitch client secret>
+
+   WEBHOOK_PORT: <webhook port>
 
    DATABASE_CREDENTIALS:
      host: <DB_HOST>

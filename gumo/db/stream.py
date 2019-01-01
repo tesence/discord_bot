@@ -2,8 +2,8 @@ import collections
 from datetime import datetime
 import logging
 
-from gumo.db import base
 from gumo.cogs.stream.models import NotificationHandler
+from gumo.db import base
 
 
 LOG = logging.getLogger('bot')

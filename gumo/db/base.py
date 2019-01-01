@@ -50,7 +50,7 @@ class DBDriver:
         self.bot.loop.create_task(self.init())
 
     async def init(self):
-        self.bot.pool = self.bot.pool or await asyncpg.create_pool(**config.creds['DATABASE_CREDENTIALS'],
+        self.bot.pool = self.bot.pool or await asyncpg.create_pool(**config.glob['DATABASE_CREDENTIALS'],
                                                                    min_size=1, max_size=5)
         await self._create_table()
         self.ready.set()

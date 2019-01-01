@@ -86,6 +86,8 @@ class NotificationEmbed(discord.Embed):
         else:
             self.color = self.OFFLINE_COLOR
 
+        self.set_footer(text="Twitch Webhook")
+
 
 class StreamListEmbed(discord.Embed):
     """Build the embed to return on !stream list call"""
@@ -95,4 +97,3 @@ class StreamListEmbed(discord.Embed):
         self.set_author(name="Streams", icon_url=TWITCH_ICON_URL)
         for channel, streams in sorted(streams_by_channel.items(), key=lambda x: x[0].position):
             self.add_field(name=channel.name, value=", ".join(sorted(streams)).replace('_', '\_'), inline=False)
-

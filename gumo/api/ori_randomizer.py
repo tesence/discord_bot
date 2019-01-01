@@ -40,7 +40,7 @@ AMBIGUOUS_PRESETS = ["glitched"]
 class OriRandomizerAPIClient(base.APIClient):
 
     def __init__(self, loop):
-        super(OriRandomizerAPIClient, self).__init__(base_url=SEEDGEN_API_URL, loop=loop)
+        super(OriRandomizerAPIClient, self).__init__(loop=loop)
 
     async def get_data(self, seed, preset, key_mode=None, path_diff=None, goal_modes=(), variations=(), logic_paths=(),
                        flags=()):
@@ -102,5 +102,5 @@ class OriRandomizerAPIClient(base.APIClient):
 
         LOG.debug(f"Parameters used for the seed generation: {params}")
 
-        url = "/generator/json?" + "&".join([f"{key}={value}" for key, value in params])
-        return await self.get(url)
+        uri = "/generator/json?" + "&".join([f"{key}={value}" for key, value in params])
+        return await self.get(f"{SEEDGEN_API_URL}/{uri}", return_json=True)

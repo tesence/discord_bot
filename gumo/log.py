@@ -1,6 +1,6 @@
 import logging
-import os
 from logging.handlers import RotatingFileHandler
+import os
 
 
 LOG_PATTERN = logging.Formatter('%(asctime)s:%(levelname)s: %(message)s')

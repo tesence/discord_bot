@@ -21,7 +21,7 @@ class Config:
 
     def __init__(self):
         self.config_folder = None
-        self.creds = {}
+        self.glob = {}
         self.attrs = {}
 
     @property
@@ -54,15 +54,15 @@ class Config:
         for candidate in candidates:
             candidate_name = candidate.rsplit(".", 1)[0]
             data = self._load_file(self.config_folder, candidate)
-            if candidate_name == "credentials":
-                self.creds.update(data)
+            if candidate_name == "global":
+                self.glob.update(data)
             else:
                 guild_id = data.pop('GUILD_ID', None)
                 if data and not guild_id:
                     raise MissingGuildIDError(candidate)
                 self.attrs.update({guild_id: data})
-        LOG.debug(f"Loaded credentials: {self.creds}")
-        LOG.debug(f"Loaded configuration: {self.attrs}")
+        LOG.debug(f"Loaded global configuration: {self.glob}")
+        LOG.debug(f"Loaded guild configurations: {self.attrs}")
 
 
 config = Config()
