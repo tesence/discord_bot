@@ -4,13 +4,12 @@ import discord
 from discord.ext import commands
 
 from gumo import config
-from gumo import help_formatter
 from gumo import emoji
 from gumo import utils
 
 LOG = logging.getLogger('bot')
 
-GLOBAL_EXTENSIONS = {'admin'}
+GLOBAL_EXTENSIONS = {'help', 'admin'}
 
 DEFAULT_COMMAND_PREFIX = "!"
 DEFAULT_EXTENSIONS = {'ori_rando.seedgen', 'ori_rando.logic_helper'}
@@ -27,9 +26,9 @@ async def get_prefix(bot, message):
 class Bot(commands.Bot):
 
     def __init__(self, *args, **kwargs):
-        super(Bot, self).__init__(*args, command_prefix=get_prefix,
-                                  formatter=help_formatter.HelpFormatter(), **kwargs)
+        super(Bot, self).__init__(*args, command_prefix=get_prefix, **kwargs)
         self.pool = None
+        self.remove_command('help')
         self.add_check(self.check_extension_access)
         self.load_extensions()
 
@@ -121,7 +120,7 @@ class Bot(commands.Bot):
             except (discord.ClientException, ModuleNotFoundError):
                 LOG.exception(f"Failed to load extension '{extension}'")
 
-    async def send(self, channel, content, reaction=False, code_block=False, **kwargs):
+    async def send(self, channel, content=None, reaction=False, code_block=False, **kwargs):
         if code_block:
             content = utils.code_block(content)
         message = await channel.send(content=content, **kwargs)

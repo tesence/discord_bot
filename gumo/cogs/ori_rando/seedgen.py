@@ -33,7 +33,7 @@ SEEDGEN_COOLDOWN = 0
 class OriRandoSeedGenCommands:
 
     def __init__(self, bot):
-        type(self).__name__ = "Ori rando commands"
+        self.display_name = "Ori rando"
         self.bot = bot
         self.client = ori_randomizer.OriRandomizerAPIClient(self.bot.loop)
 
@@ -163,23 +163,19 @@ class OriRandoSeedGenCommands:
     async def seed(self, ctx, *, args=""):
         """Generate a seed for the Ori randomizer
 
+        Default options: `Standard,Clues,ForceTrees`
 
-        Default options: Standard,Clues,Open,ForceTrees
+        - **presets**: `casual`, `standard`, `expert`, `master`, `glitched`
 
-        - presets: casual, standard, expert, master, glitched
+        - **key modes**: `default`, `limitkeys`, `clues`, `shards`
 
-        - key modes: default, limitkeys, clues, shards
+        - **goal modes**: `ft` (ForceTrees), `wt` (WorldTour), `wf` (WarmthFrags), `fm` (ForceMapstones)
 
-        - goal modes: ft (ForceTrees), wt (WorldTour), wf (WarmthFrags), fm (ForceMapstones)
+        - **logic paths**: `casual-core`, `casual-dboost`, `standard-core`, `standard-dboost`, `standard-lure`, `standard-abilities`, `expert-core`, `expert-dboost`, `expert-lure`, `expert-abilities`, `master-core`, `master-dboost`, `master-lure`, `master-abilities`, `dbash`, `gjump`, `glitched`, `timed-level`, `insane`
 
-        - logic paths: casual-core, casual-dboost, standard-core, standard-dboost, standard-lure, standard-abilities,
-          expert-core, expert-dboost, expert-lure, expert-abilities, master-core, master-dboost, master-lure,
-          master-abilities, dbash, gjump, glitched, timed-level, insane
+        - **variations**: `starved`, `hard`, `OHKO`, `0XP`, `closeddungeons`, `openworld`, `doubleskills`, `strictmapstones`, `bonuspickups`, `nonprogressmapstones`
 
-        - variations: starved, hard, OHKO, 0XP, closeddungeons, openworld, doubleskills, strictmapstones, bonuspickups,
-          nonprogressmapstones
-
-        - flags: tracking, verbose_paths, classic_gen, hard-path, easy-path
+        - **flags**: `tracking`, `verbose_paths`, `classic_gen`, `hard-path`, `easy-path`
         """
         channel_repr = utils.get_channel_repr(ctx.channel)
         args, seed_codes = self._pop_seed_codes(args)
@@ -193,7 +189,7 @@ class OriRandoSeedGenCommands:
     async def daily(self, ctx, *, args=""):
         """Generate a daily seed for the Ori randomizer
 
-        Type '!help seed' to get the list of valid parameters
+        Refer to the `seed` command's help to get the list of valid parameters
         """
         args, _ = self._pop_seed_codes(args)
         seed_name = pytz.UTC.localize(datetime.now()).astimezone(pytz.timezone('US/Pacific')).strftime("%Y-%m-%d")

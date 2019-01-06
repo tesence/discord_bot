@@ -11,10 +11,10 @@ LOG = logging.getLogger('bot')
 class AdminCommands:
 
     def __init__(self, bot):
-        type(self).__name__ = "Admin commands"
         self.bot = bot
+        self.display_name = "Admin"
 
-    @commands.command()
+    @commands.command(hidden=True)
     @check.is_owner()
     async def reload(self, ctx, *extensions):
         """Reload some extensions"""

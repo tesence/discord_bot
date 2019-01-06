@@ -18,7 +18,7 @@ EMOJI_REGEX = re.compile("^<:\w+:\d+>$")
 class TagCommands:
 
     def __init__(self, bot):
-        type(self).__name__ = "Tag commands"
+        self.display_name = "Tag"
         self.bot = bot
         self.driver = db.TagDBDriver(self.bot)
 
@@ -33,14 +33,11 @@ class TagCommands:
         else:
             LOG.warning(f"[{channel_repr}] The tag '{code}' does not exist")
 
-    @tag.command(name='create', aliases=['add'])
+    @tag.command(name='create', aliases=['add'], usage='tag create <code> "<content>"')
     @commands.guild_only()
     @check.is_admin()
     async def create_tag(self, ctx, *, args):
-        """Create a tag
-
-        !tag create <code> "<content>"
-        """
+        """Create a tag"""
         if not re.match(REGEX, args):
             return
         code, content = re.match(REGEX, args).groups()

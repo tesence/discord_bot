@@ -33,6 +33,7 @@ class StreamManager:
     def __init__(self, bot):
         type(self).__name__ = "Stream commands"
         self.__module__ = "cogs.stream"
+        self.display_name = "Twitch"
         self.bot = bot
         self.client = api.TwitchAPIClient(self.bot.loop)
         self.stream_db_driver = db.StreamDBDriver(self.bot)
@@ -258,7 +259,7 @@ class StreamManager:
     async def stream(self, ctx):
         """Manage tracked streams."""
         if ctx.invoked_subcommand is None:
-            await ctx.invoke(self.bot.get_command('help'), ctx.command.name)
+            await ctx.invoke(self.bot.get_command('help'), command_name=ctx.command.name)
 
     @stream.command()
     @commands.guild_only()
@@ -364,7 +365,7 @@ class StreamManager:
     @commands.guild_only()
     @check.is_admin()
     async def here(self, ctx, *stream_names):
-        """Track a list of streams in a channel (with @here)."""
+        """Track a list of streams in a channel (with `@here`)."""
         if not stream_names:
             raise MissingStreamName
         result = await self._add_streams(ctx.channel, *stream_names, tags="@here")

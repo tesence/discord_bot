@@ -40,28 +40,25 @@ PRESETS = ["casual", "standard", "expert", "master", "glitched"]
 class OriLogicHelperCommands:
 
     def __init__(self, bot):
-        type(self).__name__ = "Ori rando commands"
+        self.display_name = "Ori rando"
         self.bot = bot
 
-    @commands.command()
+    @commands.command(usage="logic <preset> [list of items]")
     @commands.guild_only()
     async def logic(self, ctx, *args):
         """Links a logic helper map using the supplied parameters
 
-        Usage: !logic [preset] [list of items]
+        Default: `standard` (no items)
 
-        Default: standard, no items
+        - **presets**: `casual`, `standard`, `expert`, `master`, `glitched`
 
-        - presets: casual, standard, expert, master, glitched
-        - items: WallJump (WJ), ChargeFlame (CF), DoubleJump (DJ), Bash (BS), Stomp (ST), Glide (GL), Climb (CL),
-          ChargeJump (CJ), Dash (DA), Grenade (GR), WaterVein (WV), GumonSeal (GS), Sunstone (SS), Health (HC),
-          Energy (EC), Keystone (KS), Mapstone (MS), Water, Wind, GrottoTP, GroveTP, SwampTP, ValleyTP, SorrowTP,
-          ForlornTP
+        - **items**: `WallJump`, `ChargeFlame`, `DoubleJump`, `Bash`, `Stomp`, `Glide`, `Climb`, `ChargeJump`, `Dash`, `Grenade`, `WaterVein`, `GumonSeal`, `SS` (Sunstone), `HC` (Health), `EC` (Energy), `KS` (Keystone), `MS` (Mapstone), `Water`, `Wind`, `GrottoTP`, `GroveTP`, `SwampTP`, `ValleyTP`, `SorrowTP`, `ForlornTP`
 
-        Denote multiples by appending "xN" to it, without a space.
-        Examples:
-            standard logic, 2 keystones, 1 mapstone, charge jump: !logic CJ KSx2 Mapstone
-            expert logic, Bash+Grenade, 4 Energy: !logic expert Bash Grenade Energyx4
+        *Denote multiples by appending "xN" to it, without a space.*
+
+        **Examples**:
+            standard logic, 2 Keystones, 1 Mapstone, ChargeJump: `!logic CJ KSx2 Mapstone`
+            expert logic, Bash, Grenade, 4 Energy: `!logic expert Bash Grenade Energyx4`
         """
         channel_repr = utils.get_channel_repr(ctx.channel)
         args = [arg.lower() for arg in args]

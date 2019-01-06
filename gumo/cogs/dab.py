@@ -14,7 +14,7 @@ DAB_COOLDOWN = 120
 class DabCommands:
 
     def __init__(self, bot):
-        type(self).__name__ = "Dab commands"
+        self.display_name = "Dab"
         self.bot = bot
 
     @commands.command()
@@ -24,7 +24,7 @@ class DabCommands:
         """Disrespect someone"""
         channel_repr = utils.get_channel_repr(ctx.channel)
         if not dabbed:
-            await ctx.invoke(self.bot.get_command('help'), ctx.command.name)
+            await ctx.invoke(self.bot.get_command('help'), command_name=ctx.command.name)
         elif "@here" not in dabbed and "@everyone" not in dabbed:
             times = random.randint(0, 100)
             answer = f"{ctx.author.display_name} dabs on {dabbed} {times} times!"

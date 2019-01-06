@@ -12,20 +12,16 @@ class OriRandoRoleCommands(role.RoleCommands):
 
     def __init__(self, bot):
         super(OriRandoRoleCommands, self).__init__()
-        type(self).__name__ = "Ori rando commands"
+        self.display_name = "Ori rando"
         self.bot = bot
         self.rando_role = None
 
     @commands.group(aliases=['lfg'])
     @commands.guild_only()
     async def looking_for_game(self, ctx):
-        """Add/remove the rando role
-
-        Type "!lfg add" to get the role
-        Type "!lfg remove" to remove the role
-        """
+        """Add/remove the rando role"""
         if ctx.invoked_subcommand is None:
-            await ctx.invoke(self.bot.get_command('help'), ctx.command.name)
+            await ctx.invoke(self.bot.get_command('help'), command_name=ctx.command.name)
         else:
             self.rando_role = config.get('RANDO_ROLE', guild_id=ctx.guild.id)
 
