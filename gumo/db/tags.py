@@ -14,7 +14,7 @@ class Tags(base.BaseModel):
     content = base.Column('text', nullable=False)
     author_id = base.Column('bigint', nullable=False)
     guild_id = base.Column('bigint', nullable=False)
-    created_at = base.Column('varchar(255)', nullable=False)
+    created_at = base.Column('timestamp', nullable=False, default="(now() at time zone 'utc')")
     usage = base.Column('bigint', nullable=False, default=0)
 
     def __init__(self, **kwargs):

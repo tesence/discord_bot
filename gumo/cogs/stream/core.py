@@ -47,9 +47,9 @@ class StreamCommands:
 
     async def init(self):
         """Initialize all the manager attributes and load the database data."""
-        await self.stream_db_driver.ready.wait()
-        await self.channel_db_driver.ready.wait()
-        await self.channel_stream_db_driver.ready.wait()
+        await self.stream_db_driver.init()
+        await self.channel_db_driver.init()
+        await self.channel_stream_db_driver.init()
 
         previous_streams = getattr(self.bot, 'streams', None)
         self.bot.streams = previous_streams or {stream.id: stream for stream in await self.stream_db_driver.list()}

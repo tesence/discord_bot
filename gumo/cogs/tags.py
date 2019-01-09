@@ -22,6 +22,9 @@ class TagCommands:
         self.bot = bot
         self.driver = db.TagDBDriver(self.bot)
 
+    async def on_ready(self):
+        await self.driver.init()
+
     @commands.group(invoke_without_command=True)
     @commands.guild_only()
     async def tag(self, ctx, *, code):
@@ -48,8 +51,7 @@ class TagCommands:
             LOG.warning("You cannot create a tag with the same name as a subcommand")
             return
         try:
-            await self.driver.create(code=code, content=content, author_id=ctx.author.id, guild_id=ctx.guild.id,
-                                     created_at=str(ctx.message.created_at))
+            await self.driver.create(code=code, content=content, author_id=ctx.author.id, guild_id=ctx.guild.id)
             await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
         except asyncpg.UniqueViolationError:
             LOG.warning(f"A tag with the code '{code}' already exists")
