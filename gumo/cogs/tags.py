@@ -11,7 +11,7 @@ from gumo import utils
 
 LOG = logging.getLogger('bot')
 
-REGEX = re.compile('^(.+)[^"]*(".*")$', re.MULTILINE | re.DOTALL)
+REGEX = re.compile('^([^"]+)[^"]*(".*")$', re.MULTILINE | re.DOTALL)
 EMOJI_REGEX = re.compile("^<:\w+:\d+>$")
 
 
