@@ -8,7 +8,7 @@ from gumo import utils
 
 LOG = logging.getLogger('bot')
 
-DAB_COOLDOWN = 120
+DAB_COOLDOWN = 180
 
 
 class DabCommands:
@@ -19,7 +19,7 @@ class DabCommands:
 
     @commands.command()
     @commands.guild_only()
-    @commands.cooldown(1, DAB_COOLDOWN, BucketType.channel)
+    @commands.cooldown(1, DAB_COOLDOWN, BucketType.member)
     async def dab(self, ctx, *, dabbed=None):
         """Disrespect someone"""
         channel_repr = utils.get_channel_repr(ctx.channel)
