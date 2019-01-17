@@ -100,6 +100,11 @@ class OriRandomizerAPIClient(base.APIClient):
             variations = set(variations) | set(PRESET_VARS[preset])
         params = params | {("var", VARIATIONS[v]) for v in variations}
 
+        if preset == 'casual':
+            params.add(('cell_freq', 20))
+        elif preset == 'standard':
+            params.add(('cell_freq', 40))
+
         LOG.debug(f"Parameters used for the seed generation: {params}")
 
         uri = "/generator/json?" + "&".join([f"{key}={value}" for key, value in params])

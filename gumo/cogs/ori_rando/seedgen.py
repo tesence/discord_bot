@@ -167,7 +167,7 @@ class OriRandoSeedGenCommands:
 
         - **presets**: `casual`, `standard`, `expert`, `master`, `glitched`
 
-        - **key modes**: `default`, `limitkeys`, `clues`, `shards`
+        - **key modes**: `default`, `limitkeys`, `clues`, `shards`, `free`
 
         - **goal modes**: `ft` (ForceTrees), `wt` (WorldTour), `wf` (WarmthFrags), `fm` (ForceMapstones)
 
