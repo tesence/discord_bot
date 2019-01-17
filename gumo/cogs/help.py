@@ -1,6 +1,5 @@
 import collections
 
-import discord
 from discord.ext import commands
 from discord.ext.commands import converter
 
@@ -23,20 +22,17 @@ class Help:
     async def help(self, ctx, *, command_name=None):
 
         if not command_name:
-            embed = await self._help_global(ctx)
+            output = await self._help_global(ctx)
         else:
             cmd = self.bot.get_command(command_name)
             if not cmd or cmd.name in EXCLUDED_COMMANDS or cmd.hidden or not await _can_run(ctx, cmd):
                 return
             if isinstance(cmd, commands.GroupMixin):
-                embed = await self._help_group(ctx, cmd)
+                output = await self._help_group(ctx, cmd)
             else:
-                embed = await self._help_command(ctx, cmd)
+                output = await self._help_command(ctx, cmd)
 
-        if ctx.guild.me.color.value:
-            embed.colour = ctx.guild.me.color
-        embed.set_author(name="Gumo's help")
-        await self.bot.send(ctx.channel, embed=embed)
+        await self.bot.send(ctx.channel, output)
 
     async def _help_global(self, ctx):
         filtered_commands = [cmd for cmd in self.bot.commands
@@ -50,34 +46,33 @@ class Help:
             cog_name = getattr(cmd.instance, "display_name", cmd.cog_name)
             command_tree[cog_name].append(cmd)
 
-        embed = discord.Embed()
-
+        output = ""
         for cog_name in sorted(command_tree):
             cmds = command_tree[cog_name]
             formatted_cmds = [f"`{cmd.name}`" for cmd in sorted(cmds, key=lambda cmd: cmd.name)]
-            embed.add_field(name=cog_name, value=", ".join(formatted_cmds), inline=False)
-        embed.set_footer(text="Use '!help <command>' for more info on a command")
+            output += f"**{cog_name}**\n"
+            output += ", ".join(formatted_cmds) + "\n\n"
 
-        return embed
+        return output
 
     async def _help_group(self, ctx, cmd):
-        desc = getattr(cmd, 'help', "")
+        output = getattr(cmd, 'help', "") + "\n\n"
         if getattr(cmd, 'invoke_without_command', False):
-            desc += f"\n\n`{ctx.prefix}{cmd.usage or cmd.signature}`"
-        desc = await converter.clean_content().convert(ctx, desc)
-        embed = discord.Embed(description=desc)
+            output += f"`{ctx.prefix}{cmd.usage or cmd.signature}`\n\n"
+        output = await converter.clean_content().convert(ctx, output)
 
-        formatted_cmds = [f" ‣ `{cmd.name}`" for cmd in sorted(cmd.commands, key=lambda cmd: cmd.name)]
-        embed.add_field(name="Commands", value="\n".join(formatted_cmds), inline=False)
-        embed.set_footer(text="Use '!help <command>' for more info on a command")
-        return embed
+        formatted_cmds = [f"‣ `{cmd.name}`" for cmd in sorted(cmd.commands, key=lambda cmd: cmd.name)]
+        output += "**Commands**\n"
+        for formatted_cmd in formatted_cmds:
+            output += formatted_cmd + "\n"
+
+        return output
 
     async def _help_command(self, ctx, cmd):
-        desc = getattr(cmd, 'help', "")
-        desc += f"\n\n**Usage:** `{ctx.prefix}{cmd.usage or cmd.signature}`"
-        desc = await converter.clean_content().convert(ctx, desc)
-        embed = discord.Embed(description=desc)
-        return embed
+        output = getattr(cmd, 'help', "") + "\n\n"
+        output += f"**Usage:** `{ctx.prefix}{cmd.usage or cmd.signature}`"
+        output = await converter.clean_content().convert(ctx, output)
+        return output
 
 
 def setup(bot):
