@@ -20,7 +20,7 @@ class DabCommands:
     @commands.command()
     @commands.guild_only()
     @commands.cooldown(1, DAB_COOLDOWN, BucketType.member)
-    async def dab(self, ctx, *, dabbed=None):
+    async def dab(self, ctx, *, dabbed):
         """Disrespect someone"""
         channel_repr = utils.get_channel_repr(ctx.channel)
         if not dabbed:
