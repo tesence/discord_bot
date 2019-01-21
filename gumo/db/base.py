@@ -87,21 +87,21 @@ class DBDriver:
         return record['count']
 
     async def exists(self, **filters):
-        subq = f"SELECT 1 FROM {self.table_name} "
-        subq += bool(filters) * f" WHERE {', '.join(f'{column} = ${index}' for index, column in enumerate(filters, 1))}"
-        q = f"SELECT EXISTS({subq})"
+        q = f"SELECT 1 FROM {self.table_name} "
+        q += bool(filters) * f" WHERE {' AND '.join(f'{column} = ${index}' for index, column in enumerate(filters, 1))}"
+        q = f"SELECT EXISTS({q})"
         record = await self.bot.pool.fetchrow(q, *filters.values())
         return record['exists']
 
     async def get(self, **filters):
         q = f"SELECT * FROM {self.table_name}"
-        q += bool(filters) * f" WHERE {', '.join(f'{column} = ${index}' for index, column in enumerate(filters, 1))}"
+        q += bool(filters) * f" WHERE {' AND '.join(f'{column} = ${index}' for index, column in enumerate(filters, 1))}"
         record = await self.bot.pool.fetchrow(q, *filters.values())
         return self._get_obj(record)
 
     async def list(self, **filters):
         q = f"SELECT * FROM {self.table_name}"
-        q += bool(filters) * f" WHERE {', '.join(f'{column} = ${index}' for index, column in enumerate(filters, 1))}"
+        q += bool(filters) * f" WHERE {' AND '.join(f'{column} = ${index}' for index, column in enumerate(filters, 1))}"
         records = await self.bot.pool.fetch(q, *filters.values())
         return [self._get_obj(r) for r in records]
 
@@ -117,13 +117,13 @@ class DBDriver:
         if not filters:
             raise RuntimeError("Cannot delete using empty filters")
         q = f"DELETE FROM {self.table_name}"
-        q += bool(filters) * f" WHERE {', '.join(f'{column} = ${index}' for index, column in enumerate(filters, 1))}"
+        q += bool(filters) * f" WHERE {' AND '.join(f'{column} = ${index}' for index, column in enumerate(filters, 1))}"
         await self.bot.pool.execute(q, *filters.values())
 
     async def update(self, column, value, **filters):
         if not filters:
             raise RuntimeError("Cannot update using empty filters")
         q = f"UPDATE {self.table_name} SET {column} = '{value}'  RETURNING *"
-        q += bool(filters) * f" WHERE {', '.join(f'{column} = ${index}' for index, column in enumerate(filters, 1))}"
+        q += bool(filters) * f" WHERE {' AND '.join(f'{column} = ${index}' for index, column in enumerate(filters, 1))}"
         record = await self.bot.pool.fetchrow(q, *filters.values())
         return self._get_obj(record)
