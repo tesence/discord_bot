@@ -15,6 +15,7 @@ class RoleCommands:
         self.role_converter = converter.RoleConverter()
 
     async def add_roles(self, ctx, *role_names, guild=None):
+        guild = guild or ctx.guild
         for role_name in role_names:
             await self._add_role(ctx, role_name, guild)
 
@@ -27,6 +28,7 @@ class RoleCommands:
             LOG.debug(f"{ctx.author.name} now has the role '{role.name}' in the guild '{guild.name}'")
 
     async def remove_roles(self, ctx, *role_names, guild=None):
+        guild = guild or ctx.guild
         for role_name in role_names:
             await self._remove_role(ctx, role_name, guild)
 
