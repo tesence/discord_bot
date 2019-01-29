@@ -86,8 +86,6 @@ class NotificationEmbed(discord.Embed):
         else:
             self.color = self.OFFLINE_COLOR
 
-        self.set_footer(text="Twitch Webhook")
-
 
 class StreamListEmbed(discord.Embed):
     """Build the embed to return on !stream list call"""
