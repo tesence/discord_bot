@@ -1,3 +1,4 @@
+from concurrent import futures
 import logging
 
 import discord
@@ -63,7 +64,7 @@ class Bot(commands.Bot):
         if isinstance(error, ignored):
             return
 
-        if not isinstance(error, commands.CommandOnCooldown):
+        if not isinstance(error, (commands.CommandOnCooldown, futures.TimeoutError)):
             ctx.command.reset_cooldown(ctx)
 
         channel_repr = utils.get_channel_repr(ctx.channel)
