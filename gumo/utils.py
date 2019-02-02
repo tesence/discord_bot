@@ -24,7 +24,7 @@ def get_extension_name_from_ctx(ctx):
 
 def get_channel_repr(channel):
     if isinstance(channel, discord.DMChannel):
-        repr = channel.recipient
+        _repr = channel.recipient
     else:
-        repr = f"{channel.guild.name}#{channel.name}"
-    return repr
+        _repr = f"{channel.guild.name}#{channel.name}"
+    return _repr

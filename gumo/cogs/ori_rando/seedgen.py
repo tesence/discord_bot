@@ -68,11 +68,11 @@ class OriRandoSeedGenCommands:
             token, _, value = arg.partition('=')
             if token in GOAL_MODES:
                 token = GOAL_MODES[token]
-                if token == "ForceTrees" or token == "ForceMapStones":
+                if token == GOAL_MODES['ft'] or token == GOAL_MODES['fm']:
                     goal_modes.append((token,))
-                elif token == "WorldTour":
+                elif token == GOAL_MODES['wt']:
                     goal_modes.append((token, value if value.isdigit() else None))
-                elif token == "WarmthFrags":
+                elif token == GOAL_MODES['wf']:
                     frags_req, _, frags = value.partition("/")
                     goal_modes.append((token,
                                        frags_req if frags_req.isdigit() else None,
