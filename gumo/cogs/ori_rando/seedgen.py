@@ -11,6 +11,7 @@ from discord.ext import commands
 from discord.ext.commands.cooldowns import BucketType
 import pytz
 
+from gumo import api
 from gumo.api import ori_randomizer
 from gumo import models
 from gumo import utils
@@ -111,13 +112,8 @@ class OriRandoSeedGenCommands:
 
         logic_preset = logic_presets[0] if logic_presets else 'standard'
         key_mode = key_modes[0] if key_modes else None
-        try:
-            data = await self.client.get_data(seed_name, logic_preset, key_mode, path_diff, goal_modes, variations,
-                                              logic_paths, flags)
-        except:
-            LOG.error("Cannot download the seed data")
-        else:
-            return data
+        return await self.client.get_data(seed_name, logic_preset, key_mode, path_diff, goal_modes, variations,
+                                          logic_paths, flags)
 
     async def _send_seed(self, ctx, data):
         channel_repr = utils.get_channel_repr(ctx.channel)
@@ -149,12 +145,11 @@ class OriRandoSeedGenCommands:
         LOG.debug(f"[{channel_repr}] Downloading the seed data: '{download_message.content}'")
         try:
             data = await self._get_seed_data(seed_name, args)
-            if data:
-                await self._send_seed(ctx, data)
+            await self._send_seed(ctx, data)
             await download_message.delete()
-        except:
+        except api.APIError:
             error_message = "An error has occurred while generating the seed"
-            LOG.exception(f"[{channel_repr}] {error_message}")
+            LOG.error(f"[{channel_repr}] {error_message}")
             await download_message.edit(content=f"```{error_message}. Please try again later.```")
 
     @commands.command()

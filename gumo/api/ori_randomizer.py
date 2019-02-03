@@ -4,7 +4,7 @@ from gumo.api import base
 
 LOG = logging.getLogger('bot')
 
-SEEDGEN_API_URL = "http://orirando.com"
+SEEDGEN_API_URL = "https://orirando.com"
 
 LOGIC_MODES = ["casual", "standard", "expert", "master", "glitched"]
 KEY_MODES = ["default", "shards", "limitkeys", "clues", "free"]

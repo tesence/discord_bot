@@ -1,4 +1,3 @@
-import aiohttp
 import logging
 from urllib import parse
 
@@ -11,16 +10,13 @@ LOG = logging.getLogger('bot')
 TWITCH_API_URL = "https://api.twitch.tv/helix"
 
 
-WARNING_EXCEPTIONS = (aiohttp.ClientPayloadError, aiohttp.ServerDisconnectedError)
-
-
 class TwitchAPIClient(base.APIClient):
 
     def __init__(self, loop):
         headers = {
             "Client-ID": config.glob['TWITCH_API_CLIENT_ID'],
         }
-        super(TwitchAPIClient, self).__init__(headers=headers, loop=loop, warning_exceptions=WARNING_EXCEPTIONS)
+        super(TwitchAPIClient, self).__init__(headers=headers, loop=loop)
 
     async def get_users_by_login(self, *user_logins):
         """Retrieve all users.
@@ -29,13 +25,7 @@ class TwitchAPIClient(base.APIClient):
         """
         url = f"{TWITCH_API_URL}/users?{parse.urlencode([('login', user_id) for user_id in user_logins])}"
         body = await self.get(url, return_json=True)
-        if body:
-            try:
-                data = {user['login']: user for user in body['data']}
-            except (AttributeError, KeyError, ValueError):
-                LOG.exception(f"Cannot retrieve users")
-            else:
-                return data
+        return {user['login']: user for user in body['data']}
 
     async def get_users_by_id(self, *user_ids):
         """Retrieve all users.
@@ -44,13 +34,7 @@ class TwitchAPIClient(base.APIClient):
         """
         url = f"{TWITCH_API_URL}/users?{parse.urlencode([('id', user_id) for user_id in user_ids])}"
         body = await self.get(url, return_json=True)
-        if body:
-            try:
-                data = {user['id']: user for user in body['data']}
-            except (AttributeError, KeyError, ValueError):
-                LOG.exception(f"Cannot retrieve users")
-            else:
-                return data
+        return {user['id']: user for user in body['data']}
 
     async def get_games_by_id(self, *game_ids):
         """Retrieve all games.
@@ -59,13 +43,7 @@ class TwitchAPIClient(base.APIClient):
         """
         url = f"{TWITCH_API_URL}/games?{parse.urlencode([('id', game_id) for game_id in game_ids])}"
         body = await self.get(url, return_json=True)
-        if body:
-            try:
-                data = {game['id']: game for game in body['data']}
-            except (AttributeError, KeyError, ValueError):
-                LOG.exception(f"Cannot retrieve games")
-            else:
-                return data
+        return {game['id']: game for game in body['data']}
 
     async def get_stream_status(self, *user_ids):
         """Retrieve all stream status.
@@ -74,10 +52,4 @@ class TwitchAPIClient(base.APIClient):
         """
         url = f"{TWITCH_API_URL}/streams?{parse.urlencode([('user_id', user_id) for user_id in user_ids])}"
         body = await self.get(url, return_json=True)
-        if body:
-            try:
-                data = {stream['id']: stream for stream in body['data']}
-            except (AttributeError, KeyError, ValueError):
-                LOG.exception(f"Cannot retrieve streams")
-            else:
-                return data
+        return {stream['id']: stream for stream in body['data']}

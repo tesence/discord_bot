@@ -33,34 +33,57 @@ class RateBucket:
         await self.consume()
 
 
+class APIError(Exception):
+
+    def __init__(self, message, original=None):
+        self.message = message
+        if original:
+            self.message += f" - {original.message} ({original.status})"
+        super(APIError, self).__init__(self.message)
+
+
+class APIClientError(APIError):
+
+    def __init__(self, original):
+        message = "Invalid Request"
+        super(APIClientError, self).__init__(message, original)
+
+
+class APIServerError(APIError):
+
+    def __init__(self, original):
+        message = "Server Error"
+        super(APIServerError, self).__init__(message, original)
+
+
 class APIClient:
 
-    def __init__(self, warning_exceptions=(), error_exceptions=(), bucket=None, *args, **kwargs):
-        self._session = aiohttp.ClientSession(*args, **kwargs)
-        self._warning_exceptions = warning_exceptions
-        self._error_exceptions = error_exceptions
+    def __init__(self, bucket=None, *args, **kwargs):
+        self._session = aiohttp.ClientSession(*args, **kwargs, raise_for_status=True)
         self._bucket = bucket
 
     async def request(self, method, url, return_json=False, **kwargs):
+
+        LOG.debug(f"Outgoing request: {method.upper()} {url} (params={kwargs})")
         if self._bucket:
             await self._bucket.consume()
 
-        endpoint = url.split('?')[0]
         try:
             r = await self._session.request(method, url, **kwargs)
-            status_code = r.status
-            if 200 <= status_code < 300:
-                return await r.json() if return_json else await r.text()
-            elif 400 <= status_code < 500:
-                LOG.error(f"API Client error {url} ({status_code})")
-            elif 500 <= status_code < 600:
-                LOG.warning(f"API Server error {url} ({status_code})")
-        except self._warning_exceptions:
-            pass
-        except self._error_exceptions as e:
-            LOG.exception(f"API error while requesting the endpoint '{endpoint}' ({type(e).__name__})")
-        except aiohttp.ClientError:
-            LOG.exception(f"Unexpected API error")
+            return await r.json() if return_json else await r.text()
+        except aiohttp.ClientResponseError as error:
+            if 400 <= error.status < 500:
+                output_error = APIClientError(error)
+                LOG.error(output_error.message)
+                raise output_error
+            elif 500 <= error.status < 600:
+                output_error = APIServerError(error)
+                LOG.error(output_error.message)
+                raise output_error
+        except aiohttp.ClientError as error:
+            output_error = APIError(str(error))
+            LOG.error(output_error.message)
+            raise output_error
 
     async def get(self, uri, return_json=False, **kwargs):
         return await self.request("get", uri, return_json=return_json, **kwargs)
