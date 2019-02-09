@@ -14,7 +14,7 @@ from gumo import db
 from gumo import emoji
 from gumo import utils
 
-LOG = logging.getLogger('bot')
+LOG = logging.getLogger(__name__)
 
 DEFAULT_WEBHOOK_PORT = 8888
 
@@ -28,7 +28,7 @@ class MissingStreamName(commands.MissingRequiredArgument):
 class StreamCommands:
 
     def __init__(self, bot):
-        self.__module__ = "cogs.stream"
+        self.__module__ = "stream"
         self.display_name = "Twitch"
         self.bot = bot
         self.client = api.TwitchAPIClient(self.bot.loop)

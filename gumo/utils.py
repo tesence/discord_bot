@@ -1,9 +1,6 @@
-import logging
 import os
 
 import discord
-
-LOG = logging.getLogger('bot')
 
 
 def get_project_dir():
@@ -19,7 +16,7 @@ def code_block(message):
 
 
 def get_extension_name_from_ctx(ctx):
-    return ctx.cog.__module__.split(".", 1)[-1]
+    return ctx.cog.__module__.split(".", 2)[-1]
 
 
 def get_channel_repr(channel):

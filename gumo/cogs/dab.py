@@ -11,7 +11,7 @@ from gumo import config
 from gumo import db
 from gumo import utils
 
-LOG = logging.getLogger('bot')
+LOG = logging.getLogger(__name__)
 
 DAB_COOLDOWN = 180
 DEFAULT_SWITCH_COOLDOWN = 600

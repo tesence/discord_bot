@@ -6,7 +6,7 @@ from gumo.cogs.stream.models import NotificationHandler
 from gumo.db import base
 
 
-LOG = logging.getLogger('bot')
+LOG = logging.getLogger(__name__)
 
 DEFAULT_RECENT_NOTIFICATION_AGE = 300
 

@@ -6,7 +6,7 @@ from asyncpg import exceptions
 from gumo import config
 
 
-LOG = logging.getLogger('bot')
+LOG = logging.getLogger(__name__)
 
 
 class Column:

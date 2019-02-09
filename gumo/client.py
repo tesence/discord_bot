@@ -8,7 +8,7 @@ from gumo import config
 from gumo import emoji
 from gumo import utils
 
-LOG = logging.getLogger('bot')
+LOG = logging.getLogger(__name__)
 
 GLOBAL_EXTENSIONS = {'help', 'admin'}
 
@@ -112,7 +112,7 @@ class Bot(commands.Bot):
         """Load all the extensions"""
         extensions_to_load = config.extensions_to_load
         for extension in GLOBAL_EXTENSIONS | DEFAULT_EXTENSIONS | extensions_to_load:
-            extension = f"cogs.{extension}"
+            extension = f"gumo.cogs.{extension}"
             if extension in self.extensions:
                 LOG.debug(f"The extension '{extension}' is already loaded")
                 continue

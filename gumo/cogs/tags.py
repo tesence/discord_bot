@@ -9,7 +9,7 @@ from gumo import db
 from gumo import emoji
 from gumo import utils
 
-LOG = logging.getLogger('bot')
+LOG = logging.getLogger(__name__)
 
 REGEX = re.compile('^([^"]+)[^"]*(".*")$', re.MULTILINE | re.DOTALL)
 EMOJI_REGEX = re.compile("^<:\w+:\d+>$")

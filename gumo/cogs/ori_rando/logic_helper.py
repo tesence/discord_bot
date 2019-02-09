@@ -6,7 +6,7 @@ from discord.ext import commands
 from gumo.api import ori_randomizer
 from gumo import utils
 
-LOG = logging.getLogger('bot')
+LOG = logging.getLogger(__name__)
 
 SKILLS = {
     'ba': "SK|0", 'bash': "SK|0",

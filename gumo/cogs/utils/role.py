@@ -5,7 +5,7 @@ import discord
 from gumo import emoji
 from gumo import utils
 
-LOG = logging.getLogger('bot')
+LOG = logging.getLogger(__name__)
 
 
 class RoleCommands:

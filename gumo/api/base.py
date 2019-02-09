@@ -5,7 +5,7 @@ import math
 
 import aiohttp
 
-LOG = logging.getLogger('bot')
+LOG = logging.getLogger(__name__)
 
 
 class RateBucket:

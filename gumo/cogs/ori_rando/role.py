@@ -5,7 +5,7 @@ from discord.ext import commands
 from gumo import config
 from gumo.cogs.utils import role
 
-LOG = logging.getLogger('bot')
+LOG = logging.getLogger(__name__)
 
 
 class OriRandoRoleCommands(role.RoleCommands):

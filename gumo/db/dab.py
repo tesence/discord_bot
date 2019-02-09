@@ -2,7 +2,7 @@ import logging
 
 from gumo.db import base
 
-LOG = logging.getLogger('bot')
+LOG = logging.getLogger(__name__)
 
 
 class Dabs(base.BaseModel):

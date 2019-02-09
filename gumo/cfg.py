@@ -2,7 +2,7 @@ import os
 import logging
 import yaml
 
-LOG = logging.getLogger('bot')
+LOG = logging.getLogger(__name__)
 
 
 class ConfigurationFolderNotFound(Exception):

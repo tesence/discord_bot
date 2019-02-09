@@ -5,7 +5,7 @@ from discord.ext import commands
 from gumo import check
 from gumo import config
 
-LOG = logging.getLogger('bot')
+LOG = logging.getLogger(__name__)
 
 
 class AdminCommands:
@@ -21,7 +21,7 @@ class AdminCommands:
         config.load()
 
         for extension in extensions:
-            extension = f'cogs.{extension}'
+            extension = f'gumo.cogs.{extension}'
             self.bot.unload_extension(extension)
             self.bot.load_extension(extension)
             LOG.debug(f"Extension '{extension}' reloaded")

@@ -2,7 +2,7 @@ import logging
 
 from gumo.api import base
 
-LOG = logging.getLogger('bot')
+LOG = logging.getLogger(__name__)
 
 SEEDGEN_API_URL = "https://orirando.com"
 

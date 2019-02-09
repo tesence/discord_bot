@@ -16,7 +16,7 @@ from gumo.api import ori_randomizer
 from gumo import models
 from gumo import utils
 
-LOG = logging.getLogger('bot')
+LOG = logging.getLogger(__name__)
 
 SEED_FILENAME = "randomizer.dat"
 SPOILER_FILENAME = "spoiler.txt"

@@ -5,7 +5,7 @@ from gumo.api import base
 from gumo import config
 
 
-LOG = logging.getLogger('bot')
+LOG = logging.getLogger(__name__)
 
 TWITCH_API_URL = "https://api.twitch.tv/helix"
 
