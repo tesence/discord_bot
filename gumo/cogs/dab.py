@@ -52,7 +52,7 @@ class DabCommands(role.RoleCommands):
     async def __local_check(self, ctx):
         cmd = ctx.command
 
-        if cmd.name not in ('dabable', 'undabable'):
+        if cmd.name not in ('dabable', 'undabable', 'help'):
             return True
 
         bucket = self.switch_cd.get_bucket(ctx.message)
