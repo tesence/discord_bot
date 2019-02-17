@@ -12,8 +12,7 @@ from gumo import config
 LOG = logging.getLogger(__name__)
 
 TWITCH_API_URL = "https://api.twitch.tv/helix"
-WEBHOOK_URL = f"{TWITCH_API_URL}/webhooks/hub"
-TOPIC_REGEX = r".*https:\/\/api\.twitch\.tv/helix/streams\?user_id=(\d+).*"
+WEBHOOK_URL = f"{TWITCH_API_URL}/webhooks/"
 SUBSCRIPTION_DURATION = 86400
 
 
@@ -47,6 +46,18 @@ class TokenSession(base.APIClient):
         return {'Authorization': f"Bearer {token}"}
 
 
+class StreamChanged:
+    URL = f"{TWITCH_API_URL}/streams"
+    REGEX = r".*https:\/\/api\.twitch\.tv/helix/streams\?user_id=(\d+).*"
+
+    @property
+    def as_uri(self):
+        return f"{self.URL}?user_id={self.user_id}"
+
+    def __init__(self, user_id):
+        self.user_id = user_id
+
+
 class TwitchWebhookServer(base.APIClient):
 
     def __init__(self, loop, callback):
@@ -66,52 +77,63 @@ class TwitchWebhookServer(base.APIClient):
             external_ip = await self.get('https://api.ipify.org/')
             self._external_host = f"http://{external_ip}:{self._port}"
 
-    async def _get_webhook_action_params(self, mode, user_id):
+    async def _get_webhook_action_params(self, mode, topic, lease_seconds=SUBSCRIPTION_DURATION):
         await self._set_external_host()
-        topic = f"{TWITCH_API_URL}/streams?user_id={user_id}"
-        lease_seconds = SUBSCRIPTION_DURATION
         data = {
             'hub.mode': mode,
-            'hub.topic': topic,
+            'hub.topic': topic.as_uri,
             'hub.callback': self._external_host,
             'hub.lease_seconds': lease_seconds
         }
         return data
 
-    async def subscribe_missing_streams(self, streams):
-        body = await self._list_subscriptions()
-        subscription_users = [re.search(TOPIC_REGEX, sub['topic']).group(1) for sub in body['data']]
+    async def update_subscriptions(self, user_ids):
+        subscriptions = await self._list_subscriptions()
+        subcribed_users_by_id = {
+            re.search(StreamChanged.REGEX, sub['topic']).group(1): sub
+            for sub in subscriptions['data']
+        }
 
-        missing_subscriptions = set(stream.id for stream in streams) - set(subscription_users)
-        if missing_subscriptions:
-            LOG.info(f"There is no subscription for the users: {missing_subscriptions}")
-            for user_id in missing_subscriptions:
-                await self.subscribe(user_id)
-
-    async def refresh_outdated_subscriptions(self):
-        body = await self._list_subscriptions()
+        missing_subscriptions = set()
+        outdated_subscriptions = set()
         now = datetime.utcnow()
-        for sub in body['data']:
-            user_id = re.search(TOPIC_REGEX, sub['topic']).group(1)
-            expires_at = sub['expires_at']
 
-            duration_left = datetime.strptime(expires_at, "%Y-%m-%dT%H:%M:%SZ") - now
-            if duration_left < timedelta(seconds=SUBSCRIPTION_DURATION * 5/60):
-                await self.unsubscribe(user_id)
-                await self.subscribe(user_id)
-                LOG.info(f"The subscription for '{user_id}' has expired '{expires_at}', it has been refreshed")
+        for user_id in user_ids:
 
-    async def subscribe(self, user_id):
+            # If the subscription is missing
+            if user_id not in subcribed_users_by_id:
+                missing_subscriptions.add(user_id)
+
+            else:
+                expires_at = subcribed_users_by_id[user_id]['expires_at']
+                duration_left = datetime.strptime(expires_at, "%Y-%m-%dT%H:%M:%SZ") - now
+
+                # If the subscription expires in less than an hour
+                if duration_left < timedelta(seconds=33200):
+                    outdated_subscriptions.add(user_id)
+
+        if missing_subscriptions:
+            LOG.info(f"No subscription for users: {missing_subscriptions}")
+
+        if outdated_subscriptions:
+            LOG.info(f"Outdated subscriptions for users: {outdated_subscriptions}")
+
+        await self.unsubscribe(*outdated_subscriptions)
+        await self.subscribe(*missing_subscriptions | outdated_subscriptions)
+
+    async def subscribe(self, *user_ids):
         headers = await self._token_session.get_authorization_header()
-        data = await self._get_webhook_action_params('subscribe', user_id)
-        await self.post(WEBHOOK_URL, data, headers=headers)
-        LOG.debug(f"Subscription to '{user_id}' successful")
+        for user_id in user_ids:
+            data = await self._get_webhook_action_params('subscribe', StreamChanged(user_id))
+            await self.post(f"{WEBHOOK_URL}/hub", data, headers=headers)
+            LOG.debug(f"Subscription to '{user_id}' successful")
 
-    async def unsubscribe(self, user_id):
+    async def unsubscribe(self, *user_ids):
         headers = await self._token_session.get_authorization_header()
-        data = await self._get_webhook_action_params('unsubscribe', user_id)
-        await self.post(WEBHOOK_URL, data, headers=headers)
-        LOG.debug(f"Unsubscription from '{user_id}' successful")
+        for user_id in user_ids:
+            data = await self._get_webhook_action_params('unsubscribe', StreamChanged(user_id))
+            await self.post(f"{WEBHOOK_URL}/hub", data, headers=headers)
+            LOG.debug(f"Unsubscription from '{user_id}' successful")
 
     async def _list_subscriptions(self):
         headers = await self._token_session.get_authorization_header()
@@ -142,7 +164,7 @@ class TwitchWebhookServer(base.APIClient):
     async def _handle_post(self, request):
         self._log_request(request)
         try:
-            user_id = re.search(TOPIC_REGEX, request.headers['Link']).group(1)
+            user_id = re.search(StreamChanged.REGEX, request.headers['Link']).group(1)
             await self._callback(user_id, request.json)
             return response.HTTPResponse(body='202: OK', status=202)
         except KeyError:

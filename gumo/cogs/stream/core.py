@@ -55,11 +55,10 @@ class StreamCommands:
         self.bot.streams = previous_streams or {stream.id: stream for stream in await self.stream_db_driver.list()}
 
         await self.webhook_server.start("0.0.0.0", config.glob.get('WEBHOOK_PORT', DEFAULT_WEBHOOK_PORT))
-        await self.webhook_server.subscribe_missing_streams(self.bot.streams.values())
 
         await self.bot.wait_until_ready()
 
-        self.tasks.append(self.bot.loop.create_task(self.refresh_outdated_subscriptions()))
+        self.tasks.append(self.bot.loop.create_task(self.update_subscriptions()))
         self.tasks.append(self.bot.loop.create_task(self.delete_old_notifications()))
 
         def task_done_callback(fut):
@@ -186,10 +185,10 @@ class StreamCommands:
                             f"'{notification.created_at}' does not exist or has been deleted")
                 stream.notifications_by_channel_id[channel.id].remove(notification)
 
-    async def refresh_outdated_subscriptions(self):
+    async def update_subscriptions(self):
         LOG.debug("Subscriptions refresh task running...")
         while True:
-            await self.webhook_server.refresh_outdated_subscriptions()
+            await self.webhook_server.update_subscriptions([user_id for user_id in self.bot.streams])
             await asyncio.sleep(3600)
 
     async def delete_old_notifications(self):
