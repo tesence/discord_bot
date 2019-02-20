@@ -29,12 +29,24 @@ class ForeignKey:
 class UniqueConstraint:
 
     def __init__(self, *column_names):
-        self.column_names = column_names
+        self.column_names = list(column_names)
 
 
 class BaseModel:
     __tablename__ = None
     __table_args__ = ()
+
+    @classmethod
+    def columns(cls):
+        return {name: definition for name, definition in vars(cls).items() if isinstance(definition, Column)}
+
+    @classmethod
+    def constraint(cls):
+        if cls.__table_args__:
+            for arg in cls.__table_args__:
+                if isinstance(arg, UniqueConstraint):
+                    return arg.column_names
+        return [name for name, definition in cls.columns().items() if definition.primary_key]
 
 
 class DBDriver:
@@ -44,7 +56,7 @@ class DBDriver:
         self.model = model
         self.table_name = self.model.__tablename__
         self.table_args = self.model.__table_args__
-        self.table_columns = {attr: value for attr, value in vars(self.model).items() if isinstance(value, Column)}
+        self.table_columns = self.model.columns()
 
     async def init(self):
         self.bot.pool = self.bot.pool or await asyncpg.create_pool(**config.glob['DATABASE_CREDENTIALS'],
@@ -85,13 +97,6 @@ class DBDriver:
         record = await self.bot.pool.fetchrow(q)
         return record['count']
 
-    async def exists(self, **filters):
-        q = f"SELECT 1 FROM {self.table_name} "
-        q += bool(filters) * f" WHERE {' AND '.join(f'{column} = ${index}' for index, column in enumerate(filters, 1))}"
-        q = f"SELECT EXISTS({q})"
-        record = await self.bot.pool.fetchrow(q, *filters.values())
-        return record['exists']
-
     async def get(self, **filters):
         q = f"SELECT * FROM {self.table_name}"
         q += bool(filters) * f" WHERE {' AND '.join(f'{column} = ${index}' for index, column in enumerate(filters, 1))}"
@@ -104,13 +109,15 @@ class DBDriver:
         records = await self.bot.pool.fetch(q, *filters.values())
         return [self._get_obj(r) for r in records]
 
-    async def create(self, **fields):
-        fields = {column: value for column, value in fields.items() if value is not None}
-        joined_columns = ", ".join(fields)
-        joined_markers = ", ".join(f'${index}' for index in range(1, len(fields) + 1))
-        q = f"INSERT INTO {self.table_name} ({joined_columns}) VALUES ({joined_markers}) RETURNING *"
-        record = await self.bot.pool.fetchrow(q, *fields.values())
-        return self._get_obj(record)
+    async def create(self, columns, *values, ensure=False):
+        joined_constraint_columns = ", ".join(self.model.constraint())
+        joined_columns = ", ".join(columns)
+        joined_markers = ", ".join(f'${index}' for index in range(1, len(columns) + 1))
+        query = f"INSERT INTO {self.table_name} ({joined_columns}) VALUES ({joined_markers}) "
+        query += ensure * f"ON CONFLICT ({joined_constraint_columns}) DO NOTHING RETURNING *"
+        async with self.bot.pool.acquire() as connection:
+            records = [await connection.fetchrow(query, *value) for value in values]
+            return [self._get_obj(r) for r in records if r]
 
     async def delete(self, **filters):
         if not filters:

@@ -258,15 +258,18 @@ class StreamCommands:
 
         # Create missing channel
         values = [(ctx.channel.id, ctx.channel.name, ctx.guild.id, ctx.guild.name)]
-        await self.channel_db_driver.ensure(values)
+        out = await self.channel_db_driver.create(['id', 'name', 'guild_id', 'guild_name'], *values, ensure=True)
+        LOG.info(f"Created channels: {out}")
 
         # Create missing streams
         values = [(user['id'], name) for name, user in users_by_login.items()]
-        await self.stream_db_driver.ensure(values)
+        out = await self.stream_db_driver.create(['id', 'name'], *values, ensure=True)
+        LOG.info(f"Created streams: {out}")
 
         # Create missing channel_streams
         values = [(ctx.channel.id, user['id'], tags) for user in users_by_login.values()]
-        await self.channel_stream_db_driver.ensure(values)
+        out = await self.channel_stream_db_driver.create(['channel_id', 'stream_id', 'tags'], *values, ensure=True)
+        LOG.info(f"Created channel_streams: {out}")
 
     @stream.command()
     @commands.guild_only()

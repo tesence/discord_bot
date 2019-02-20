@@ -93,11 +93,6 @@ class ChannelDBDriver(base.DBDriver):
     def __init__(self, bot):
         super(ChannelDBDriver, self).__init__(bot, Channel)
 
-    async def ensure(self, values):
-        query = f"INSERT INTO {self.table_name} (id, name, guild_id, guild_name) VALUES ($1, $2, $3, $4) " \
-                f"ON CONFLICT (id) DO NOTHING RETURNING *"
-        await self.bot.pool.executemany(query, values)
-
     async def delete_old_channels(self):
         query = f"DELETE FROM {self.table_name} WHERE id NOT IN (SELECT channel_id FROM {ChannelStream.__tablename__})"
         await self.bot.pool.execute(query)
@@ -108,10 +103,6 @@ class StreamDBDriver(base.DBDriver):
     def __init__(self, bot):
         super(StreamDBDriver, self).__init__(bot, Stream)
 
-    async def ensure(self, values):
-        query = f"INSERT INTO {self.table_name} (id, name) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING RETURNING *"
-        await self.bot.pool.executemany(query, values)
-
     async def delete_old_streams(self):
         query = f"DELETE FROM {self.table_name} WHERE id NOT IN (SELECT stream_id FROM {ChannelStream.__tablename__})"
         await self.bot.pool.execute(query)
@@ -121,11 +112,6 @@ class ChannelStreamDBDriver(base.DBDriver):
 
     def __init__(self, bot):
         super(ChannelStreamDBDriver, self).__init__(bot, ChannelStream)
-
-    async def ensure(self, values):
-        query = f"INSERT INTO {self.table_name} (channel_id, stream_id, tags) VALUES ($1, $2, $3) " \
-                f"ON CONFLICT (channel_id, stream_id) DO UPDATE SET tags = $3"
-        await self.bot.pool.executemany(query, values)
 
     async def bulk_delete(self, channel_id, *user_ids):
         query = f"DELETE FROM {self.table_name} WHERE channel_id = $1 AND "
