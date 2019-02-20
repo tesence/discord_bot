@@ -214,7 +214,6 @@ class StreamCommands:
                                     f"'{notification.created_at}' does not exist or has been deleted")
                         stream.notifications_by_channel_id[channel.id].remove(notification)
             await asyncio.sleep(60)
-    # COMMANDS
 
     @commands.group()
     @commands.guild_only()
@@ -230,71 +229,44 @@ class StreamCommands:
         channel_repr = utils.get_channel_repr(ctx.channel)
         records = await self.channel_stream_db_driver.get_stream_list(ctx.guild.id)
 
-        if records:
+        if not records:
+            return
 
-            # Build the output data by storing every stream names notified for each discord channel
-            # {
-            #   <discord_channel_1>: ["stream_name_1", "stream_name_2", ...]
-            #   <discord_channel_2>: ["stream_name_2", "stream_name_3", ...]
-            #   <discord_channel_3>: ["stream_name_1", "stream_name_3", ...]
-            # }
-            streams_by_channel = collections.defaultdict(list)
-            for record in records:
-                channel_id, stream_name = record.values()
-                channel = self.bot.get_channel(channel_id)
-                streams_by_channel[channel].append(stream_name)
+        # Build the output data by storing every stream names notified for each discord channel
+        # {
+        #   <discord_channel_1>: ["stream_name_1", "stream_name_2", ...]
+        #   <discord_channel_2>: ["stream_name_2", "stream_name_3", ...]
+        #   <discord_channel_3>: ["stream_name_1", "stream_name_3", ...]
+        # }
+        streams_by_channel = collections.defaultdict(list)
+        for record in records:
+            channel_id, stream_name = record.values()
+            channel = self.bot.get_channel(channel_id)
+            streams_by_channel[channel].append(stream_name)
 
-            # Build an embed displaying the output data.
-            # - The discord channels are sorted in the same order as on the server
-            # - The stream names are sorted in alphabetical order
-            message = "Tracked channels"
-            embed = models.StreamListEmbed(streams_by_channel)
+        # Build an embed displaying the output data.
+        # - The discord channels are sorted in the same order as on the server
+        # - The stream names are sorted in alphabetical order
+        message = "Tracked channels"
+        embed = models.StreamListEmbed(streams_by_channel)
 
-            await self.bot.send(ctx.channel, message, embed=embed, reaction=True)
-            LOG.debug(f"[{channel_repr}] Database: {streams_by_channel}")
+        await self.bot.send(ctx.channel, message, embed=embed, reaction=True)
+        LOG.debug(f"[{channel_repr}] Database: {streams_by_channel}")
 
-    async def _add_streams(self, channel, *user_logins, tags=None):
+    async def _add_streams(self, ctx, *user_logins, tags=None):
         users_by_login = await self.client.get_users_by_login(*user_logins)
-        channel_repr = utils.get_channel_repr(channel)
-        if users_by_login:
-            if not await self.channel_db_driver.exists(id=channel.id):
-                # Store the discord channel in the database if nothing was tracked in it before
-                await self.channel_db_driver.create(id=channel.id, name=channel.name, guild_id=channel.guild.id,
-                                                    guild_name=channel.guild.name)
-            else:
-                LOG.debug(f"[{channel_repr}] The channel has already been stored in the database")
-            tasks = [self._add_stream(channel, user['login'], user['id'], tags) for user in users_by_login.values()]
-            return await asyncio.gather(*tasks, loop=self.bot.loop)
 
-    async def _add_stream(self, channel, user_login, user_id, tags=None):
-        """Add a stream in a discord channel tracklist
+        # Create missing channel
+        values = [(ctx.channel.id, ctx.channel.name, ctx.guild.id, ctx.guild.name)]
+        await self.channel_db_driver.ensure(values)
 
-        :param channel: The discord channel in which the stream notifications are enabled
-        :param user_login: The stream name to notify
-        :param user_login: The stream id to notify
-        :param tags: List of tags to add to the notification
-        """
-        channel_stream = await self.channel_stream_db_driver.get(stream_id=user_id, channel_id=channel.id)
-        channel_repr = utils.get_channel_repr(channel)
-        if not channel_stream:
-            if not await self.stream_db_driver.exists(id=user_id):
-                # Store the twitch stream in the database if it wasn't tracked anywhere before
-                stream = await self.stream_db_driver.create(id=user_id, name=user_login)
-                self.bot.streams[user_id] = stream
-                await self.webhook_server.subscribe(user_id)
-            else:
-                LOG.debug(f"[{channel_repr}] The stream '{user_login}' has already been stored in the database")
-            LOG.info(f"[{channel_repr}] '{user_login}' is now tracked in the channel")
+        # Create missing streams
+        values = [(user['id'], name) for name, user in users_by_login.items()]
+        await self.stream_db_driver.ensure(values)
 
-            # Create a new relation between the twitch stream and the discord channel
-            await self.channel_stream_db_driver.create(channel_id=channel.id, stream_id=user_id, tags=tags)
-        elif not channel_stream.tags == tags:
-            await self.channel_stream_db_driver.update('tags', tags, channel_id=channel.id, stream_id=user_id)
-            LOG.info(f"[{channel_repr}] The notification tags for '{user_login}' has been changed from "
-                     f"'{channel_stream.tags}' to '{tags}'")
-        else:
-            LOG.warning(f"[{channel_repr}] '{user_login}' is already track in the channel")
-        return True
+        # Create missing channel_streams
+        values = [(ctx.channel.id, user['id'], tags) for user in users_by_login.values()]
+        await self.channel_stream_db_driver.ensure(values)
 
     @stream.command()
     @commands.guild_only()
@@ -303,20 +275,8 @@ class StreamCommands:
         """Track a list of streams in a channel."""
         if not user_logins:
             raise MissingStreamName
-        result = await self._add_streams(ctx.channel, *user_logins)
-        if result and all(result):
-            await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
-
-    @stream.command()
-    @commands.guild_only()
-    @check.is_admin()
-    async def everyone(self, ctx, *user_logins):
-        """Track a list of streams in a channel (with @everyone)."""
-        if not user_logins:
-            raise MissingStreamName
-        result = await self._add_streams(ctx.channel, *user_logins, tags="@everyone")
-        if result and all(result):
-            await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
+        await self._add_streams(ctx, *user_logins)
+        await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
 
     @stream.command()
     @commands.guild_only()
@@ -325,50 +285,33 @@ class StreamCommands:
         """Track a list of streams in a channel (with `@here`)."""
         if not user_logins:
             raise MissingStreamName
-        result = await self._add_streams(ctx.channel, *user_logins, tags="@here")
-        if result and all(result):
-            await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
-
-    async def _remove_streams(self, channel, *user_logins):
-        users_by_login = await self.client.get_users_by_login(*user_logins)
-        channel_repr = utils.get_channel_repr(channel)
-        if users_by_login:
-            tasks = [self._remove_stream(channel, user['login'], user['id']) for user in users_by_login.values()]
-            result = await asyncio.gather(*tasks, loop=self.bot.loop)
-
-            # Remove the discord channel from the database if there no streams notified in it anymore
-            if not await self.channel_stream_db_driver.exists(channel_id=channel.id):
-                LOG.debug(f"[{channel_repr}] There is no stream tracked in the channel anymore, the channel is "
-                          f"deleted from the database")
-                await self.channel_db_driver.delete(id=channel.id)
-            return result
-
-    async def _remove_stream(self, channel, user_login, user_id):
-        channel_stream = await self.channel_stream_db_driver.get(stream_id=user_id, channel_id=channel.id)
-        channel_repr = utils.get_channel_repr(channel)
-        if channel_stream:
-            # Remove the relation between the twitch stream and the discord channel
-            await self.channel_stream_db_driver.delete(channel_id=channel.id, stream_id=user_id)
-            LOG.info(f"[{channel_repr}] '{user_login}' is no longer tracked in the channel")
-
-            # Remove the twitch stream from the database of it's not notified anymore
-            if not await self.channel_stream_db_driver.exists(stream_id=user_id):
-                LOG.debug(f"[{channel_repr}] The stream '{user_login}' is no longer tracked in any channel, the "
-                          f"stream is deleted from the database")
-                await self.stream_db_driver.delete(id=user_id)
-                await self.webhook_server.unsubscribe(user_id)
-                self.bot.streams.pop(user_id)
-        else:
-            LOG.debug(f"[{channel_repr}] '{user_login}' is not tracked in the channel")
-        return True
+        await self._add_streams(ctx, *user_logins, tags="@here")
+        await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
 
     @stream.command()
     @commands.guild_only()
     @check.is_admin()
-    async def remove(self, ctx, *stream_names):
-        """Stop tracking a list of streams in a channel."""
-        if not stream_names:
+    async def everyone(self, ctx, *user_logins):
+        """Track a list of streams in a channel (with `@everyone`)."""
+        if not user_logins:
             raise MissingStreamName
-        result = await self._remove_streams(ctx.channel, *stream_names)
-        if result and all(result):
-            await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
+        await self._add_streams(ctx, *user_logins, tags="@everyone")
+        await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
+
+    async def _remove_streams(self, ctx, *user_logins):
+        users_by_login = await self.client.get_users_by_login(*user_logins)
+
+        user_ids = [user['id'] for user in users_by_login.values()]
+        await self.channel_stream_db_driver.bulk_delete(ctx.channel.id, *user_ids)
+        await self.stream_db_driver.delete_old_streams()
+        await self.channel_db_driver.delete_old_channels()
+
+    @stream.command(aliases=['rm', 'delete', 'del'])
+    @commands.guild_only()
+    @check.is_admin()
+    async def remove(self, ctx, *user_logins):
+        """Stop tracking a list of streams in a channel."""
+        if not user_logins:
+            raise MissingStreamName
+        await self._remove_streams(ctx, *user_logins)
+        await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)

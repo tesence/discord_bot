@@ -93,11 +93,28 @@ class ChannelDBDriver(base.DBDriver):
     def __init__(self, bot):
         super(ChannelDBDriver, self).__init__(bot, Channel)
 
+    async def ensure(self, values):
+        query = f"INSERT INTO {self.table_name} (id, name, guild_id, guild_name) VALUES ($1, $2, $3, $4) " \
+                f"ON CONFLICT (id) DO NOTHING RETURNING *"
+        await self.bot.pool.executemany(query, values)
+
+    async def delete_old_channels(self):
+        query = f"DELETE FROM {self.table_name} WHERE id NOT IN (SELECT channel_id FROM {ChannelStream.__tablename__})"
+        await self.bot.pool.execute(query)
+
 
 class StreamDBDriver(base.DBDriver):
 
     def __init__(self, bot):
         super(StreamDBDriver, self).__init__(bot, Stream)
+
+    async def ensure(self, values):
+        query = f"INSERT INTO {self.table_name} (id, name) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING RETURNING *"
+        await self.bot.pool.executemany(query, values)
+
+    async def delete_old_streams(self):
+        query = f"DELETE FROM {self.table_name} WHERE id NOT IN (SELECT stream_id FROM {ChannelStream.__tablename__})"
+        await self.bot.pool.execute(query)
 
 
 class ChannelStreamDBDriver(base.DBDriver):
@@ -105,17 +122,27 @@ class ChannelStreamDBDriver(base.DBDriver):
     def __init__(self, bot):
         super(ChannelStreamDBDriver, self).__init__(bot, ChannelStream)
 
+    async def ensure(self, values):
+        query = f"INSERT INTO {self.table_name} (channel_id, stream_id, tags) VALUES ($1, $2, $3) " \
+                f"ON CONFLICT (channel_id, stream_id) DO UPDATE SET tags = $3"
+        await self.bot.pool.executemany(query, values)
+
+    async def bulk_delete(self, channel_id, *user_ids):
+        query = f"DELETE FROM {self.table_name} WHERE channel_id = $1 AND "
+        query += f"({' OR '.join([f'stream_id = ${index}' for index in range(2, len(user_ids) + 2)])})"
+        await self.bot.pool.execute(query, channel_id, *user_ids)
+
     async def get_stream_list(self, guild_id, guild_only=True):
         c_table = Channel.__tablename__
         s_table = Stream.__tablename__
         cs_table = ChannelStream.__tablename__
 
-        query = \
-            f"SELECT {c_table}.channel_id, {s_table}.stream_name FROM {cs_table} " \
-            f"JOIN (SELECT id as channel_id, name as channel_name, guild_id FROM {c_table}) {c_table} " \
-            f"ON {cs_table}.channel_id = {c_table}.channel_id " \
-            f"JOIN (SELECT id, name as stream_name FROM {s_table}) {s_table} " \
-            f"ON {cs_table}.stream_id = {s_table}.id "
+        query = f"SELECT {c_table}.channel_id, {s_table}.stream_name FROM {cs_table} " \
+                f"JOIN (SELECT id as channel_id, name as channel_name, guild_id FROM {c_table}) {c_table} " \
+                f"ON {cs_table}.channel_id = {c_table}.channel_id " \
+                f"JOIN (SELECT id, name as stream_name FROM {s_table}) {s_table} " \
+                f"ON {cs_table}.stream_id = {s_table}.id "
+
         if guild_only:
             query += f"WHERE {c_table}.guild_id = {guild_id}"
         return await self.bot.pool.fetch(query)
