@@ -7,30 +7,26 @@ class NotAdmin(commands.CheckFailure):
     """Exception when someone uses an admin command without being admin"""
 
 
-def is_owner():
-    async def predicate(ctx):
-        if not (await ctx.bot.is_owner(ctx.author)):
-            raise commands.NotOwner("You do not own this bot.")
+async def is_owner(ctx):
+    if not (await ctx.bot.is_owner(ctx.author)):
+        raise commands.NotOwner("You do not own this bot.")
+    return True
+
+
+async def is_admin(ctx):
+
+    # check is the user is owner
+    if await ctx.bot.is_owner(ctx.author):
         return True
-    return commands.check(predicate)
 
+    admin_roles = config.get('ADMIN_ROLES', guild_id=ctx.author.guild.id)
+    author_roles = [role.name for role in ctx.author.roles]
 
-def is_admin():
-    async def predicate(ctx):
-
-        # check is the user is owner
-        if await ctx.bot.is_owner(ctx.author):
-            return True
-
-        admin_roles = config.get('ADMIN_ROLES', guild_id=ctx.author.guild.id)
-        author_roles = [role.name for role in ctx.author.roles]
-
-        # if there is no admin role, returns True
-        if admin_roles is None:
-            return True
-
-        if not set(author_roles) & set(admin_roles):
-            raise NotAdmin("You do not have the admin rights.")
-
+    # if there is no admin role, returns True
+    if admin_roles is None:
         return True
-    return commands.check(predicate)
+
+    if not set(author_roles) & set(admin_roles):
+        raise NotAdmin("You do not have the admin rights.")
+
+    return True

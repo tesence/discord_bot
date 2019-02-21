@@ -69,8 +69,8 @@ class Bot(commands.Bot):
 
         channel_repr = utils.get_channel_repr(ctx.channel)
         if isinstance(error, commands.MissingRequiredArgument):
-            LOG.warning(f"[{channel_repr}] Missing argument in command {ctx.command}: {error.args[0]}")
-            await ctx.invoke(self.get_command('help'), command_name=ctx.command.name)
+            LOG.warning(f"[{channel_repr}] Missing argument in command {ctx.command}: {error.args}")
+            await ctx.invoke(self.get_command('help'), command_name=ctx.command.qualified_name)
         elif isinstance(error, commands.CommandOnCooldown):
             LOG.warning(f"[{channel_repr}] '{ctx.author.name}' tried to use the command '{ctx.command.name}' while it "
                         f"was still on cooldown for {round(error.retry_after, 2)}s")

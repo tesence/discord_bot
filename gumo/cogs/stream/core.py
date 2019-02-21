@@ -7,7 +7,7 @@ from discord import errors
 from discord.ext import commands
 
 from gumo import api
-from gumo import check
+from gumo.check import is_admin
 from gumo import config
 from gumo.cogs.stream import models
 from gumo import db
@@ -273,7 +273,7 @@ class StreamCommands:
 
     @stream.command()
     @commands.guild_only()
-    @check.is_admin()
+    @commands.check(is_admin)
     async def add(self, ctx, *user_logins):
         """Track a list of streams in a channel."""
         if not user_logins:
@@ -283,7 +283,7 @@ class StreamCommands:
 
     @stream.command()
     @commands.guild_only()
-    @check.is_admin()
+    @commands.check(is_admin)
     async def here(self, ctx, *user_logins):
         """Track a list of streams in a channel (with `@here`)."""
         if not user_logins:
@@ -293,7 +293,7 @@ class StreamCommands:
 
     @stream.command()
     @commands.guild_only()
-    @check.is_admin()
+    @commands.check(is_admin)
     async def everyone(self, ctx, *user_logins):
         """Track a list of streams in a channel (with `@everyone`)."""
         if not user_logins:
@@ -311,7 +311,7 @@ class StreamCommands:
 
     @stream.command(aliases=['rm', 'delete', 'del'])
     @commands.guild_only()
-    @check.is_admin()
+    @commands.check(is_admin)
     async def remove(self, ctx, *user_logins):
         """Stop tracking a list of streams in a channel."""
         if not user_logins:

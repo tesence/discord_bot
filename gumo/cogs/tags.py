@@ -4,7 +4,7 @@ import re
 import asyncpg
 from discord.ext import commands
 
-from gumo import check
+from gumo.check import is_admin
 from gumo import db
 from gumo import emoji
 from gumo import utils
@@ -38,7 +38,7 @@ class TagCommands:
 
     @tag.command(name='create', aliases=['add'], usage='tag create <code> "<content>"')
     @commands.guild_only()
-    @check.is_admin()
+    @commands.check(is_admin)
     async def create_tag(self, ctx, *, args):
         """Create a tag"""
         if not re.match(REGEX, args):
@@ -59,7 +59,7 @@ class TagCommands:
 
     @tag.command(name='delete', aliases=['remove', 'rm'])
     @commands.guild_only()
-    @check.is_admin()
+    @commands.check(is_admin)
     async def delete_tag(self, ctx, *, code):
         """Delete a tag"""
         channel_repr = utils.get_channel_repr(ctx.channel)

@@ -14,8 +14,10 @@ class AdminCommands:
         self.bot = bot
         self.display_name = "Admin"
 
+    async def __local_check(self, ctx):
+        return await check.is_owner(ctx)
+
     @commands.command(hidden=True)
-    @check.is_owner()
     async def reload(self, ctx, *extensions):
         """Reload some extensions"""
         config.load()
