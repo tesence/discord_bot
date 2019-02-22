@@ -5,146 +5,60 @@
 A Discord Bot based on the Python framework
 `discord.py <https://github.com/Rapptz/discord.py>`__
 
-**Features**:
 
--  Twitch stream notifications
--  Dab command
--  `Ori DE Randomizer <https://github.com/sigmasin/OriDERandomizer>`__ support
+.. contents:: Features
+   :depth: 1
 
-   -  Manage the randomizer community role
-   -  Generate seeds within discord
-   -  Generate logic helper links
-- Tags
-
-Setup environment (Python 3.6+ required)
-========================================
-
-Requires 3.6 because:
-
--  it uses ``async`` and ``await``, only available for Python 3.5+
--  it uses fstrings, only available for Python 3.6+
-
-Clone the repository
---------------------
-
-::
-
-   git clone https://github.com/tesence/GumoBot.git
-
-Windows
--------
-
-::
-
-   cd <project folder>
-   virtualenv -p python3.6 .venv
-   .venv/Script/pip.exe install -r requirements.txt
-
-Linux
------
-
-::
-
-   cd <project folder>
-   virtualenv -p python3.6 .venv
-   .venv/bin/pip install -r requirements.txt
-
-Create a database
+Ori DE Randomizer
 =================
 
-Create a postgresSQL database. The tables will be generated
-automatically.
+Seed generation
+---------------
 
-Create configuration files
-==========================
+Generates seeds for the `randomizer of Ori and the Blind Forest: Definitive edition <https://www.orirando.com/quickstart>`__
 
-Create a folder where you will store all the configuration files.
-
-Create a first file ``global.yaml`` that will store all the bot credentials
-
-.. code:: yaml
-
-   DISCORD_BOT_TOKEN: <discord bot token>
-   TWITCH_API_CLIENT_ID: <twitch client id>
-   TWITCH_API_CLIENT_SECRET: <twitch client secret>
-
-   WEBHOOK_PORT: <webhook port>
-
-   DATABASE_CREDENTIALS:
-     host: <DB_HOST>
-     port: <DB_PORT>
-     database: <DB_NAME>
-     user: <DB_USER>
-     password: <DB_PASSWORD>
-
-And a file for each guild in which the bot needs to behave differently.
-Allows to set variables that only exist at a guild level like admin
-roles
-
-.. code:: yaml
-
-   GUILD_ID: <guild_id>
-
-   COMMAND_PREFIX: "?"
-
-   ADMIN_ROLES:
-    - "admin_role_1"
-    - "admin_role_2"
-    ...
-
-   EXTENSIONS:
-    - "<allowed cog>"
-    - "<allowed cog>"
-    ...
-
-   RANDO_ROLE: "Looking For Rando"
-
-These values will override the default ones for that specific guild.
-
-Run the bot
-===========
-
-In the project folder, run:
-
-
-Windows
--------
+|seedgen|
 
 ::
 
-   .venv/Script/python.exe main.py --config-dir /path/to/your/config/folder --log-dir /path/to/the/log/folder
+   !seed [list of options...]
+   !daily [list of options...]
 
 
-Linux
------
+
+Logic helper link generation
+----------------------------
+
+Generates help links for the `randomizer of Ori and the Blind Forest: Definitive edition <https://www.orirando.com/quickstart>`__
+
+|logic helper|
 
 ::
 
-   .venv/bin/python main.py --config-dir /path/to/your/config/folder --log-dir /path/to/the/log/folder
+   !logic [preset] [list of options...]
 
-Commands
-========
+Randomizer community role
+-------------------------
 
-Twitch
-------
+A simple role command. The randomizer community role is used for members
+who want to be pinged when someone is looking for playing a randomizer
+seed, it allows people to easily opt in/out without asking a moderator.
 
-The twitch stream support implements a system of notifications. When a
-stream is online, a notification is sent in every discord channel where
-it has been tracked. When the streamer stop streaming the notification turns
-to grey.
 
-If the streamer starts streaming again less than **1 hour** later, the last
-notification will be edited, a new one will not be sent (to avoid spamming
-notifications if the streamer's internet connection is unstable).
+Twitch Alerts
+=============
 
-**24 hours** after the notification turned to grey, the notification is deleted.
+- Sends a stream notification when the stream is live
+- Edits the notification when the stream goes offline
+- Deletes the old notifications to keep the channels clean
 
-These 2 values can be overriden using the configuration variables:
+Live notification
 
-- ``OLD_NOTIFICATION_LIFESPAN``
-- ``RECENT_NOTIFICATION_AGE``
+|stream live|
 
-Here are the different commands:
+Offline notification
+
+|stream offline|
 
 ::
 
@@ -152,97 +66,29 @@ Here are the different commands:
    !stream list
 
    # Track several streams in the current channel
-   !stream add <username>
+   !stream add [user_logins...]
 
    # Track several streams in the current channel (the notification will include the tag @here)
-   !stream here <username>
+   !stream here [user_logins...]
 
    # Track several streams in the current channel (the notification will include the tag @everyone)
-   !stream everyone <username>
+   !stream everyone [user_logins...]
 
    # Stop tracking some streams in the current channel
-   !stream remove <username>
+   !stream remove [user_logins...]
 
 Dab
----
+===
 
-Pretty straight forward, type ``!dab <something>`` to disrespect
-
-Ori DE Randomizer
------------------
-
-Seed generation
-~~~~~~~~~~~~~~~
-
-::
-
-   !seed [list of options...]
-
-Default seed flags: ``Standard,Clues,ForceTrees,balanced``
-
-Optional arguments
-
-- presets: casual, standard, expert, master, glitched
-- key modes: default, limitkeys, clues, shards
-- goal modes: ft (ForceTrees), wt (WorldTour), wf (WarmthFrags),
-  fm (ForceMapstones)
-- logic paths: casual-core, casual-dboost, standard-core, standard-dboost,
-  standard-lure, standard-abilities, expert-core, expert-dboost, expert-lure,
-  expert-abilities, master-core, master-dboost, master-lure,
-  master-abilities, dbash, gjump, glitched, timed-level, insane
-- variations: starved, hard, OHKO, 0XP, closeddungeons, openworld, doubleskills,
-  strictmapstones, bonuspickups, nonprogressmapstones
-- flags: tracking, verbose_paths, classic_gen, hard-path, easy-path
-
-A seed name can be set using double quotes
-
-::
-
-   !daily [list of options...]
-
-``!daily`` is similar to ``!seed``, it expects the same arguments, except a seed
-name, the command will ignore any custom seed name and will use the current date
-(Pacific Time) in the format ``YYYY-MM-DD``
-
-|seedgen|
-
-Logic helper link generation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-::
-
-   !logic [preset] [list of options...]
-
--  presets: casual, standard, expert, master, hard, ohko, 0xp, glitched
--  items: WallJump (WJ), ChargeFlame (CF), DoubleJump (DJ), Bash (BS),
-   Stomp (ST), Glide (GL), Climb (CL), ChargeJump (CJ), Dash (DA),
-   Grenade (GR), WaterVein (WV), GumonSeal (GS), Sunstone (SS), Health
-   (HC), Energy (EC), Keystone (KS), Mapstone (MS), Water, Wind,
-   GrottoTP, GroveTP, SwampTP, ValleyTP, SorrowTP, ForlornTP
-
-.. note::
-
-   Denote multiples by appending ``xN`` to it, without a space.
-
-   **Examples**:
-
-   ``!logic CJ KSx2 Mapstone``
-
-   ``!logic expert Bash Grenade Energyx4``
-
-Randomizer community role
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-A simple role command. The randomizer community role is used for members
-who want to be pinged when someone is looking for playing a randomizer
-seed, it allows people to easily opt in/out without having to ask a
-moderator.
+Pretty straight forward, type ``!dab <something>`` to disrespect someone
 
 
-Tags
-----
+Tag
+===
 
 A classic tag command
+
+|tag|
 
 ::
 
@@ -252,10 +98,10 @@ A classic tag command
    # Use a tag
    !tag <code>
 
-   # Create a tag (requires a role in ADMIN_ROLE)
+   # Create a tag
    !tag create <code> "<content>"
 
-   # Delete a tag (requires a role in ADMIN_ROLE)
+   # Delete a tag
    !tag delete <code>
 
 
@@ -269,4 +115,11 @@ A classic tag command
    :target: https://codeclimate.com/github/tesence/discord_bot/maintainability
 .. |seedgen| image:: img/seedgen.png?raw=True
    :class: align-center
-
+.. |logic helper| image:: img/logic_helper.png?raw=True
+   :class: align-center
+.. |stream live| image:: img/stream_live.png?raw=True
+   :class: align-center
+.. |stream offline| image:: img/stream_offline.png?raw=True
+   :class: align-center
+.. |tag| image:: img/tag.png?raw=True
+   :class: align-center
