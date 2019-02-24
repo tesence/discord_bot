@@ -188,8 +188,11 @@ class StreamCommands:
     async def update_subscriptions(self):
         LOG.debug("Subscriptions refresh task running...")
         while True:
-            await self.webhook_server.update_subscriptions([user_id for user_id in self.bot.streams])
-            await asyncio.sleep(3600)
+            try:
+                await self.webhook_server.update_subscriptions([user_id for user_id in self.bot.streams])
+                await asyncio.sleep(3600)
+            except api.APIError:
+                await asyncio.sleep(10)
 
     async def delete_old_notifications(self):
         """Delete the old offline stream notifications."""
