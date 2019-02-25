@@ -1,7 +1,9 @@
+import collections
 from concurrent import futures
 import logging
 import random
 
+import discord
 from discord.ext import commands
 from discord.ext.commands.cooldowns import BucketType
 from discord import utils as discord_utils
@@ -62,7 +64,7 @@ class DabCommands(role.RoleCommands):
 
         return True
 
-    @commands.command()
+    @commands.group(invoke_without_command=True)
     @commands.guild_only()
     @commands.check(has_not_undabable_role)
     @commands.cooldown(1, DAB_COOLDOWN, BucketType.member)
@@ -100,6 +102,47 @@ class DabCommands(role.RoleCommands):
             LOG.debug(f"[{channel_repr}] {ctx.author} has rerolled his/her last dab {amount} -> {new_amount}")
             await message.edit(content=f"{cleaned_author_name} dabs on {dabbed} ~~{amount}~~ **{new_amount}** times!")
             await self.driver.reroll_dabs(ctx.guild.id, ctx.author, new_amount, ctx.message.created_at, reroll.created_at)
+
+    @dab.command()
+    @commands.cooldown(1, DAB_COOLDOWN, BucketType.member)
+    async def stats(self, ctx, *, member: discord.Member=None):
+
+        author = member or ctx.author
+        records = await self.driver.get_user_data(author.id)
+
+        nemesis = collections.defaultdict(lambda: 0)
+        victims = collections.defaultdict(lambda: 0)
+        total_sum = 0
+
+        unique_dates = []
+
+        for r in records:
+
+            amount = r['rerolled_amount'] or r['amount']
+
+            if r['author_id'] == author.id:
+
+                if r['created_at'] not in unique_dates:
+                    total_sum += amount
+                    unique_dates.append(r['created_at'])
+
+                victims[r['target_id']] += amount
+
+            if r['target_id'] == author.id:
+                nemesis[r['author_id']] += amount
+
+        output = f"Stats for **{author}**\n\n"
+        output += f"Global number of dabs: {total_sum}\n"
+
+        if nemesis:
+            n_amount, nemesis_id = max(zip(nemesis.values(), nemesis.keys()) or 0)
+            output += f"Nemesis: `{ctx.guild.get_member(nemesis_id)}` ({n_amount})\n"
+
+        if victims:
+            v_amount, victim_id = max(zip(victims.values(), victims.keys()) or 0)
+            output += f"Victim: `{ctx.guild.get_member(victim_id)}` ({v_amount})\n"
+
+        await self.bot.send(ctx.channel, output)
 
     @commands.command()
     @commands.guild_only()

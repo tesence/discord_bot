@@ -53,3 +53,7 @@ class DabDBDriver(base.DBDriver):
         q = f"UPDATE {self.table_name} SET rerolled_amount = $1, rerolled_at = $2 " \
             f"WHERE guild_id = $3 AND author_id = $4 AND created_at = $5"
         await self.bot.pool.execute(q, new_amount, rerolled_at,  guild_id, author.id, created_at)
+
+    async def get_user_data(self, author_id):
+        return await self.bot.pool.fetch("SELECT created_at, author_id, target_id, amount, rerolled_amount "
+                                         "FROM dabs WHERE author_id = $1 OR target_id = $1", author_id)
