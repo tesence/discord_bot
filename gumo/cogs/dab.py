@@ -11,6 +11,7 @@ from discord import utils as discord_utils
 from gumo.cogs.utils import role
 from gumo import config
 from gumo import db
+from gumo import emoji
 from gumo import utils
 
 LOG = logging.getLogger(__name__)
@@ -88,12 +89,14 @@ class DabCommands(role.RoleCommands):
         answer = f"{cleaned_author_name} dabs on {dabbed} **{amount}** times!"
         LOG.debug(f"[{channel_repr}] {answer}")
         message = await self.bot.send(ctx.channel, f"{cleaned_author_name} dabs on {dabbed} **{amount}** times!")
+        await message.add_reaction(emoji.RECYCLING)
         await self.driver.insert_dabs(ctx.guild.id, ctx.author, amount, ctx.message.created_at, *target_members)
 
-        def check(m):
-            return m.author.id == ctx.author.id and m.content.replace(ctx.prefix, '') == "reroll"
+        def check(reaction, user):
+            return user == ctx.author and str(reaction.emoji) == emoji.RECYCLING
+
         try:
-            reroll = await self.bot.wait_for('message', check=check, timeout=30.0)
+            reaction, user = await self.bot.wait_for('reaction_add', check=check, timeout=30.0)
         except futures.TimeoutError:
             LOG.debug(f"[{channel_repr}] {ctx.author} did not reroll his last dab")
             return
@@ -101,7 +104,8 @@ class DabCommands(role.RoleCommands):
             new_amount = random.randint(0, 100)
             LOG.debug(f"[{channel_repr}] {ctx.author} has rerolled his/her last dab {amount} -> {new_amount}")
             await message.edit(content=f"{cleaned_author_name} dabs on {dabbed} ~~{amount}~~ **{new_amount}** times!")
-            await self.driver.reroll_dabs(ctx.guild.id, ctx.author, new_amount, ctx.message.created_at, reroll.created_at)
+            await self.driver.reroll_dabs(ctx.guild.id, ctx.author, new_amount, ctx.message.created_at,
+                                          reaction.message.created_at)
 
     @dab.command()
     @commands.cooldown(1, DAB_COOLDOWN, BucketType.member)
