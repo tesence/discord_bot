@@ -19,24 +19,37 @@ LOG = logging.getLogger(__name__)
 DAB_COOLDOWN = 180
 DEFAULT_SWITCH_COOLDOWN = 600
 
+SWITCH_COOLDOWN = commands.CooldownMapping.from_cooldown(1, DEFAULT_SWITCH_COOLDOWN, commands.BucketType.member)
 
-def check_undabable_role(ctx):
-    role_name = config.get('UNDABABLE_ROLE', guild_id=ctx.guild.id)
+
+async def trigger_switch_cooldown(ctx):
+    if ctx.invoked_with == 'help':
+        return True
+
+    bucket = SWITCH_COOLDOWN.get_bucket(ctx.message)
+    retry_after = bucket.update_rate_limit()
+    if retry_after:
+        raise commands.CommandOnCooldown(cooldown=bucket, retry_after=retry_after)
+    return True
+
+
+def check_undabbable_role(ctx):
+    role_name = config.get('UNDABBABLE_ROLE', guild_id=ctx.guild.id)
     return role_name and discord_utils.get(ctx.guild.roles, name=role_name)
 
 
-def _has_undabable_role(ctx):
-    role_name = config.get('UNDABABLE_ROLE', guild_id=ctx.guild.id)
+def _has_undabbable_role(ctx):
+    role_name = config.get('UNDABBABLE_ROLE', guild_id=ctx.guild.id)
     role = discord_utils.get(ctx.guild.roles, name=role_name)
     return role in ctx.author.roles
 
 
-def has_undabable_role(ctx):
-    return _has_undabable_role(ctx)
+def has_undabbable_role(ctx):
+    return _has_undabbable_role(ctx)
 
 
-def has_not_undabable_role(ctx):
-    return not _has_undabable_role(ctx)
+def has_not_undabbable_role(ctx):
+    return not _has_undabbable_role(ctx)
 
 
 class DabCommands(role.RoleCommands):
@@ -46,40 +59,26 @@ class DabCommands(role.RoleCommands):
         self.display_name = "Dab"
         self.bot = bot
         self.driver = db.DabDBDriver(bot)
-        self.switch_cd = commands.CooldownMapping.from_cooldown(1, DEFAULT_SWITCH_COOLDOWN, commands.BucketType.member)
         self.role = None
 
     async def on_ready(self):
         await self.driver.init()
 
-    async def __local_check(self, ctx):
-        cmd = ctx.command
-
-        if cmd.name not in ('dabable', 'undabable', 'help'):
-            return True
-
-        bucket = self.switch_cd.get_bucket(ctx.message)
-        retry_after = bucket.update_rate_limit()
-        if retry_after:
-            raise commands.CommandOnCooldown(cooldown=bucket, retry_after=retry_after)
-
-        return True
-
     @commands.group(invoke_without_command=True)
     @commands.guild_only()
-    @commands.check(has_not_undabable_role)
+    @commands.check(has_not_undabbable_role)
     @commands.cooldown(1, DAB_COOLDOWN, BucketType.member)
     async def dab(self, ctx, *, dabbed):
         """Disrespect someone"""
 
         channel_repr = utils.get_channel_repr(ctx.channel)
-        undabable_role = discord_utils.get(ctx.guild.roles, name=config.get('UNDABABLE_ROLE', guild_id=ctx.guild.id))
+        undabbable_role = discord_utils.get(ctx.guild.roles, name=config.get('UNDABBABLE_ROLE', guild_id=ctx.guild.id))
         target_members = [m for m in ctx.message.mentions]
         cls = commands.clean_content()
 
-        if undabable_role:
+        if undabbable_role:
             for target_member in target_members[:]:
-                if undabable_role in target_member.roles:
+                if undabbable_role in target_member.roles:
                     cleaned_target_member_name = await cls.convert(ctx, target_member.display_name)
                     dabbed = dabbed.replace(target_member.mention, f"~~@{cleaned_target_member_name}~~")
                     target_members.remove(target_member)
@@ -150,20 +149,22 @@ class DabCommands(role.RoleCommands):
 
     @commands.command()
     @commands.guild_only()
-    @commands.check(check_undabable_role)
-    @commands.check(has_undabable_role)
-    async def dabable(self, ctx):
+    @commands.check(check_undabbable_role)
+    @commands.check(has_undabbable_role)
+    @commands.check(trigger_switch_cooldown)
+    async def dabbable(self, ctx):
         """ALlow people to dab on you (default)"""
-        self.role = config.get('UNDABABLE_ROLE', guild_id=ctx.guild.id)
+        self.role = config.get('UNDABBABLE_ROLE', guild_id=ctx.guild.id)
         await self.remove_roles(ctx, self.role)
 
     @commands.command()
     @commands.guild_only()
-    @commands.check(check_undabable_role)
-    @commands.check(has_not_undabable_role)
-    async def undabable(self, ctx):
+    @commands.check(check_undabbable_role)
+    @commands.check(has_not_undabbable_role)
+    @commands.check(trigger_switch_cooldown)
+    async def undabbable(self, ctx):
         """Prevent people from dabbing on you"""
-        self.role = config.get('UNDABABLE_ROLE', guild_id=ctx.guild.id)
+        self.role = config.get('UNDABBABLE_ROLE', guild_id=ctx.guild.id)
         await self.add_roles(ctx, self.role)
 
 
