@@ -268,6 +268,8 @@ class StreamCommands:
         values = [(user['id'], name) for name, user in users_by_login.items()]
         out = await self.stream_db_driver.create(['id', 'name'], *values, ensure=True)
         LOG.info(f"Created streams: {out}")
+        await self.webhook_server.subscribe(*[stream.id for stream in out])
+        self.bot.streams.update({stream.id: stream for stream in out})
 
         # Create missing channel_streams
         values = [(ctx.channel.id, user['id'], tags) for user in users_by_login.values()]
@@ -309,8 +311,11 @@ class StreamCommands:
 
         user_ids = [user['id'] for user in users_by_login.values()]
         await self.channel_stream_db_driver.bulk_delete(ctx.channel.id, *user_ids)
-        await self.stream_db_driver.delete_old_streams()
         await self.channel_db_driver.delete_old_channels()
+        out = await self.stream_db_driver.delete_old_streams()
+        await self.webhook_server.unsubscribe(*[stream.id for stream in out])
+        for stream in out:
+            self.bot.streams.pop(stream.id, None)
 
     @stream.command(aliases=['rm', 'delete', 'del'])
     @commands.guild_only()

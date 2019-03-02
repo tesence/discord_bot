@@ -104,8 +104,9 @@ class StreamDBDriver(base.DBDriver):
         super(StreamDBDriver, self).__init__(bot, Stream)
 
     async def delete_old_streams(self):
-        query = f"DELETE FROM {self.table_name} WHERE id NOT IN (SELECT stream_id FROM {ChannelStream.__tablename__})"
-        await self.bot.pool.execute(query)
+        query = f"DELETE FROM {self.table_name} " \
+                f"WHERE id NOT IN (SELECT stream_id FROM {ChannelStream.__tablename__}) RETURNING *"
+        return [self._get_obj(r) for r in await self.bot.pool.fetch(query)]
 
 
 class ChannelStreamDBDriver(base.DBDriver):
