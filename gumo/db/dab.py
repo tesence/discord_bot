@@ -54,6 +54,7 @@ class DabDBDriver(base.DBDriver):
             f"WHERE guild_id = $3 AND author_id = $4 AND created_at = $5"
         await self.bot.pool.execute(q, new_amount, rerolled_at,  guild_id, author.id, created_at)
 
-    async def get_user_data(self, author_id):
+    async def get_user_data(self, guild_id, author_id):
         return await self.bot.pool.fetch("SELECT created_at, author_id, target_id, amount, rerolled_amount "
-                                         "FROM dabs WHERE author_id = $1 OR target_id = $1", author_id)
+                                         "FROM dabs WHERE guild_id = $1 AND (author_id = $2 OR target_id = $2)",
+                                         guild_id, author_id)

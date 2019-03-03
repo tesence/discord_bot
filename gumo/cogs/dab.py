@@ -95,7 +95,7 @@ class DabCommands(role.RoleCommands):
             return user == ctx.author and str(reaction.emoji) == emoji.RECYCLING
 
         try:
-            reaction, user = await self.bot.wait_for('reaction_add', check=check, timeout=30.0)
+            reaction, _ = await self.bot.wait_for('reaction_add', check=check, timeout=30.0)
         except futures.TimeoutError:
             LOG.debug(f"[{channel_repr}] {ctx.author} did not reroll his last dab")
             return
@@ -111,7 +111,7 @@ class DabCommands(role.RoleCommands):
     async def stats(self, ctx, *, member: discord.Member=None):
 
         author = member or ctx.author
-        records = await self.driver.get_user_data(author.id)
+        records = await self.driver.get_user_data(ctx.guild.id, author.id)
 
         nemesis = collections.defaultdict(lambda: 0)
         victims = collections.defaultdict(lambda: 0)
