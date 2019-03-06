@@ -55,7 +55,7 @@ def has_not_undabbable_role(ctx):
 class DabCommands(role.RoleCommands):
 
     def __init__(self, bot):
-        super(DabCommands, self).__init__()
+        super().__init__()
         self.display_name = "Dab"
         self.bot = bot
         self.driver = db.DabDBDriver(bot)

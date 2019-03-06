@@ -68,7 +68,7 @@ class NotificationEmbed(discord.Embed):
     OFFLINE_COLOR = discord.Color.lighter_grey()
 
     def __init__(self, stream):
-        super(NotificationEmbed, self).__init__()
+        super().__init__()
         self.stream = stream
 
         channel_url = f"https://www.twitch.tv/{stream.name}"
@@ -90,7 +90,7 @@ class NotificationEmbed(discord.Embed):
 class StreamListEmbed(discord.Embed):
     """Build the embed to return on !stream list call"""
     def __init__(self, streams_by_channel):
-        super(StreamListEmbed, self).__init__()
+        super().__init__()
 
         self.set_author(name="Streams", icon_url=TWITCH_ICON_URL)
         for channel, streams in sorted(streams_by_channel.items(), key=lambda x: x[0].position):

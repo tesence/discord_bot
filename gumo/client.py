@@ -27,7 +27,7 @@ async def get_prefix(bot, message):
 class Bot(commands.Bot):
 
     def __init__(self, *args, **kwargs):
-        super(Bot, self).__init__(*args, command_prefix=get_prefix, **kwargs)
+        super().__init__(*args, command_prefix=get_prefix, **kwargs)
         self.pool = None
         self.remove_command('help')
         self.add_check(self.check_extension_access)
@@ -104,7 +104,7 @@ class Bot(commands.Bot):
     async def start(self, *args, **kwargs):
         try:
             token = config.glob['DISCORD_BOT_TOKEN']
-            await super(Bot, self).start(token, *args, **kwargs)
+            await super().start(token, *args, **kwargs)
         except ConnectionError:
             LOG.exception("Cannot connect to the websocket")
 

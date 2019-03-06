@@ -91,7 +91,7 @@ class ChannelStream(base.BaseModel):
 class ChannelDBDriver(base.DBDriver):
 
     def __init__(self, bot):
-        super(ChannelDBDriver, self).__init__(bot, Channel)
+        super().__init__(bot, Channel)
 
     async def delete_old_channels(self):
         query = f"DELETE FROM {self.table_name} WHERE id NOT IN (SELECT channel_id FROM {ChannelStream.__tablename__})"
@@ -101,7 +101,7 @@ class ChannelDBDriver(base.DBDriver):
 class StreamDBDriver(base.DBDriver):
 
     def __init__(self, bot):
-        super(StreamDBDriver, self).__init__(bot, Stream)
+        super().__init__(bot, Stream)
 
     async def delete_old_streams(self):
         query = f"DELETE FROM {self.table_name} " \
@@ -112,7 +112,7 @@ class StreamDBDriver(base.DBDriver):
 class ChannelStreamDBDriver(base.DBDriver):
 
     def __init__(self, bot):
-        super(ChannelStreamDBDriver, self).__init__(bot, ChannelStream)
+        super().__init__(bot, ChannelStream)
 
     async def bulk_delete(self, channel_id, *user_ids):
         query = f"DELETE FROM {self.table_name} WHERE channel_id = $1 AND "

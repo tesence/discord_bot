@@ -39,21 +39,21 @@ class APIError(Exception):
         self.message = message
         if original:
             self.message += f" - {original.message} ({original.status})"
-        super(APIError, self).__init__(self.message)
+        super().__init__(self.message)
 
 
 class APIClientError(APIError):
 
     def __init__(self, original):
         message = "Invalid Request"
-        super(APIClientError, self).__init__(message, original)
+        super().__init__(message, original)
 
 
 class APIServerError(APIError):
 
     def __init__(self, original):
         message = "Server Error"
-        super(APIServerError, self).__init__(message, original)
+        super().__init__(message, original)
 
 
 class APIClient:

@@ -14,7 +14,7 @@ class PronounRoleCommands(role.RoleCommands):
     ROLES = ["He/Him", "She/Her", "They/Them"]
 
     def __init__(self, bot):
-        super(PronounRoleCommands, self).__init__()
+        super().__init__()
         self.display_name = "Pronoun roles"
         self.bot = bot
         self.roles = multidict.CIMultiDict(**{role_name: role_name for role_name in self.ROLES})

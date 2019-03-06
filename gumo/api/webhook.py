@@ -19,7 +19,7 @@ SUBSCRIPTION_DURATION = 86400
 class TokenSession(base.APIClient):
 
     def __init__(self, loop):
-        super(TokenSession, self).__init__(loop=loop)
+        super().__init__(loop=loop)
         self._token = None
         self._expires_at = None
 
@@ -62,7 +62,7 @@ class TwitchWebhookServer(base.APIClient):
 
     def __init__(self, loop, callback):
         headers = {"Client-ID": config.glob['TWITCH_API_CLIENT_ID']}
-        super(TwitchWebhookServer, self).__init__(headers=headers, loop=loop, bucket=base.RateBucket(800, 60))
+        super().__init__(headers=headers, loop=loop, bucket=base.RateBucket(800, 60))
         self._app = sanic.Sanic(configure_logging=False)
         self._app.add_route(self._handle_get, "/", methods=['GET'])
         self._app.add_route(self._handle_post, "/", methods=['POST'])

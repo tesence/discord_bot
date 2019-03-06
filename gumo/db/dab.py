@@ -34,7 +34,7 @@ class Dabs(base.BaseModel):
 class DabDBDriver(base.DBDriver):
 
     def __init__(self, bot):
-        super(DabDBDriver, self).__init__(bot, Dabs)
+        super().__init__(bot, Dabs)
 
     async def insert_dabs(self, guild_id, author, amount, created_at, *targets):
 

@@ -14,7 +14,7 @@ class MissingGuildIDError(Exception):
 
     def __init__(self, attribute):
         message = f"The file '{attribute}' is missing a guild id"
-        super(MissingGuildIDError, self).__init__(message)
+        super().__init__(message)
 
 
 class Config:

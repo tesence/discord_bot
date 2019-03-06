@@ -29,7 +29,7 @@ class Tags(base.BaseModel):
 class TagDBDriver(base.DBDriver):
 
     def __init__(self, bot):
-        super(TagDBDriver, self).__init__(bot, Tags)
+        super().__init__(bot, Tags)
 
     async def increment_usage(self, code, guild_id=None):
         query = f"UPDATE {self.table_name} SET usage = usage + 1 " \

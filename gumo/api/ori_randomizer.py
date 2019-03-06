@@ -40,7 +40,7 @@ AMBIGUOUS_PRESETS = ["glitched"]
 class OriRandomizerAPIClient(base.APIClient):
 
     def __init__(self, loop):
-        super(OriRandomizerAPIClient, self).__init__(loop=loop)
+        super().__init__(loop=loop)
 
     async def get_data(self, seed, preset, key_mode=None, path_diff=None, goal_modes=(), variations=(), logic_paths=(),
                        flags=()):

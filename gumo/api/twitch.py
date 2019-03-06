@@ -16,7 +16,7 @@ class TwitchAPIClient(base.APIClient):
         headers = {
             "Client-ID": config.glob['TWITCH_API_CLIENT_ID'],
         }
-        super(TwitchAPIClient, self).__init__(headers=headers, loop=loop)
+        super().__init__(headers=headers, loop=loop)
 
     async def get_users_by_login(self, *user_logins):
         """Retrieve all users.
