@@ -119,7 +119,7 @@ class ChannelStreamDBDriver(base.DBDriver):
         query += f"({' OR '.join([f'stream_id = ${index}' for index in range(2, len(user_ids) + 2)])})"
         await self.bot.pool.execute(query, channel_id, *user_ids)
 
-    async def get_stream_list(self, guild_id, guild_only=True):
+    async def get_user_logins(self, guild_id, guild_only=True):
         c_table = Channel.__tablename__
         s_table = Stream.__tablename__
         cs_table = ChannelStream.__tablename__

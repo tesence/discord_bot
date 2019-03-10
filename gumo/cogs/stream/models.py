@@ -85,13 +85,3 @@ class NotificationEmbed(discord.Embed):
             self.color = self.ONLINE_COLOR if self.stream.type == "live" else self.VODCAST_COLOR
         else:
             self.color = self.OFFLINE_COLOR
-
-
-class StreamListEmbed(discord.Embed):
-    """Build the embed to return on !stream list call"""
-    def __init__(self, streams_by_channel):
-        super().__init__()
-
-        self.set_author(name="Streams", icon_url=TWITCH_ICON_URL)
-        for channel, streams in sorted(streams_by_channel.items(), key=lambda x: x[0].position):
-            self.add_field(name=channel.name, value=", ".join(sorted(streams)).replace('_', '\_'), inline=False)

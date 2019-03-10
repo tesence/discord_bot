@@ -230,7 +230,7 @@ class StreamCommands:
     async def list(self, ctx):
         """Show the list of the current tracked streams."""
         channel_repr = utils.get_channel_repr(ctx.channel)
-        records = await self.channel_stream_db_driver.get_stream_list(ctx.guild.id)
+        records = await self.channel_stream_db_driver.get_user_logins(ctx.guild.id)
 
         if not records:
             return
@@ -250,10 +250,16 @@ class StreamCommands:
         # Build an embed displaying the output data.
         # - The discord channels are sorted in the same order as on the server
         # - The stream names are sorted in alphabetical order
-        message = "Tracked channels"
-        embed = models.StreamListEmbed(streams_by_channel)
+        message = ""
 
-        await self.bot.send(ctx.channel, message, embed=embed, reaction=True)
+        for channel, user_logins in sorted(streams_by_channel.items(), key=lambda x: x[0].position):
+            channel_name = f"**#{channel.name}**"
+            user_logins = [f"`{user_login}`" for user_login in sorted(user_logins)]
+
+            message += channel_name + "\n"
+            message += ", ".join(user_logins) + "\n\n"
+
+        await self.bot.send(ctx.channel, content=message)
         LOG.debug(f"[{channel_repr}] Database: {streams_by_channel}")
 
     async def _add_streams(self, ctx, *user_logins, tags=None):
