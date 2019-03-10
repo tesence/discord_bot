@@ -32,7 +32,7 @@ class TagCommands:
         channel_repr = utils.get_channel_repr(ctx.channel)
         tag = await self.driver.increment_usage(code=code, guild_id=ctx.guild.id)
         if tag:
-            await self.bot.send(ctx.channel, tag.content)
+            await ctx.send(tag.content)
         else:
             LOG.warning(f"[{channel_repr}] The tag '{code}' does not exist")
 
@@ -77,7 +77,7 @@ class TagCommands:
         result = [f'`{tag.code}`' if not re.match(EMOJI_REGEX, tag.code) else tag.code
                   for tag in await self.driver.list(guild_id=ctx.guild.id)]
         result = "**Available tags**: " + ', '.join(tag for tag in result)
-        await self.bot.send(ctx.channel, result)
+        await ctx.send(result)
 
 
 def setup(bot):

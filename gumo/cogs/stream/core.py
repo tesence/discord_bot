@@ -136,7 +136,7 @@ class StreamCommands:
                 await recent_notification.edit(content=message, embed=embed)
                 LOG.debug(f"[{channel_repr}] '{stream.name}' was live recently, recent notification edited")
             else:
-                notification = await self.bot.send(channel, message, embed=embed)
+                notification = await channel.send(message, embed=embed)
                 stream.notifications_by_channel_id[channel.id].append(notification)
                 LOG.debug(f"[{channel_repr}] Notification for '{stream.name}' sent")
 
@@ -259,7 +259,7 @@ class StreamCommands:
             message += channel_name + "\n"
             message += ", ".join(user_logins) + "\n\n"
 
-        await self.bot.send(ctx.channel, content=message)
+        await ctx.send(message)
         LOG.debug(f"[{channel_repr}] Database: {streams_by_channel}")
 
     async def _add_streams(self, ctx, *user_logins, tags=None):

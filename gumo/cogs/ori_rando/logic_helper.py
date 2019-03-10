@@ -125,7 +125,7 @@ class OriLogicHelperCommands:
 
         LOG.debug(f"[{channel_repr}] Finished parsing. final url: {url}")
 
-        await self.bot.send(ctx.channel, f"Logic Helper Link: {url}")
+        await ctx.send(f"Logic Helper Link: {url}")
         LOG.debug(f"[{channel_repr}] Sent URL to discord")
 
 

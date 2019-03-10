@@ -87,7 +87,7 @@ class DabCommands(role.RoleCommands):
         cleaned_author_name = await cls.convert(ctx, ctx.author.display_name)
         answer = f"{cleaned_author_name} dabs on {dabbed} **{amount}** times!"
         LOG.debug(f"[{channel_repr}] {answer}")
-        message = await self.bot.send(ctx.channel, f"{cleaned_author_name} dabs on {dabbed} **{amount}** times!")
+        message = await ctx.send(f"{cleaned_author_name} dabs on {dabbed} **{amount}** times!")
         await message.add_reaction(emoji.RECYCLING)
         await self.driver.insert_dabs(ctx.guild.id, ctx.author, amount, ctx.message.created_at, *target_members)
 
@@ -145,7 +145,7 @@ class DabCommands(role.RoleCommands):
             v_amount, victim_id = max(zip(victims.values(), victims.keys()) or 0)
             output += f"Victim: `{ctx.guild.get_member(victim_id)}` ({v_amount})\n"
 
-        await self.bot.send(ctx.channel, output)
+        await ctx.send(output)
 
     @commands.command()
     @commands.guild_only()

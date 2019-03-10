@@ -33,7 +33,7 @@ class Help:
                 output = await self._help_command(ctx, cmd)
 
         if output:
-            await self.bot.send(ctx.channel, output)
+            await ctx.send(output)
 
     async def _help_global(self, ctx):
         filtered_commands = [cmd for cmd in self.bot.commands

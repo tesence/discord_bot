@@ -121,11 +121,3 @@ class Bot(commands.Bot):
                 LOG.debug(f"The extension '{extension}' has been successfully loaded")
             except (discord.ClientException, ModuleNotFoundError):
                 LOG.exception(f"Failed to load extension '{extension}'")
-
-    async def send(self, channel, content=None, reaction=False, code_block=False, **kwargs):
-        if code_block:
-            content = utils.code_block(content)
-        message = await channel.send(content=content, **kwargs)
-        if reaction:
-            await message.add_reaction(emoji.WASTEBASKET)
-        return message

@@ -131,9 +131,8 @@ class OriRandoSeedGenCommands:
             message += f"**Map**: {ori_randomizer.SEEDGEN_API_URL + data['map_url']}\n"
             message += f"**History**: {ori_randomizer.SEEDGEN_API_URL + data['history_url']}\n"
 
-        await self.bot.send(ctx.channel, message,
-                            files=[discord.File(seed_buffer, filename=SEED_FILENAME),
-                                   discord.File(spoiler_buffer, filename=SPOILER_FILENAME)])
+        await ctx.send(message, files=[discord.File(seed_buffer, filename=SEED_FILENAME),
+                                       discord.File(spoiler_buffer, filename=SPOILER_FILENAME)])
         LOG.debug(f"[{channel_repr}] The files have correctly been sent in Discord")
 
     async def _seed(self, ctx, args, seed_name=None):
@@ -141,7 +140,7 @@ class OriRandoSeedGenCommands:
         if not seed_name:
             seed_name = str(random.randint(1, 1000000000))
         args = [arg.lower() for arg in args.split()]
-        download_message = await self.bot.send(ctx.channel, f"{self._get_download_message()}...")
+        download_message = await ctx.send(f"{self._get_download_message()}...")
         LOG.debug(f"[{channel_repr}] Downloading the seed data: '{download_message.content}'")
         try:
             data = await self._get_seed_data(seed_name, args)
