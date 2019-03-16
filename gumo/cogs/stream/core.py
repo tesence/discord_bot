@@ -1,12 +1,13 @@
 import asyncio
 import collections
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
+import re
 
 from discord import errors
 from discord.ext import commands
 
-from gumo import api
+from gumo.api import twitch
 from gumo.check import is_admin
 from gumo import config
 from gumo.cogs.stream import models
@@ -15,8 +16,6 @@ from gumo import emoji
 from gumo import utils
 
 LOG = logging.getLogger(__name__)
-
-DEFAULT_WEBHOOK_PORT = 8888
 
 
 class MissingStreamName(commands.MissingRequiredArgument):
@@ -31,8 +30,8 @@ class StreamCommands:
         self.__module__ = "stream"
         self.display_name = "Twitch"
         self.bot = bot
-        self.client = api.TwitchAPIClient(self.bot.loop)
-        self.webhook_server = api.TwitchWebhookServer(self.bot.loop, self.on_webhook_event)
+        self.client = twitch.TwitchAPIClient(self.bot.loop)
+        self.webhook_server = twitch.TwitchWebhookServer(self.bot.loop, self.on_webhook_event)
         self.stream_db_driver = db.StreamDBDriver(self.bot)
         self.channel_db_driver = db.ChannelDBDriver(self.bot)
         self.channel_stream_db_driver = db.ChannelStreamDBDriver(self.bot)
@@ -54,7 +53,7 @@ class StreamCommands:
         previous_streams = getattr(self.bot, 'streams', None)
         self.bot.streams = previous_streams or {stream.id: stream for stream in await self.stream_db_driver.list()}
 
-        await self.webhook_server.start("0.0.0.0", config.glob.get('WEBHOOK_PORT', DEFAULT_WEBHOOK_PORT))
+        await self.webhook_server.start()
 
         await self.bot.wait_until_ready()
 
@@ -72,7 +71,7 @@ class StreamCommands:
         for task in self.tasks:
             task.add_done_callback(task_done_callback)
 
-    async def on_webhook_event(self, user_id, body):
+    async def on_webhook_event(self, topic, user_id, body):
         LOG.debug(f"Webhook data received for '{user_id}': {body}")
 
         user_data = (await self.client.get_users_by_id(user_id))[user_id]
@@ -186,13 +185,38 @@ class StreamCommands:
                 stream.notifications_by_channel_id[channel.id].remove(notification)
 
     async def update_subscriptions(self):
-        LOG.debug("Subscriptions refresh task running...")
-        while True:
-            try:
-                await self.webhook_server.update_subscriptions([user_id for user_id in self.bot.streams])
-                await asyncio.sleep(3600)
-            except api.APIError:
-                await asyncio.sleep(10)
+        subscriptions = await self.webhook_server.list_subscriptions()
+        subcribed_users_by_id = {
+            re.search(r".*https://api\.twitch\.tv/helix/streams\?user_id=(\d+).*", sub['topic']).group(1): sub
+            for sub in subscriptions['data']
+        }
+
+        missing_subscriptions = set()
+        outdated_subscriptions = set()
+        now = datetime.utcnow()
+
+        for user_id in [user_id for user_id in self.bot.streams]:
+
+            # If the subscription is missing
+            if user_id not in subcribed_users_by_id:
+                missing_subscriptions.add(user_id)
+
+            else:
+                expires_at = subcribed_users_by_id[user_id]['expires_at']
+                duration_left = datetime.strptime(expires_at, "%Y-%m-%dT%H:%M:%SZ") - now
+
+                # If the subscription expires in less than an hour
+                if duration_left < timedelta(seconds=33200):
+                    outdated_subscriptions.add(user_id)
+
+        if missing_subscriptions:
+            LOG.info(f"No subscription for users: {missing_subscriptions}")
+
+        if outdated_subscriptions:
+            LOG.info(f"Outdated subscriptions for users: {outdated_subscriptions}")
+
+        await self.webhook_server.cancel(twitch.StreamChanged, *outdated_subscriptions)
+        await self.webhook_server.subscribe(twitch.StreamChanged, *missing_subscriptions | outdated_subscriptions)
 
     async def delete_old_notifications(self):
         """Delete the old offline stream notifications."""
@@ -274,7 +298,7 @@ class StreamCommands:
         values = [(user['id'], name) for name, user in users_by_login.items()]
         out = await self.stream_db_driver.create(['id', 'name'], *values, ensure=True)
         LOG.info(f"Created streams: {out}")
-        await self.webhook_server.subscribe(*[stream.id for stream in out])
+        await self.webhook_server.subscribe(twitch.StreamChanged, *[stream.id for stream in out])
         self.bot.streams.update({stream.id: stream for stream in out})
 
         # Create missing channel_streams
@@ -319,7 +343,7 @@ class StreamCommands:
         await self.channel_stream_db_driver.bulk_delete(ctx.channel.id, *user_ids)
         await self.channel_db_driver.delete_old_channels()
         out = await self.stream_db_driver.delete_old_streams()
-        await self.webhook_server.unsubscribe(*[stream.id for stream in out])
+        await self.webhook_server.cancel(twitch.StreamChanged, *[stream.id for stream in out])
         for stream in out:
             self.bot.streams.pop(stream.id, None)
 
