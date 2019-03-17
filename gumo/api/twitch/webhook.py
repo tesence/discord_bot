@@ -144,33 +144,53 @@ class TwitchWebhookServer(base.APIClient):
 
     async def subscribe(self, topic, *user_ids, duration=86400):
         headers = await self._token_session.get_authorization_header()
-        for user_id in user_ids:
-            data = await self._get_webhook_action_params('subscribe', topic, user_id, lease_seconds=duration)
-            await self.post(f"{WEBHOOK_URL}/hub", data, headers=headers)
 
-            self._pending_subscriptions[data['hub.topic']] = asyncio.Event()
-            try:
-                await asyncio.wait_for(self._pending_subscriptions[data['hub.topic']].wait(), timeout=10.0)
-            except asyncio.TimeoutError:
-                LOG.error(f"Subscription failed (parameters={data})")
-            else:
-                LOG.info(f"Subscription successful (parameters={data})")
-            self._pending_subscriptions.pop(data['hub.topic'])
+        tasks = {user_id: self._subscribe(topic, user_id, duration, headers) for user_id in user_ids}
+        await asyncio.gather(*tasks.values())
+
+        if not len(tasks) == len([task for task in tasks.values() if task]):
+            LOG.warning(f"Subscriptions failed: {[user_id for user_id, task in tasks.items() if not task]}")
+
+    async def _subscribe(self, topic, user_id, duration, headers):
+        success = False
+
+        data = await self._get_webhook_action_params('subscribe', topic, user_id, lease_seconds=duration)
+        self._pending_subscriptions[data['hub.topic']] = asyncio.Event()
+        await self.post(f"{WEBHOOK_URL}/hub", data, headers=headers)
+
+        try:
+            await asyncio.wait_for(self._pending_subscriptions[data['hub.topic']].wait(), timeout=10.0)
+        except asyncio.TimeoutError:
+            pass
+        else:
+            success = True
+        self._pending_subscriptions.pop(data['hub.topic'])
+        return success
 
     async def cancel(self, topic, *user_ids):
         headers = await self._token_session.get_authorization_header()
-        for user_id in user_ids:
-            data = await self._get_webhook_action_params('unsubscribe', topic, user_id)
-            await self.post(f"{WEBHOOK_URL}/hub", data, headers=headers)
 
-            self._pending_cancellation[data['hub.topic']] = asyncio.Event()
-            try:
-                await asyncio.wait_for(self._pending_cancellation[data['hub.topic']].wait(), timeout=10.0)
-            except asyncio.TimeoutError:
-                LOG.error(f"Cancellation failed (parameters={data})")
-            else:
-                LOG.info(f"Cancellation successful (parameters={data})")
-            self._pending_cancellation.pop(data['hub.topic'])
+        tasks = {user_id: self._cancel(topic, user_id, headers) for user_id in user_ids}
+        await asyncio.gather(*tasks.values())
+
+        if not len(tasks) == len([task for task in tasks.values() if task]):
+            LOG.warning(f"Cancellations failed: {[user_id for user_id, task in tasks.items() if not task]}")
+
+    async def _cancel(self, topic, user_id, headers):
+        success = False
+
+        data = await self._get_webhook_action_params('unsubscribe', topic, user_id)
+        await self.post(f"{WEBHOOK_URL}/hub", data, headers=headers)
+        self._pending_cancellation[data['hub.topic']] = asyncio.Event()
+
+        try:
+            await asyncio.wait_for(self._pending_cancellation[data['hub.topic']].wait(), timeout=10.0)
+        except asyncio.TimeoutError:
+            pass
+        else:
+            success = True
+        self._pending_cancellation.pop(data['hub.topic'])
+        return success
 
     @log_request
     async def _handle_get(self, request, topic, user_id):
@@ -182,7 +202,7 @@ class TwitchWebhookServer(base.APIClient):
             return response.HTTPResponse(body='200: OK', status=200)
 
         if challenge:
-            LOG.debug(f"Challenge received: {challenge}")
+            LOG.info(f"Challenge received: {challenge}")
             try:
                 if mode == 'subscribe':
                     self._pending_subscriptions[request.args['hub.topic'][0]].set()
