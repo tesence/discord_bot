@@ -1,3 +1,4 @@
+import abc
 import asyncio
 import collections
 from datetime import datetime, timedelta
@@ -12,6 +13,7 @@ from sanic import response
 
 from gumo.api import base
 from gumo import config
+
 
 LOG = logging.getLogger(__name__)
 
@@ -128,7 +130,7 @@ class TwitchWebhookServer(base.APIClient):
         external_host = await self._get_external_host()
         data = {
             'hub.mode': mode,
-            'hub.topic': topic(user_id).as_uri,
+            'hub.topic': topic.get_uri(user_id=user_id),
             'hub.callback': f"{external_host}/{topic.NAME}/{user_id}",
             'hub.lease_seconds': lease_seconds,
             'hub.secret': config.glob['TWITCH_WEBHOOK_SECRET']
@@ -153,7 +155,7 @@ class TwitchWebhookServer(base.APIClient):
                 LOG.error(f"Subscription failed (parameters={data})")
             else:
                 LOG.info(f"Subscription successful (parameters={data})")
-            self._pending_subscriptions.pop(data['hub.topic'], None)
+            self._pending_subscriptions.pop(data['hub.topic'])
 
     async def cancel(self, topic, *user_ids):
         headers = await self._token_session.get_authorization_header()
@@ -168,7 +170,7 @@ class TwitchWebhookServer(base.APIClient):
                 LOG.error(f"Cancellation failed (parameters={data})")
             else:
                 LOG.info(f"Cancellation successful (parameters={data})")
-            self._pending_cancellation.pop(data['hub.topic'], None)
+            self._pending_cancellation.pop(data['hub.topic'])
 
     @log_request
     async def _handle_get(self, request, topic, user_id):
@@ -187,7 +189,8 @@ class TwitchWebhookServer(base.APIClient):
                 elif mode == 'unsubscribe':
                     self._pending_cancellation[request.args['hub.topic'][0]].set()
             except KeyError:
-                pass
+                LOG.warning(f"A challenged has been received, {topic.NAME}/{user_id} but there is no pending action, "
+                            f"the subscription might have been made externally")
             return response.HTTPResponse(body=challenge, headers={'Content-Type': 'application/json'})
 
     @log_request
@@ -202,21 +205,30 @@ class TwitchWebhookServer(base.APIClient):
             self._server = await self._app.create_server(host=self._host, port=self._port)
             LOG.debug(f"Webhook server listening on {self._host}:{self._port}")
         except OSError:
-            LOG.exception("A webhook server is already running")
+            LOG.exception("Cannot start the webhook server")
 
     def stop(self):
         LOG.debug(f"Stopping webhook server...")
         self._server.close()
+        LOG.debug(f"Webhook server successfully stopped")
 
 
-class StreamChanged:
+class Topic(abc.ABC):
+
+    NAME = None
+    URL = None
+
+    __slots__ = ()
+
+    @classmethod
+    def get_uri(cls, **kwargs):
+        params = [(slot, value) for slot, value in kwargs.items() if slot in cls.__slots__]
+        return f"{cls.URL}?{parse.urlencode(params)}"
+
+
+class StreamChanged(Topic):
 
     NAME = "streams"
     URL = f"{TWITCH_API_URL}/streams"
 
-    @property
-    def as_uri(self):
-        return f"{self.URL}?user_id={self.user_id}"
-
-    def __init__(self, user_id):
-        self.user_id = user_id
+    __slots__ = ('user_id',)
