@@ -11,7 +11,7 @@ from gumo import emoji
 LOG = logging.getLogger(__name__)
 
 
-class AdminCommands:
+class AdminCommands(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
@@ -34,8 +34,7 @@ class AdminCommands:
         # Reloading the extensions
         for extension in extensions:
             extension = f'gumo.cogs.{extension}'
-            self.bot.unload_extension(extension)
-            self.bot.load_extension(extension)
+            self.bot.reload_extension(extension)
             LOG.debug(f"Extension '{extension}' reloaded")
 
         await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)

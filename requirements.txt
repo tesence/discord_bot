@@ -1,6 +1,6 @@
+-e git+https://github.com/Rapptz/discord.py@rewrite#egg=discord.py[voice]
+
 asyncpg
 pytz
 pyyaml
 sanic
-
--e git+https://github.com/Rapptz/discord.py@rewrite#egg=discord.py[voice]

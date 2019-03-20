@@ -31,7 +31,7 @@ GOAL_MODES['fm', 'forcemapstones', 'force-mapstones'] = "ForceMapStones"
 SEEDGEN_COOLDOWN = 0
 
 
-class OriRandoSeedGenCommands:
+class OriRandoSeedGenCommands(commands.Cog):
 
     def __init__(self, bot):
         self.display_name = "Ori rando"

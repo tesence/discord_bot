@@ -85,7 +85,7 @@ class Bot(commands.Bot):
         channel = self.get_channel(payload.channel_id)
         user = self.get_user(payload.user_id)
 
-        message = await channel.get_message(payload.message_id)
+        message = await channel.fetch_message(payload.message_id)
         payload_emoji = payload.emoji.name
         author = message.author
         embed = message.embeds[0] if message.embeds else None

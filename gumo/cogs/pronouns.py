@@ -8,7 +8,7 @@ from gumo.cogs.utils import role
 LOG = logging.getLogger(__name__)
 
 
-class PronounRoleCommands(role.RoleCommands):
+class PronounRoleCommands(commands.Cog, role.RoleCommands):
 
     GUILD_ID = 116250700685508615
     ROLES = ["He/Him", "She/Her", "They/Them"]

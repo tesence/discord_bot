@@ -9,7 +9,7 @@ from gumo.cogs.utils import role
 LOG = logging.getLogger(__name__)
 
 
-class OriRandoRoleCommands(role.RoleCommands):
+class OriRandoRoleCommands(commands.Cog, role.RoleCommands):
 
     def __init__(self, bot):
         self.display_name = "Ori rando"

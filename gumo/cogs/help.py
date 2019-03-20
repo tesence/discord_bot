@@ -13,7 +13,7 @@ async def _can_run(ctx, cmd):
         return False
 
 
-class Help:
+class Help(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
@@ -44,7 +44,7 @@ class Help:
         command_tree = collections.defaultdict(list)
 
         for cmd in filtered_commands:
-            cog_name = getattr(cmd.instance, "display_name", cmd.cog_name)
+            cog_name = getattr(cmd.cog, "display_name", cmd.cog_name)
             command_tree[cog_name].append(cmd)
 
         output = ""

@@ -52,7 +52,7 @@ def has_not_undabbable_role(ctx):
     return not _has_undabbable_role(ctx)
 
 
-class DabCommands(role.RoleCommands):
+class DabCommands(commands.Cog, role.RoleCommands):
 
     def __init__(self, bot):
         super().__init__()

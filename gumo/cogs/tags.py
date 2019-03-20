@@ -15,7 +15,7 @@ REGEX = re.compile('^([^"]+)[^"]*(".*")$', re.MULTILINE | re.DOTALL)
 EMOJI_REGEX = re.compile("^<:\w+:\d+>$")
 
 
-class TagCommands:
+class TagCommands(commands.Cog):
 
     def __init__(self, bot):
         self.display_name = "Tag"

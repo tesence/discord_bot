@@ -37,7 +37,7 @@ TP_NAMES = ["swamp", "grove", "valley", "grotto", "forlorn", "sorrow"]
 PRESETS = ["casual", "standard", "expert", "master", "glitched"]
 
 
-class OriLogicHelperCommands:
+class OriLogicHelperCommands(commands.Cog):
 
     def __init__(self, bot):
         self.display_name = "Ori rando"

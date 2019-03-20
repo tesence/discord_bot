@@ -24,10 +24,9 @@ class MissingStreamName(commands.MissingRequiredArgument):
         self.message = "At least one stream name is required"
 
 
-class StreamCommands:
+class StreamCommands(commands.Cog):
 
     def __init__(self, bot):
-        self.__module__ = "stream"
         self.display_name = "Twitch"
         self.bot = bot
         self.client = twitch.TwitchAPIClient(self.bot.loop)
@@ -39,7 +38,7 @@ class StreamCommands:
 
         self.bot.loop.create_task(self.init())
 
-    def __unload(self):
+    def cog_unload(self):
         self.webhook_server.stop()
         for task in self.tasks:
             task.cancel()
