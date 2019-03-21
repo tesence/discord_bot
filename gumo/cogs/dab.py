@@ -61,8 +61,7 @@ class DabCommands(commands.Cog, role.RoleCommands):
         self.driver = db.DabDBDriver(bot)
         self.role = None
 
-    async def on_ready(self):
-        await self.driver.init()
+        bot.loop.create_task(self.driver.init())
 
     @commands.group(invoke_without_command=True)
     @commands.guild_only()

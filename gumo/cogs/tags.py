@@ -22,8 +22,7 @@ class TagCommands(commands.Cog):
         self.bot = bot
         self.driver = db.TagDBDriver(self.bot)
 
-    async def on_ready(self):
-        await self.driver.init()
+        bot.loop.create_task(self.driver.init())
 
     @commands.group(invoke_without_command=True)
     @commands.guild_only()
