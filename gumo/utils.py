@@ -15,10 +15,6 @@ def code_block(message):
     return "```" + str(message) + "```"
 
 
-def get_extension_name_from_ctx(ctx):
-    return ctx.cog.__module__.split(".", 2)[-1]
-
-
 def get_channel_repr(channel):
     if isinstance(channel, discord.DMChannel):
         _repr = channel.recipient

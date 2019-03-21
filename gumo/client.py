@@ -10,10 +10,10 @@ from gumo import utils
 
 LOG = logging.getLogger(__name__)
 
-GLOBAL_EXTENSIONS = {'help', 'admin'}
+GLOBAL_EXTENSIONS = ['help', 'admin']
 
 DEFAULT_COMMAND_PREFIX = "!"
-DEFAULT_EXTENSIONS = {'ori_rando.seedgen', 'ori_rando.logic_helper'}
+DEFAULT_EXTENSIONS = ['ori_rando.seedgen', 'ori_rando.logic_helper']
 
 
 async def get_prefix(bot, message):
@@ -42,15 +42,14 @@ class Bot(commands.Bot):
                   f"'{ctx.author.display_name}': '{ctx.message.content}'")
 
     async def check_extension_access(self, ctx):
+
         if isinstance(ctx.channel, discord.DMChannel):
             return True
-        if not getattr(ctx, "cog"):
-            return True
-        extension_name = utils.get_extension_name_from_ctx(ctx)
-        if extension_name in GLOBAL_EXTENSIONS:
-            return True
-        allowed_extensions = config.get('EXTENSIONS', DEFAULT_EXTENSIONS, guild_id=ctx.guild.id)
-        return extension_name in allowed_extensions
+
+        extension_name = ctx.cog.__module__.split(".", 2)[-1]
+
+        whitelist = GLOBAL_EXTENSIONS + config.get('EXTENSIONS', DEFAULT_EXTENSIONS, guild_id=ctx.guild.id)
+        return any(extension_name.startswith(name) for name in whitelist)
 
     async def on_command_error(self, ctx, error):
         """The event triggered when an error is raised while invoking a command."""
@@ -111,7 +110,7 @@ class Bot(commands.Bot):
     def load_extensions(self):
         """Load all the extensions"""
         extensions_to_load = config.extensions_to_load
-        for extension in GLOBAL_EXTENSIONS | DEFAULT_EXTENSIONS | extensions_to_load:
+        for extension in GLOBAL_EXTENSIONS + DEFAULT_EXTENSIONS + list(extensions_to_load):
             extension = f"gumo.cogs.{extension}"
             if extension in self.extensions:
                 LOG.debug(f"The extension '{extension}' is already loaded")
