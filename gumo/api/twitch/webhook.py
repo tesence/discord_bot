@@ -120,18 +120,19 @@ class TwitchWebhookServer(base.APIClient):
         self._pending_subscriptions = {}
         self._pending_cancellation = {}
 
-    async def _get_external_host(self):
+        loop.create_task(self._set_external_host())
+
+    async def _set_external_host(self):
         if not self._external_host:
             external_ip = await self.get('https://api.ipify.org/')
             self._external_host = f"http://{external_ip}:{self._port}"
-        return self._external_host
+            LOG.debug(f"External host: {self._external_host}")
 
     async def _get_webhook_action_params(self, mode, topic, user_id, lease_seconds=0):
-        external_host = await self._get_external_host()
         data = {
             'hub.mode': mode,
             'hub.topic': topic.get_uri(user_id=user_id),
-            'hub.callback': f"{external_host}/{topic.NAME}/{user_id}",
+            'hub.callback': f"{self._external_host}/{topic.NAME}/{user_id}",
             'hub.lease_seconds': lease_seconds,
             'hub.secret': config.glob['TWITCH_WEBHOOK_SECRET']
         }
