@@ -129,7 +129,8 @@ class DBDriver:
     async def update(self, column, value, **filters):
         if not filters:
             raise RuntimeError("Cannot update using empty filters")
-        q = f"UPDATE {self.table_name} SET {column} = '{value}'  RETURNING *"
+        q = f"UPDATE {self.table_name} SET {column} = '{value}'"
         q += bool(filters) * f" WHERE {' AND '.join(f'{column} = ${index}' for index, column in enumerate(filters, 1))}"
+        q += " RETURNING *"
         record = await self.bot.pool.fetchrow(q, *filters.values())
         return self._get_obj(record)
