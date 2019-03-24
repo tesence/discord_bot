@@ -7,6 +7,7 @@ import re
 from discord import errors
 from discord.ext import commands
 
+from gumo import api
 from gumo.api import twitch
 from gumo.check import is_admin
 from gumo import config
@@ -184,38 +185,45 @@ class StreamCommands(commands.Cog):
                 stream.notifications_by_channel_id[channel.id].remove(notification)
 
     async def update_subscriptions(self):
-        subscriptions = await self.webhook_server.list_subscriptions()
-        subcribed_users_by_id = {
-            re.search(r".*https://api\.twitch\.tv/helix/streams\?user_id=(\d+).*", sub['topic']).group(1): sub
-            for sub in subscriptions['data']
-        }
+        LOG.debug("Subscriptions refresh task running...")
+        while True:
+            try:
+                subscriptions = await self.webhook_server.list_subscriptions()
+                subcribed_users_by_id = {
+                    re.search(r".*https://api\.twitch\.tv/helix/streams\?user_id=(\d+).*", sub['topic']).group(1): sub
+                    for sub in subscriptions['data']
+                }
 
-        missing_subscriptions = set()
-        outdated_subscriptions = set()
-        now = datetime.utcnow()
+                missing_subscriptions = set()
+                outdated_subscriptions = set()
+                now = datetime.utcnow()
 
-        for user_id in [user_id for user_id in self.bot.streams]:
+                for user_id in [user_id for user_id in self.bot.streams]:
 
-            # If the subscription is missing
-            if user_id not in subcribed_users_by_id:
-                missing_subscriptions.add(user_id)
+                    # If the subscription is missing
+                    if user_id not in subcribed_users_by_id:
+                        missing_subscriptions.add(user_id)
 
-            else:
-                expires_at = subcribed_users_by_id[user_id]['expires_at']
-                duration_left = datetime.strptime(expires_at, "%Y-%m-%dT%H:%M:%SZ") - now
+                    else:
+                        expires_at = subcribed_users_by_id[user_id]['expires_at']
+                        duration_left = datetime.strptime(expires_at, "%Y-%m-%dT%H:%M:%SZ") - now
 
-                # If the subscription expires in less than an hour
-                if duration_left < timedelta(seconds=33200):
-                    outdated_subscriptions.add(user_id)
+                        # If the subscription expires in less than 1 hour
+                        if duration_left < timedelta(seconds=3600):
+                            outdated_subscriptions.add(user_id)
 
-        if missing_subscriptions:
-            LOG.info(f"No subscription for users: {missing_subscriptions}")
+                if missing_subscriptions:
+                    LOG.info(f"No subscription for users: {missing_subscriptions}")
 
-        if outdated_subscriptions:
-            LOG.info(f"Outdated subscriptions for users: {outdated_subscriptions}")
+                if outdated_subscriptions:
+                    LOG.info(f"Outdated subscriptions for users: {outdated_subscriptions}")
 
-        await self.webhook_server.cancel(twitch.StreamChanged, *outdated_subscriptions)
-        await self.webhook_server.subscribe(twitch.StreamChanged, *missing_subscriptions | outdated_subscriptions)
+                await self.webhook_server.cancel(twitch.StreamChanged, *outdated_subscriptions)
+                await self.webhook_server.subscribe(twitch.StreamChanged,
+                                                    *missing_subscriptions | outdated_subscriptions)
+                await asyncio.sleep(600)
+            except api.APIError:
+                await asyncio.sleep(10)
 
     async def delete_old_notifications(self):
         """Delete the old offline stream notifications."""
