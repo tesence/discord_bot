@@ -1,8 +1,7 @@
 import asyncio
 import collections
-from datetime import datetime, timedelta
+from datetime import datetime
 import logging
-import re
 
 from discord import errors
 from discord.ext import commands
@@ -54,7 +53,6 @@ class StreamCommands(commands.Cog):
         self.bot.streams = previous_streams or {stream.id: stream for stream in await self.stream_db_driver.list()}
 
         await self.webhook_server.start()
-
         await self.bot.wait_until_ready()
 
         self.tasks.append(self.bot.loop.create_task(self.update_subscriptions()))
@@ -71,8 +69,9 @@ class StreamCommands(commands.Cog):
         for task in self.tasks:
             task.add_done_callback(task_done_callback)
 
-    async def on_webhook_event(self, topic, user_id, body):
-        LOG.debug(f"Webhook data received for '{user_id}': {body}")
+    async def on_webhook_event(self, topic, body):
+        user_id = topic.id
+        LOG.debug(f"Webhook data received for '{topic}': {body}")
 
         user_data = (await self.client.get_users_by_id(user_id))[user_id]
         LOG.debug(f"Related user data found for '{user_id}': {user_data}")
@@ -84,7 +83,6 @@ class StreamCommands(commands.Cog):
 
         if data:
             stream_data = data[0]
-
             current_name = user_data['login']
 
             if not current_name == stream.name:
@@ -189,38 +187,29 @@ class StreamCommands(commands.Cog):
         while True:
             try:
                 subscriptions = await self.webhook_server.list_subscriptions()
-                subcribed_users_by_id = {
-                    re.search(r".*https://api\.twitch\.tv/helix/streams\?user_id=(\d+).*", sub['topic']).group(1): sub
-                    for sub in subscriptions['data']
-                }
+                subscribed_users_by_id = {sub.topic.params['user_id']: sub for sub in subscriptions}
 
                 missing_subscriptions = set()
                 outdated_subscriptions = set()
-                now = datetime.utcnow()
 
                 for user_id in [user_id for user_id in self.bot.streams]:
 
                     # If the subscription is missing
-                    if user_id not in subcribed_users_by_id:
-                        missing_subscriptions.add(user_id)
+                    if user_id not in subscribed_users_by_id:
+                        missing_subscriptions.add(twitch.StreamChanged(user_id=user_id))
 
-                    else:
-                        expires_at = subcribed_users_by_id[user_id]['expires_at']
-                        duration_left = datetime.strptime(expires_at, "%Y-%m-%dT%H:%M:%SZ") - now
-
-                        # If the subscription expires in less than 1 hour
-                        if duration_left < timedelta(seconds=3600):
-                            outdated_subscriptions.add(user_id)
+                    # If the subscription expires in less than 1 hour
+                    elif subscribed_users_by_id[user_id].expires_in < 3600:
+                        outdated_subscriptions.add(twitch.StreamChanged(user_id=user_id))
 
                 if missing_subscriptions:
-                    LOG.info(f"No subscription for users: {missing_subscriptions}")
+                    LOG.info(f"No subscription for topics: {missing_subscriptions}")
 
                 if outdated_subscriptions:
-                    LOG.info(f"Outdated subscriptions for users: {outdated_subscriptions}")
+                    LOG.info(f"Outdated subscriptions for topics: {outdated_subscriptions}")
 
-                await self.webhook_server.cancel(twitch.StreamChanged, *outdated_subscriptions)
-                await self.webhook_server.subscribe(twitch.StreamChanged,
-                                                    *missing_subscriptions | outdated_subscriptions)
+                await self.webhook_server.cancel(*outdated_subscriptions)
+                await self.webhook_server.subscribe(*missing_subscriptions | outdated_subscriptions)
                 await asyncio.sleep(600)
             except api.APIError:
                 await asyncio.sleep(10)
@@ -305,7 +294,7 @@ class StreamCommands(commands.Cog):
         values = [(user['id'], name) for name, user in users_by_login.items()]
         out = await self.stream_db_driver.create(['id', 'name'], *values, ensure=True)
         LOG.info(f"Created streams: {out}")
-        await self.webhook_server.subscribe(twitch.StreamChanged, *[stream.id for stream in out])
+        await self.webhook_server.subscribe(*[twitch.StreamChanged(user_id=stream.id) for stream in out])
         self.bot.streams.update({stream.id: stream for stream in out})
 
         # Create missing channel_streams
@@ -350,7 +339,7 @@ class StreamCommands(commands.Cog):
         await self.channel_stream_db_driver.bulk_delete(ctx.channel.id, *user_ids)
         await self.channel_db_driver.delete_old_channels()
         out = await self.stream_db_driver.delete_old_streams()
-        await self.webhook_server.cancel(twitch.StreamChanged, *[stream.id for stream in out])
+        await self.webhook_server.cancel(*[twitch.StreamChanged(user_id=stream.id) for stream in out])
         for stream in out:
             self.bot.streams.pop(stream.id, None)
 
