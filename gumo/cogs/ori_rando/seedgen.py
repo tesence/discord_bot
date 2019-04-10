@@ -146,9 +146,9 @@ class OriRandoSeedGenCommands(commands.Cog):
             data = await self._get_seed_data(seed_name, args)
             await self._send_seed(ctx, data)
             await download_message.delete()
-        except api.APIError:
+        except (api.APIError, discord.HTTPException):
             error_message = "An error has occurred while generating the seed"
-            LOG.error(f"[{channel_repr}] {error_message}")
+            LOG.exception(f"[{channel_repr}] {error_message}")
             await download_message.edit(content=f"```{error_message}. Please try again later.```")
 
     @commands.command()
