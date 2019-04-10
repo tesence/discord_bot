@@ -93,6 +93,11 @@ class StreamCommands(commands.Cog):
             game_data = (await self.client.get_games_by_id(game_id)).get(game_id)
             game = game_data['name'].strip() if game_data else None
 
+            # Treat it as a test stream if there is no game set and if there is word "test" in the title
+            if "test" in stream_data['title'].strip().lower() and not game:
+                LOG.info(f"'{stream.name}' is doing a test stream, the notification is not sent")
+                return
+
             # Update old values
             stream.name = current_name
             stream.display_name = user_data['display_name']
