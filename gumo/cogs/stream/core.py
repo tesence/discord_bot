@@ -1,6 +1,7 @@
 import asyncio
 import collections
 from datetime import datetime
+import functools
 import logging
 
 from discord import errors
@@ -8,9 +9,9 @@ from discord.ext import commands
 
 from gumo import api
 from gumo.api import twitch
-from gumo.check import is_admin
+from gumo.check import is_owner, is_admin
 from gumo import config
-from gumo.cogs.stream import models
+from gumo.cogs.stream.models import NotificationHandler
 from gumo import db
 from gumo import emoji
 from gumo import utils
@@ -131,7 +132,7 @@ class StreamCommands(commands.Cog):
                           f"are not sent")
                 continue
             tags = channel_stream.tags
-            message, embed = models.NotificationHandler.get_info(stream, tags)
+            message, embed = NotificationHandler.get_info(stream, tags)
             recent_notification = stream.get_recent_notification(channel.id)
             if recent_notification:
                 await recent_notification.edit(content=message, embed=embed)
@@ -150,10 +151,10 @@ class StreamCommands(commands.Cog):
         stream.online = False
         stream.last_offline_date = datetime.utcnow()
         online_notifications = [notification for notification in stream.notifications
-                                if models.NotificationHandler.is_online(notification)]
+                                if NotificationHandler.is_online(notification)]
         for notification in online_notifications:
             channel = notification.channel
-            message, embed = models.NotificationHandler.get_info(stream)
+            message, embed = NotificationHandler.get_info(stream)
             try:
                 await notification.edit(content=message, embed=embed)
                 LOG.debug(f"Notification for '{stream.name}' edited")
@@ -168,10 +169,10 @@ class StreamCommands(commands.Cog):
         :param stream: The data of the stream being update
         """
         online_notifications = [notification for notification in stream.notifications
-                                if models.NotificationHandler.is_online(notification)]
+                                if NotificationHandler.is_online(notification)]
         for notification in online_notifications:
             channel = notification.channel
-            _, embed = models.NotificationHandler.extract_info(notification)
+            _, embed = NotificationHandler.extract_info(notification)
             fields = embed.fields
             embed.set_field_at(index=0, name=fields[0].name, value=stream.title, inline=fields[0].inline)
             embed.set_field_at(index=1, name=fields[1].name, value=stream.game, inline=fields[1].inline)
@@ -222,7 +223,7 @@ class StreamCommands(commands.Cog):
         while True:
             for stream in self.bot.streams.values():
                 old_notifications = [notification for notification in stream.notifications
-                                     if models.NotificationHandler.is_deprecated(notification)]
+                                     if NotificationHandler.is_deprecated(notification)]
                 for notification in old_notifications:
                     channel = notification.channel
                     try:
@@ -352,3 +353,33 @@ class StreamCommands(commands.Cog):
             raise MissingStreamName
         await self._remove_streams(ctx, *user_logins)
         await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
+
+    @stream.group()
+    @commands.check(is_owner)
+    async def notification(self, ctx):
+        """Manage notifications"""
+
+    @notification.command(name='list', hidden=True)
+    @commands.check(is_owner)
+    async def notification_list(self, ctx):
+        """List all the current notifications across all servers"""
+        output = collections.defaultdict(functools.partial(collections.defaultdict, list))
+        for stream in self.bot.streams.values():
+            for channel_id, notifications in stream.notifications_by_channel_id.items():
+                channel = self.bot.get_channel(channel_id)
+                guild = channel.guild
+                for notification in notifications:
+                    icon = emoji.RED_CIRCLE if NotificationHandler.is_online(notification) else emoji.WHITE_CIRCLE
+                    label = f"`{icon}{stream.name}`"
+                    output[guild][channel].append(label)
+
+        if not output:
+            return
+
+        message = ""
+        for guild, labels_by_channel in output.items():
+            message += f"**{guild.name}**\n"
+            for channel, labels in sorted(labels_by_channel.items(), key=lambda x: x[0].position):
+                message += f"- #{channel.name}: {', '.join(labels)}\n"
+            message += "\n"
+        await ctx.send(message)
