@@ -131,16 +131,15 @@ class StreamCommands(commands.Cog):
                           f"are not sent")
                 continue
             tags = channel_stream.tags
-            channel_repr = utils.get_channel_repr(channel)
             message, embed = models.NotificationHandler.get_info(stream, tags)
             recent_notification = stream.get_recent_notification(channel.id)
             if recent_notification:
                 await recent_notification.edit(content=message, embed=embed)
-                LOG.debug(f"[{channel_repr}] '{stream.name}' was live recently, recent notification edited")
+                LOG.debug(f"'{stream.name}' was live recently, recent notification edited")
             else:
                 notification = await channel.send(message, embed=embed)
                 stream.notifications_by_channel_id[channel.id].append(notification)
-                LOG.debug(f"[{channel_repr}] Notification for '{stream.name}' sent")
+                LOG.debug(f"Notification for '{stream.name}' sent")
 
     async def _on_stream_offline(self, stream, channel_streams):
         """Method called if the twitch stream is going offline.
@@ -154,13 +153,12 @@ class StreamCommands(commands.Cog):
                                 if models.NotificationHandler.is_online(notification)]
         for notification in online_notifications:
             channel = notification.channel
-            channel_repr = utils.get_channel_repr(channel)
             message, embed = models.NotificationHandler.get_info(stream)
             try:
                 await notification.edit(content=message, embed=embed)
-                LOG.debug(f"[{channel_repr}] Notification for '{stream.name}' edited")
+                LOG.debug(f"Notification for '{stream.name}' edited")
             except errors.NotFound:
-                LOG.warning(f"[{channel_repr}] The notification for '{stream.name}' sent at "
+                LOG.warning(f"The notification for '{stream.name}' sent at "
                             f"'{notification.created_at}' does not exist or has been deleted")
                 stream.notifications_by_channel_id[channel.id].remove(notification)
 
@@ -173,17 +171,16 @@ class StreamCommands(commands.Cog):
                                 if models.NotificationHandler.is_online(notification)]
         for notification in online_notifications:
             channel = notification.channel
-            channel_repr = utils.get_channel_repr(channel)
             _, embed = models.NotificationHandler.extract_info(notification)
             fields = embed.fields
             embed.set_field_at(index=0, name=fields[0].name, value=stream.title, inline=fields[0].inline)
             embed.set_field_at(index=1, name=fields[1].name, value=stream.game, inline=fields[1].inline)
             try:
                 await notification.edit(embed=embed)
-                LOG.info(f"[{channel_repr}] Notifications for '{stream.name}' updated (title='{stream.title}', "
+                LOG.info(f"Notifications for '{stream.name}' updated (title='{stream.title}', "
                          f"game='{stream.game}')")
             except errors.NotFound:
-                LOG.warning(f"[{channel_repr}] The notification for '{stream.name}' sent at "
+                LOG.warning(f"The notification for '{stream.name}' sent at "
                             f"'{notification.created_at}' does not exist or has been deleted")
                 stream.notifications_by_channel_id[channel.id].remove(notification)
 
@@ -228,17 +225,16 @@ class StreamCommands(commands.Cog):
                                      if models.NotificationHandler.is_deprecated(notification)]
                 for notification in old_notifications:
                     channel = notification.channel
-                    channel_repr = utils.get_channel_repr(channel)
                     try:
                         await notification.delete()
                         stream.notifications_by_channel_id[channel.id].remove(notification)
-                        LOG.debug(f"[{channel_repr}] Offline notification for '{stream.name}', sent the "
+                        LOG.debug(f"Offline notification for '{stream.name}', sent the "
                                   f"'{notification.created_at}', offline since '{stream.last_offline_date}' has "
                                   f"been deleted")
                         if not stream.notifications_by_channel_id[channel.id]:
                             del stream.notifications_by_channel_id[channel.id]
                     except errors.NotFound:
-                        LOG.warning(f"[{channel_repr}] The notification for '{stream.name}' sent at "
+                        LOG.warning(f"The notification for '{stream.name}' sent at "
                                     f"'{notification.created_at}' does not exist or has been deleted")
                         stream.notifications_by_channel_id[channel.id].remove(notification)
             await asyncio.sleep(60)
@@ -254,7 +250,6 @@ class StreamCommands(commands.Cog):
     @commands.guild_only()
     async def list(self, ctx):
         """Show the list of the current tracked streams."""
-        channel_repr = utils.get_channel_repr(ctx.channel)
         records = await self.channel_stream_db_driver.get_user_logins(ctx.guild.id)
 
         if not records:
@@ -285,7 +280,7 @@ class StreamCommands(commands.Cog):
             message += ", ".join(user_logins) + "\n\n"
 
         await ctx.send(message)
-        LOG.debug(f"[{channel_repr}] Database: {streams_by_channel}")
+        LOG.debug(f"Database: {streams_by_channel}")
 
     async def _add_streams(self, ctx, *user_logins, tags=None):
         users_by_login = await self.client.get_users_by_login(*user_logins)

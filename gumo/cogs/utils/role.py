@@ -11,14 +11,13 @@ LOG = logging.getLogger(__name__)
 class RoleCommands:
 
     async def _manage_roles(self, ctx, action, *role_names, guild=None):
-        channel_repr = utils.get_channel_repr(ctx.channel)
         guild = guild or ctx.guild
         roles = {r: discord.utils.get(guild.roles, name=r) for r in role_names}
         member = guild.get_member(ctx.author.id)
 
         for name, role in list(roles.items()):
             if not isinstance(role, discord.Role):
-                LOG.warning(f"[{channel_repr}] The role '{name}' dis not a valid role in this guild")
+                LOG.warning(f"The role '{name}' dis not a valid role in this guild")
                 del roles[name]
 
         await getattr(member, action)(*roles.values())

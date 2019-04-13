@@ -70,7 +70,6 @@ class DabCommands(commands.Cog, role.RoleCommands):
     async def dab(self, ctx, *, dabbed):
         """Disrespect someone"""
 
-        channel_repr = utils.get_channel_repr(ctx.channel)
         undabbable_role = discord_utils.get(ctx.guild.roles, name=config.get('UNDABBABLE_ROLE', guild_id=ctx.guild.id))
         target_members = [m for m in ctx.message.mentions]
         cls = commands.clean_content()
@@ -85,7 +84,7 @@ class DabCommands(commands.Cog, role.RoleCommands):
         amount = random.randint(0, 100)
         cleaned_author_name = await cls.convert(ctx, ctx.author.display_name)
         answer = f"{cleaned_author_name} dabs on {dabbed} **{amount}** times!"
-        LOG.debug(f"[{channel_repr}] {answer}")
+        LOG.debug(f"{answer}")
         message = await ctx.send(f"{cleaned_author_name} dabs on {dabbed} **{amount}** times!")
         await message.add_reaction(emoji.RECYCLING)
         await self.driver.insert_dabs(ctx.guild.id, ctx.author, amount, ctx.message.created_at, *target_members)
@@ -96,11 +95,11 @@ class DabCommands(commands.Cog, role.RoleCommands):
         try:
             reaction, _ = await self.bot.wait_for('reaction_add', check=check, timeout=30.0)
         except futures.TimeoutError:
-            LOG.debug(f"[{channel_repr}] {ctx.author} did not reroll his last dab")
+            LOG.debug(f"{ctx.author} did not reroll his last dab")
             return
         else:
             new_amount = random.randint(0, 100)
-            LOG.debug(f"[{channel_repr}] {ctx.author} has rerolled his/her last dab {amount} -> {new_amount}")
+            LOG.debug(f"{ctx.author} has rerolled his/her last dab {amount} -> {new_amount}")
             await message.edit(content=f"{cleaned_author_name} dabs on {dabbed} ~~{amount}~~ **{new_amount}** times!")
             await self.driver.reroll_dabs(ctx.guild.id, ctx.author, new_amount, ctx.message.created_at,
                                           reaction.message.created_at)

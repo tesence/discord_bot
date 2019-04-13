@@ -38,8 +38,9 @@ class Bot(commands.Bot):
         LOG.debug(f"Guilds: {', '.join(f'{guild.name}#{guild.id}' for guild in self.guilds)}")
 
     async def on_command(self, ctx):
-        LOG.debug(f"[{utils.get_channel_repr(ctx.channel)}] Command called by "
-                  f"'{ctx.author.display_name}': '{ctx.message.content}'")
+        _repr = ctx.channel.recipient if isinstance(ctx.channel, discord.DMChannel) \
+            else f"{ctx.guild.name}#{ctx.channel.name}"
+        LOG.debug(f"[{_repr}] Command called by '{ctx.author.display_name}': '{ctx.message.content}'")
 
     async def check_extension_access(self, ctx):
 
@@ -66,18 +67,17 @@ class Bot(commands.Bot):
         if not isinstance(error, (commands.CommandOnCooldown, futures.TimeoutError)):
             ctx.command.reset_cooldown(ctx)
 
-        channel_repr = utils.get_channel_repr(ctx.channel)
         if isinstance(error, commands.MissingRequiredArgument):
-            LOG.warning(f"[{channel_repr}] Missing argument in command {ctx.command}: {error.args}")
+            LOG.warning(f"Missing argument in command {ctx.command}: {error.args}")
             await ctx.invoke(self.get_command('help'), command_name=ctx.command.qualified_name)
         elif isinstance(error, commands.CommandOnCooldown):
-            LOG.warning(f"[{channel_repr}] '{ctx.author.name}' tried to use the command '{ctx.command.name}' while it "
+            LOG.warning(f"'{ctx.author.name}' tried to use the command '{ctx.command.name}' while it "
                         f"was still on cooldown for {round(error.retry_after, 2)}s")
             await ctx.message.add_reaction(emoji.ARROWS_COUNTERCLOCKWISE)
         elif isinstance(error, commands.CheckFailure):
-            LOG.error(f"[{channel_repr}] Check failed: {error.args[0]} ({type(error).__name__})")
+            LOG.error(f"Check failed: {error.args[0]} ({type(error).__name__})")
         else:
-            LOG.warning(f"[{channel_repr}] Exception '{type(error).__name__}' raised in command '{ctx.command}'",
+            LOG.warning(f"Exception '{type(error).__name__}' raised in command '{ctx.command}'",
                         exc_info=(type(error), error, error.__traceback__))
 
     async def on_raw_reaction_add(self, payload):
@@ -93,12 +93,7 @@ class Bot(commands.Bot):
         is_bot_reaction = user.id == self.user.id
 
         if is_bot_message and not is_bot_reaction and payload_emoji == emoji.WASTEBASKET and await self.is_owner(user):
-            channel_repr = utils.get_channel_repr(channel)
             await message.delete()
-            log = f"[{channel_repr}] {user.name} has deleted the message '{message.content}' from {message.author.name}"
-            if embed:
-                log += f"(Embed fields: {embed.to_dict()['fields']})"
-            LOG.debug(log)
 
     async def start(self, *args, **kwargs):
         try:

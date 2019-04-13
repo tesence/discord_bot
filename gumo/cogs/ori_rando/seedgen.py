@@ -116,7 +116,6 @@ class OriRandoSeedGenCommands(commands.Cog):
                                           logic_paths, flags)
 
     async def _send_seed(self, ctx, data):
-        channel_repr = utils.get_channel_repr(ctx.channel)
 
         # Store the data into file buffers
         seed_buffer = io.BytesIO(bytes(data['players'][0]['seed'], encoding="utf8"))
@@ -133,22 +132,21 @@ class OriRandoSeedGenCommands(commands.Cog):
 
         await ctx.send(message, files=[discord.File(seed_buffer, filename=SEED_FILENAME),
                                        discord.File(spoiler_buffer, filename=SPOILER_FILENAME)])
-        LOG.debug(f"[{channel_repr}] The files have correctly been sent in Discord")
+        LOG.debug(f"The files have correctly been sent in Discord")
 
     async def _seed(self, ctx, args, seed_name=None):
-        channel_repr = utils.get_channel_repr(ctx.channel)
         if not seed_name:
             seed_name = str(random.randint(1, 1000000000))
         args = [arg.lower() for arg in args.split()]
         download_message = await ctx.send(f"{self._get_download_message()}...")
-        LOG.debug(f"[{channel_repr}] Downloading the seed data: '{download_message.content}'")
+        LOG.debug(f"Downloading the seed data: '{download_message.content}'")
         try:
             data = await self._get_seed_data(seed_name, args)
             await self._send_seed(ctx, data)
             await download_message.delete()
         except (api.APIError, discord.HTTPException):
             error_message = "An error has occurred while generating the seed"
-            LOG.exception(f"[{channel_repr}] {error_message}")
+            LOG.exception(f"{error_message}")
             await download_message.edit(content=f"```{error_message}. Please try again later.```")
 
     @commands.command()
@@ -171,9 +169,8 @@ class OriRandoSeedGenCommands(commands.Cog):
 
         - **flags**: `tracking`, `verbose_paths`, `classic_gen`, `hard-path`, `easy-path`
         """
-        channel_repr = utils.get_channel_repr(ctx.channel)
         args, seed_codes = self._pop_seed_codes(args)
-        LOG.debug(f"[{channel_repr}] Valid seed codes found: {seed_codes}")
+        LOG.debug(f"Valid seed codes found: {seed_codes}")
         seed_name = seed_codes[0][1:-1] if seed_codes else None
         await self._seed(ctx, args, seed_name)
 

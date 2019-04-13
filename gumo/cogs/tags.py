@@ -28,12 +28,11 @@ class TagCommands(commands.Cog):
     @commands.guild_only()
     async def tag(self, ctx, *, code):
         """Return a tag value"""
-        channel_repr = utils.get_channel_repr(ctx.channel)
         tag = await self.driver.increment_usage(code=code, guild_id=ctx.guild.id)
         if tag:
             await ctx.send(tag.content)
         else:
-            LOG.warning(f"[{channel_repr}] The tag '{code}' does not exist")
+            LOG.warning(f"The tag '{code}' does not exist")
 
     @tag.command(name='create', aliases=['add'], usage='tag create <code> "<content>"')
     @commands.guild_only()
@@ -61,11 +60,10 @@ class TagCommands(commands.Cog):
     @commands.check(is_admin)
     async def delete_tag(self, ctx, *, code):
         """Delete a tag"""
-        channel_repr = utils.get_channel_repr(ctx.channel)
         try:
             await self.driver.delete(code=code)
         except KeyError:
-            LOG.warning(f"[{channel_repr}] The tag '{code}' does not exist")
+            LOG.warning(f"The tag '{code}' does not exist")
         else:
             await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
 
