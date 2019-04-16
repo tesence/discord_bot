@@ -71,7 +71,8 @@ class Help(commands.Cog):
 
     async def _help_command(self, ctx, cmd):
         output = getattr(cmd, 'help', "") + "\n\n"
-        output += f"**Usage:** `{ctx.prefix}{cmd.usage or cmd.signature}`"
+        usage = cmd.usage or f"{cmd.name} {cmd.signature}"
+        output += f"**Usage:** `{ctx.prefix}{usage}`"
         output = await converter.clean_content().convert(ctx, output)
         return output
 
