@@ -13,6 +13,7 @@ import pytz
 
 from gumo import api
 from gumo.api import ori_randomizer
+from gumo import emoji
 from gumo import models
 from gumo import utils
 
@@ -37,24 +38,6 @@ class OriRandoSeedGenCommands(commands.Cog):
         self.display_name = "Ori rando"
         self.bot = bot
         self.client = ori_randomizer.OriRandomizerAPIClient(self.bot.loop)
-
-    @staticmethod
-    def _get_download_message():
-        """Get a random message from the list stored in data/download_messages.json
-
-        :return: a random download message
-        """
-        file_absolute_path = utils.get_project_dir() + "/" + DOWNLOAD_MESSAGES_FILE_PATH
-        if os.path.isfile(file_absolute_path):
-            try:
-                with open(file_absolute_path, "r") as f:
-                    download_messages = json.load(f)
-                    if download_messages:
-                        return random.choice(download_messages)
-                    return random.choice(download_messages)
-            except json.decoder.JSONDecodeError:
-                LOG.exception(f"Cannot load the file '{DOWNLOAD_MESSAGES_FILE_PATH}'")
-        return "Downloading the seed"
 
     @staticmethod
     def _pop_seed_codes(args):
@@ -138,16 +121,15 @@ class OriRandoSeedGenCommands(commands.Cog):
         if not seed_name:
             seed_name = str(random.randint(1, 1000000000))
         args = [arg.lower() for arg in args.split()]
-        download_message = await ctx.send(f"{self._get_download_message()}...")
-        LOG.debug(f"Downloading the seed data: '{download_message.content}'")
+        await ctx.message.add_reaction(emoji.ARROWS_COUNTERCLOCKWISE)
         try:
             data = await self._get_seed_data(seed_name, args)
             await self._send_seed(ctx, data)
-            await download_message.delete()
+            await ctx.message.remove_reaction(emoji.ARROWS_COUNTERCLOCKWISE, ctx.guild.me)
         except (api.APIError, discord.HTTPException):
-            error_message = "An error has occurred while generating the seed"
-            LOG.exception(f"{error_message}")
-            await download_message.edit(content=f"```{error_message}. Please try again later.```")
+            await ctx.message.remove_reaction(emoji.ARROWS_COUNTERCLOCKWISE, ctx.guild.me)
+            await ctx.message.add_reaction(emoji.CROSS_MARK)
+            LOG.exception(f"An error has occurred while generating the seed")
 
     @commands.command()
     @commands.guild_only()
