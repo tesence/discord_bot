@@ -33,11 +33,11 @@ class EmojiChain:
                f"limit={self.limit} timeout={self.timeout}>"
 
 
-class PronounRoleCommands(commands.Cog, role.RoleCommands):
+class OriGuildCommands(commands.Cog, role.RoleCommands):
 
     def __init__(self, bot):
         super().__init__()
-        self.display_name = "Ori server commands"
+        self.display_name = "Ori guild commands"
         self.bot = bot
         self.roles = multidict.CIMultiDict(**{role_name: role_name for role_name in ROLES})
         self.emojis_by_channel = collections.defaultdict(EmojiChain)
@@ -107,4 +107,4 @@ class PronounRoleCommands(commands.Cog, role.RoleCommands):
 
 
 def setup(bot):
-    bot.add_cog(PronounRoleCommands(bot))
+    bot.add_cog(OriGuildCommands(bot))

@@ -13,7 +13,7 @@ LOG = logging.getLogger(__name__)
 GLOBAL_EXTENSIONS = ['help', 'admin']
 
 DEFAULT_COMMAND_PREFIX = "!"
-DEFAULT_EXTENSIONS = ['ori_rando.seedgen', 'ori_rando.logic_helper']
+DEFAULT_EXTENSIONS = ['ori.rando.seedgen', 'ori.rando.logic_helper']
 
 
 async def get_prefix(bot, message):
@@ -105,7 +105,7 @@ class Bot(commands.Bot):
     def load_extensions(self):
         """Load all the extensions"""
         extensions_to_load = config.extensions_to_load
-        for extension in GLOBAL_EXTENSIONS + DEFAULT_EXTENSIONS + list(extensions_to_load):
+        for extension in set(GLOBAL_EXTENSIONS + DEFAULT_EXTENSIONS + list(extensions_to_load)):
             extension = f"gumo.cogs.{extension}"
             if extension in self.extensions:
                 LOG.debug(f"The extension '{extension}' is already loaded")
