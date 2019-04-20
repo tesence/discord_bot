@@ -4,7 +4,6 @@ from collections import defaultdict
 from discord.ext import commands
 
 from gumo.api import ori_randomizer
-from gumo import utils
 
 LOG = logging.getLogger(__name__)
 

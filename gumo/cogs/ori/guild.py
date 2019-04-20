@@ -41,11 +41,6 @@ class OriGuildCommands(commands.Cog, role.RoleCommands):
         self.bot = bot
         self.roles = multidict.CIMultiDict(**{role_name: role_name for role_name in ROLES})
         self.emojis_by_channel = collections.defaultdict(EmojiChain)
-        self.guild = None
-
-    @commands.Cog.listener()
-    async def on_ready(self):
-        self.guild = self.bot.get_guild(GUILD_ID)
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -99,11 +94,11 @@ class OriGuildCommands(commands.Cog, role.RoleCommands):
             await ctx.invoke(self.bot.get_command('help'), command_name=ctx.command.name)
             return
         valid_pronouns = [self.roles[pronoun] for pronoun in pronouns if pronoun in self.roles]
-        await self.add_roles(ctx, *valid_pronouns, guild=self.guild)
+        await self.add_roles(ctx, *valid_pronouns, guild=self.bot.get_guild(guild))
 
     @pronoun.command(name='remove', aliases=['rm'])
     async def remove_pronouns(self, ctx):
-        await self.remove_roles(ctx, *self.ROLES, guild=self.guild)
+        await self.remove_roles(ctx, *self.ROLES, guild=self.bot.get_guild(guild))
 
 
 def setup(bot):

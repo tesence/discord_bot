@@ -6,7 +6,6 @@ from discord.ext import commands
 
 from gumo import config
 from gumo import emoji
-from gumo import utils
 
 LOG = logging.getLogger(__name__)
 
@@ -87,7 +86,6 @@ class Bot(commands.Bot):
         message = await channel.fetch_message(payload.message_id)
         payload_emoji = payload.emoji.name
         author = message.author
-        embed = message.embeds[0] if message.embeds else None
 
         is_bot_message = author.id == self.user.id
         is_bot_reaction = user.id == self.user.id

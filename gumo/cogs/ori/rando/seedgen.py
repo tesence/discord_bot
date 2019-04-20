@@ -1,9 +1,7 @@
 from datetime import datetime
 import io
-import json
 import logging
 import random
-import os
 import re
 
 import discord
@@ -15,11 +13,9 @@ from gumo import api
 from gumo.api import ori_randomizer
 from gumo import emoji
 from gumo import models
-from gumo import utils
 
 LOG = logging.getLogger(__name__)
 
-SEED_FILENAME = "randomizer.dat"
 SPOILER_FILENAME = "spoiler.txt"
 DOWNLOAD_MESSAGES_FILE_PATH = "data/download_messages.json"
 

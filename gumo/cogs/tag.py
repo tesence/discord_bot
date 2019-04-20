@@ -7,7 +7,6 @@ from discord.ext import commands
 from gumo.check import is_admin
 from gumo import db
 from gumo import emoji
-from gumo import utils
 
 LOG = logging.getLogger(__name__)
 

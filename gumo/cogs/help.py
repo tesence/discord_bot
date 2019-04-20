@@ -59,11 +59,12 @@ class Help(commands.Cog):
     async def _help_group(self, ctx, cmd):
         output = getattr(cmd, 'help', "") + "\n\n"
         if getattr(cmd, 'invoke_without_command', False):
-            output += f"`{ctx.prefix}{cmd.usage or cmd.signature}`\n\n"
+            usage = cmd.usage or f"{cmd.name} {cmd.signature}"
+            output += f"**Usage:** `{ctx.prefix}{usage}`\n\n"
         output = await converter.clean_content().convert(ctx, output)
 
         formatted_cmds = [f"‣ `{cmd.name}`" for cmd in sorted(cmd.commands, key=lambda cmd: cmd.name)]
-        output += "**Commands**\n"
+        output += f"**Commands** (_type `!{cmd.name} <command>` with `<command>` a command from the list_):\n"
         for formatted_cmd in formatted_cmds:
             output += formatted_cmd + "\n"
 

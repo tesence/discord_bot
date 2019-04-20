@@ -3,7 +3,6 @@ import logging
 import discord
 
 from gumo import emoji
-from gumo import utils
 
 LOG = logging.getLogger(__name__)
 

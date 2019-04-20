@@ -14,7 +14,6 @@ from gumo import config
 from gumo.cogs.stream.models import NotificationHandler
 from gumo import db
 from gumo import emoji
-from gumo import utils
 
 LOG = logging.getLogger(__name__)
 

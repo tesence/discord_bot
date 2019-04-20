@@ -6,13 +6,11 @@ import random
 import discord
 from discord.ext import commands
 from discord.ext.commands.cooldowns import BucketType
-from discord import utils as discord_utils
 
 from gumo.cogs.utils import role
 from gumo import config
 from gumo import db
 from gumo import emoji
-from gumo import utils
 
 LOG = logging.getLogger(__name__)
 
@@ -35,12 +33,12 @@ async def trigger_switch_cooldown(ctx):
 
 def check_undabbable_role(ctx):
     role_name = config.get('UNDABBABLE_ROLE', guild_id=ctx.guild.id)
-    return role_name and discord_utils.get(ctx.guild.roles, name=role_name)
+    return role_name and discord.utils.get(ctx.guild.roles, name=role_name)
 
 
 def _has_undabbable_role(ctx):
     role_name = config.get('UNDABBABLE_ROLE', guild_id=ctx.guild.id)
-    role = discord_utils.get(ctx.guild.roles, name=role_name)
+    role = discord.utils.get(ctx.guild.roles, name=role_name)
     return role in ctx.author.roles
 
 
@@ -70,7 +68,7 @@ class DabCommands(commands.Cog, role.RoleCommands):
     async def dab(self, ctx, *, dabbed):
         """Disrespect someone"""
 
-        undabbable_role = discord_utils.get(ctx.guild.roles, name=config.get('UNDABBABLE_ROLE', guild_id=ctx.guild.id))
+        undabbable_role = discord.utils.get(ctx.guild.roles, name=config.get('UNDABBABLE_ROLE', guild_id=ctx.guild.id))
         target_members = [m for m in ctx.message.mentions]
         cls = commands.clean_content()
 
