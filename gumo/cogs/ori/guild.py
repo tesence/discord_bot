@@ -45,7 +45,13 @@ class OriGuildCommands(commands.Cog, role.RoleCommands):
     @commands.Cog.listener()
     async def on_message(self, message):
 
-        if message.author.bot or not message.guild.id == GUILD_ID:
+        ctx = await self.bot.get_context(message)
+
+        # Ignore if:
+        # - The author is a bot
+        # - The bot does not have write permission in the channel
+        # - The message has been send in another guild
+        if ctx.author.bot or not ctx.me.permissions_in(ctx.channel).send_messages or not message.guild.id == GUILD_ID:
             return
 
         # Check if the message is a single emoji and retrieve the related guild emoji, None otherwise
@@ -53,14 +59,14 @@ class OriGuildCommands(commands.Cog, role.RoleCommands):
         if re.match(EMOJI_REGEX, message.content):
             emoji = self.bot.get_emoji(int(re.match(EMOJI_REGEX, message.content).group(1)))
 
-        current_chain = self.emojis_by_channel[message.channel]
+        current_chain = self.emojis_by_channel[ctx.channel]
 
         # If someone sends a message that is not a single guild emoji, or the wrong one, reset the chain
         if current_chain and (not emoji or not current_chain.emoji == emoji):
             LOG.debug(f"{str(message.author)} has reseted the chain {current_chain} with the message "
                       f"'{message.content}'")
-            del self.emojis_by_channel[message.channel]
-            current_chain = self.emojis_by_channel[message.channel]
+            del self.emojis_by_channel[ctx.channel]
+            current_chain = self.emojis_by_channel[ctx.channel]
 
         if emoji:
 
