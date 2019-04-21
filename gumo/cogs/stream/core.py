@@ -367,18 +367,22 @@ class StreamCommands(commands.Cog):
             for channel_id, notifications in stream.notifications_by_channel_id.items():
                 channel = self.bot.get_channel(channel_id)
                 guild = channel.guild
-                for notification in notifications:
-                    icon = emoji.RED_CIRCLE if NotificationHandler.is_online(notification) else emoji.WHITE_CIRCLE
-                    label = f"`{icon}{stream.name}`"
-                    output[guild][channel].append(label)
+                output[guild][channel] += [(stream.name, notification) for notification in notifications]
 
         if not output:
             return
 
         message = ""
-        for guild, labels_by_channel in output.items():
+        for guild, notifications_by_channel in output.items():
             message += f"**{guild.name}**\n"
-            for channel, labels in sorted(labels_by_channel.items(), key=lambda x: x[0].position):
+            for channel, notifications in sorted(notifications_by_channel.items(), key=lambda x: x[0].position):
+                notifications.sort(key=lambda x: x[1].created_at)
+                labels = []
+                for notification_tuple in notifications:
+                    stream_name, notification = notification_tuple
+                    icon = emoji.RED_CIRCLE if NotificationHandler.is_online(notification) else emoji.WHITE_CIRCLE
+                    label = f"`{icon}{stream_name}`"
+                    labels.append(label)
                 message += f"- #{channel.name}: {', '.join(labels)}\n"
             message += "\n"
         await ctx.send(message)
