@@ -29,7 +29,7 @@ class EmojiChain:
         return bool(self.contributors) and bool(self.emoji)
 
     def __repr__(self):
-        return f"<emoji={self.emoji} contributors={len(self.contributors)}> answered={self.answered} " \
+        return f"<emoji={self.emoji} contributors={len(self.contributors)} answered={self.answered} " \
                f"limit={self.limit} timeout={self.timeout}>"
 
 
