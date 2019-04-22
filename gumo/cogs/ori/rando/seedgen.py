@@ -16,8 +16,8 @@ from gumo import models
 
 LOG = logging.getLogger(__name__)
 
+SEED_FILENAME = "randomizer.dat"
 SPOILER_FILENAME = "spoiler.txt"
-DOWNLOAD_MESSAGES_FILE_PATH = "data/download_messages.json"
 
 GOAL_MODES = models.MultiKeyDict()
 GOAL_MODES['ft', 'forcetrees', 'force-trees'] = "ForceTrees"
