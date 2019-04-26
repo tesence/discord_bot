@@ -5,6 +5,7 @@ import random
 import re
 
 import multidict
+import discord
 from discord.ext import commands
 
 from gumo.cogs.utils import role
@@ -46,6 +47,9 @@ class OriGuildCommands(commands.Cog, role.RoleCommands):
     async def on_message(self, message):
 
         ctx = await self.bot.get_context(message)
+
+        if isinstance(ctx.channel, discord.DMChannel):
+            return
 
         # Ignore if:
         # - The author is a bot
@@ -100,11 +104,11 @@ class OriGuildCommands(commands.Cog, role.RoleCommands):
             await ctx.invoke(self.bot.get_command('help'), command_name=ctx.command.name)
             return
         valid_pronouns = [self.roles[pronoun] for pronoun in pronouns if pronoun in self.roles]
-        await self.add_roles(ctx, *valid_pronouns, guild=self.bot.get_guild(guild))
+        await self.add_roles(ctx, *valid_pronouns, guild=self.bot.get_guild(GUILD_ID))
 
     @pronoun.command(name='remove', aliases=['rm'])
     async def remove_pronouns(self, ctx):
-        await self.remove_roles(ctx, *self.ROLES, guild=self.bot.get_guild(guild))
+        await self.remove_roles(ctx, *ROLES, guild=self.bot.get_guild(GUILD_ID))
 
 
 def setup(bot):

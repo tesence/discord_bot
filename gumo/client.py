@@ -12,7 +12,7 @@ LOG = logging.getLogger(__name__)
 GLOBAL_EXTENSIONS = ['help', 'admin']
 
 DEFAULT_COMMAND_PREFIX = "!"
-DEFAULT_EXTENSIONS = ['ori.rando.seedgen', 'ori.rando.logic_helper']
+DEFAULT_EXTENSIONS = ['ori.rando.seedgen', 'ori.rando.logic_helper', 'ori.guild']
 
 
 async def get_prefix(bot, message):

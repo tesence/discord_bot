@@ -23,7 +23,7 @@ class RoleCommands:
         await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
 
     async def add_roles(self, ctx, *role_names, guild=None):
-        await self._manage_roles(ctx, 'add_roles', *role_names, guild=None)
+        await self._manage_roles(ctx, 'add_roles', *role_names, guild=guild)
 
     async def remove_roles(self, ctx, *role_names, guild=None):
-        await self._manage_roles(ctx, 'remove_roles', *role_names, guild=None)
+        await self._manage_roles(ctx, 'remove_roles', *role_names, guild=guild)
