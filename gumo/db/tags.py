@@ -5,7 +5,7 @@ from gumo.db import base
 LOG = logging.getLogger(__name__)
 
 
-class Tags(base.BaseModel):
+class Tag(base.BaseModel):
 
     __tablename__ = "tags"
     __table_args__ = base.UniqueConstraint('code', 'guild_id'),
@@ -29,7 +29,7 @@ class Tags(base.BaseModel):
 class TagDBDriver(base.DBDriver):
 
     def __init__(self, bot):
-        super().__init__(bot, Tags)
+        super().__init__(bot, Tag)
 
     async def increment_usage(self, code, guild_id=None):
         query = f"UPDATE {self.table_name} SET usage = usage + 1 " \

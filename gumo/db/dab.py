@@ -5,7 +5,7 @@ from gumo.db import base
 LOG = logging.getLogger(__name__)
 
 
-class Dabs(base.BaseModel):
+class Dab(base.BaseModel):
 
     __tablename__ = "dabs"
 
@@ -34,7 +34,7 @@ class Dabs(base.BaseModel):
 class DabDBDriver(base.DBDriver):
 
     def __init__(self, bot):
-        super().__init__(bot, Dabs)
+        super().__init__(bot, Dab)
 
     async def insert_dabs(self, guild_id, author, amount, created_at, *targets):
 
