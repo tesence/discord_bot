@@ -32,11 +32,15 @@ async def trigger_switch_cooldown(ctx):
 
 
 def check_undabbable_role(ctx):
+    if not ctx.guild:
+        return False
     role_name = config.get('UNDABBABLE_ROLE', guild_id=ctx.guild.id)
     return role_name and discord.utils.get(ctx.guild.roles, name=role_name)
 
 
 def _has_undabbable_role(ctx):
+    if not ctx.guild:
+        return False
     role_name = config.get('UNDABBABLE_ROLE', guild_id=ctx.guild.id)
     role = discord.utils.get(ctx.guild.roles, name=role_name)
     return role in ctx.author.roles
