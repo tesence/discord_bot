@@ -33,6 +33,7 @@ class UniqueConstraint:
 
 
 class BaseModel:
+
     __tablename__ = None
     __table_args__ = ()
 
@@ -48,27 +49,11 @@ class BaseModel:
                     return arg.column_names
         return [name for name, definition in cls.columns().items() if definition.primary_key]
 
-
-class DBDriver:
-
-    def __init__(self, bot, model):
-        self.bot = bot
-        self.model = model
-        self.table_name = self.model.__tablename__
-        self.table_args = self.model.__table_args__
-        self.table_columns = self.model.columns()
-
-    async def init(self):
-        self.bot.pool = self.bot.pool or await asyncpg.create_pool(**config.glob['DATABASE_CREDENTIALS'],
-                                                                   min_size=1, max_size=5)
-        await self._create_table()
-        size = await self.count()
-        LOG.debug(f"Number of '{self.table_name}' found: {size}")
-
-    async def _create_table(self):
+    @classmethod
+    async def create(cls, pool):
         try:
             column_definitions = []
-            for column_name, column in self.table_columns.items():
+            for column_name, column in cls.columns().items():
                 column_definition = f"{column_name} {column.type}"
                 column_definition += (not column.nullable) * " NOT NULL"
                 column_definition += column.primary_key * " PRIMARY KEY"
@@ -79,15 +64,30 @@ class DBDriver:
                         f"({column.foreign_key.column_name})"
                     column_definitions.append(foreign_key)
 
-            for arg in self.table_args:
+            for arg in cls.__table_args__:
                 if isinstance(arg, UniqueConstraint):
-                    constraint = f"CONSTRAINT {'_'.join(arg.column_names)} UNIQUE ({', '.join(arg.column_names)})"
+                    constraint = f"CONSTRAINT {cls.__tablename__}_{'_'.join(arg.column_names)} " \
+                        f"UNIQUE ({', '.join(arg.column_names)})"
                     column_definitions.append(constraint)
 
-            query = f"CREATE TABLE IF NOT EXISTS {self.table_name} ({', '.join(column_definitions)});"
-            await self.bot.pool.execute(query)
+            query = f"CREATE TABLE IF NOT EXISTS {cls.__tablename__} ({', '.join(column_definitions)});"
+            await pool.execute(query)
         except exceptions.PostgresError:
-            LOG.exception(f"Cannot create table {self.table_name}")
+            LOG.exception(f"Cannot create table {cls.__tablename__}")
+
+
+class DBDriver:
+
+    def __init__(self, bot, model):
+        self.bot = bot
+        self.model = model
+        self.table_name = self.model.__tablename__
+
+    async def init(self):
+        self.bot.pool = self.bot.pool or await asyncpg.create_pool(**config.glob['DATABASE_CREDENTIALS'])
+        await self.model.create(self.bot.pool)
+        size = await self.count()
+        LOG.debug(f"Number of '{self.table_name}' found: {size}")
 
     def _get_obj(self, record):
         return self.model(**dict(record.items())) if record else None
