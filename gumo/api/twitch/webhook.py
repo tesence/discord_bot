@@ -34,8 +34,8 @@ class TokenSession(base.APIClient):
 
         if need_refresh:
             params = {
-                'client_id': config.glob['TWITCH_API_CLIENT_ID'],
-                'client_secret': config.glob['TWITCH_API_CLIENT_SECRET'],
+                'client_id': config['TWITCH_API_CLIENT_ID'],
+                'client_secret': config['TWITCH_API_CLIENT_SECRET'],
                 'grant_type': "client_credentials"
             }
             url = f"https://id.twitch.tv/oauth2/token?{parse.urlencode(params)}"
@@ -68,7 +68,7 @@ def verify_payload(route):
     code from https://gist.github.com/SnowyLuma/a9fb1c2707dc005fe88b874297fee79f"""
 
     async def inner(server, request, *args, **kwargs):
-        secret = config.glob['TWITCH_WEBHOOK_SECRET'].encode('utf-8')
+        secret = config['TWITCH_WEBHOOK_SECRET'].encode('utf-8')
         digest = hmac.new(secret, msg=request.body, digestmod=hashlib.sha256).hexdigest()
 
         if hmac.compare_digest(digest, request.headers.get('X-Hub-Signature', '')[7:]):
@@ -104,7 +104,7 @@ class TwitchWebhookServer(base.APIClient):
 
     def __init__(self, loop, callback):
 
-        headers = {"Client-ID": config.glob['TWITCH_API_CLIENT_ID']}
+        headers = {"Client-ID": config['TWITCH_API_CLIENT_ID']}
 
         super().__init__(headers=headers, loop=loop, bucket=base.RateBucket(800, 60))
         self._token_session = TokenSession(loop)
@@ -112,7 +112,7 @@ class TwitchWebhookServer(base.APIClient):
         self._app.add_route(self._handle_get, "<endpoint:[a-z/]*>", methods=['GET'])
         self._app.add_route(self._handle_post, "<endpoint:[a-z/]*>", methods=['POST'])
         self._host = socket.gethostbyname(socket.gethostname())
-        self._port = config.glob['TWITCH_WEBHOOK_PORT']
+        self._port = config['TWITCH_WEBHOOK_PORT']
         self._callback = callback
         self._external_host = None
         self._server = None
@@ -138,7 +138,7 @@ class TwitchWebhookServer(base.APIClient):
             'hub.mode': mode,
             'hub.topic': topic.as_uri,
             'hub.callback': f"{self._external_host}{topic.ENDPOINT}?{parse.urlencode(topic.params)}",
-            'hub.secret': config.glob['TWITCH_WEBHOOK_SECRET']
+            'hub.secret': config['TWITCH_WEBHOOK_SECRET']
         }
         if mode == 'subscribe':
             data['hub.lease_seconds'] = duration

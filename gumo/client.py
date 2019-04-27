@@ -1,26 +1,42 @@
+import asyncio
 from concurrent import futures
 import logging
 
 import discord
 from discord.ext import commands
 
+from gumo import db
 from gumo import config
 from gumo import emoji
 
 LOG = logging.getLogger(__name__)
 
-GLOBAL_EXTENSIONS = ['help', 'admin']
+EXTENSIONS = {
+    'admin',
+    'help',
+    'dab',
+    'ori.guild',
+    'ori.rando.logic_helper',
+    'ori.rando.role',
+    'ori.rando.seedgen',
+    'stream',
+    'tag'
+}
+
+DEFAULT_EXTENSIONS = {
+    'admin',
+    'help',
+}
 
 DEFAULT_COMMAND_PREFIX = "!"
-DEFAULT_EXTENSIONS = ['ori.rando.seedgen', 'ori.rando.logic_helper', 'ori.guild']
 
 
 async def get_prefix(bot, message):
     if isinstance(message.channel, discord.DMChannel):
-        prefix = DEFAULT_COMMAND_PREFIX
+        prefixes = [DEFAULT_COMMAND_PREFIX]
     else:
-        prefix = config.get('COMMAND_PREFIX', DEFAULT_COMMAND_PREFIX, guild_id=message.guild.id)
-    return commands.when_mentioned_or(prefix)(bot, message)
+        prefixes = [prefix.name for prefix in await bot.prefix_db_driver.list(guild_id=message.guild.id)]
+    return commands.when_mentioned_or(*prefixes)(bot, message)
 
 
 class Bot(commands.Bot):
@@ -31,6 +47,22 @@ class Bot(commands.Bot):
         self.remove_command('help')
         self.add_check(self.check_extension_access)
         self.load_extensions()
+
+        self.prefix_db_driver = db.PrefixDBDriver(self)
+        self.extension_db_driver = db.ExtensionDBDriver(self)
+        self.admin_role_db_driver = db.AdminRoleDBDriver(self)
+
+        self.ready = asyncio.Event()
+        self.loop.create_task(self.prepare())
+
+    async def prepare(self):
+
+        # Initialize database drivers
+        await self.prefix_db_driver.init()
+        await self.extension_db_driver.init()
+        await self.admin_role_db_driver.init()
+
+        self.ready.set()
 
     async def on_ready(self):
         LOG.debug(f"Bot is connected | username: {self.user} | user id: {self.user.id}")
@@ -48,7 +80,8 @@ class Bot(commands.Bot):
 
         extension_name = ctx.cog.__module__.split(".", 2)[-1]
 
-        whitelist = GLOBAL_EXTENSIONS + config.get('EXTENSIONS', DEFAULT_EXTENSIONS, guild_id=ctx.guild.id)
+        whitelist = {ext.name for ext in await self.extension_db_driver.list(guild_id=ctx.guild.id)}
+        whitelist = DEFAULT_EXTENSIONS | whitelist
         return any(extension_name.startswith(name) for name in whitelist)
 
     async def on_command_error(self, ctx, error):
@@ -95,15 +128,15 @@ class Bot(commands.Bot):
 
     async def start(self, *args, **kwargs):
         try:
-            token = config.glob['DISCORD_BOT_TOKEN']
+            token = config['DISCORD_BOT_TOKEN']
+            await self.ready.wait()
             await super().start(token, *args, **kwargs)
         except ConnectionError:
             LOG.exception("Cannot connect to the websocket")
 
     def load_extensions(self):
         """Load all the extensions"""
-        extensions_to_load = config.extensions_to_load
-        for extension in set(GLOBAL_EXTENSIONS + DEFAULT_EXTENSIONS + list(extensions_to_load)):
+        for extension in EXTENSIONS:
             extension = f"gumo.cogs.{extension}"
             if extension in self.extensions:
                 LOG.debug(f"The extension '{extension}' is already loaded")

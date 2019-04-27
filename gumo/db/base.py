@@ -84,7 +84,7 @@ class DBDriver:
         self.table_name = self.model.__tablename__
 
     async def init(self):
-        self.bot.pool = self.bot.pool or await asyncpg.create_pool(**config.glob['DATABASE_CREDENTIALS'])
+        self.bot.pool = self.bot.pool or await asyncpg.create_pool(**config['DATABASE_CREDENTIALS'])
         await self.model.create(self.bot.pool)
         size = await self.count()
         LOG.debug(f"Number of '{self.table_name}' found: {size}")

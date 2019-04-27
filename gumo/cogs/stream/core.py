@@ -126,7 +126,7 @@ class StreamCommands(commands.Cog):
         stream.last_offline_date = None
         for channel_stream in channel_streams:
             channel = self.bot.get_channel(channel_stream.channel_id)
-            if 'stream' not in config.get('EXTENSIONS', guild_id=channel.guild.id):
+            if 'stream' not in {ext.name for ext in await self.bot.extension_db_driver.list(guild_id=channel.guild.id)}:
                 LOG.debug(f"The stream extensions is not enable on the server '{channel.guild}', the notifications "
                           f"are not sent")
                 continue

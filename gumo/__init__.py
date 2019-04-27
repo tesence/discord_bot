@@ -2,9 +2,12 @@ import os
 import logging
 from logging import handlers
 
+from .cfg import config
+
+
 # Logger setup
 os.makedirs(os.environ.get('GUMO_LOG_FOLDER'), exist_ok=True)
-filename = os.path.basename(os.environ.get('GUMO_CONFIG_FOLDER'))
+filename = os.path.basename(os.environ.get('GUMO_CONFIG_FILE')).rsplit('.', 1)[0]
 log_pattern = logging.Formatter('%(asctime)s:%(levelname)s: %(message)s')
 
 logger = logging.getLogger(__name__)
@@ -20,7 +23,5 @@ logger.addHandler(steam_handler)
 filepath = f"{os.path.join(os.environ.get('GUMO_LOG_FOLDER'), filename)}.log"
 file_handler = handlers.RotatingFileHandler(filepath, "a", 1000000, 1, encoding='utf-8')
 file_handler.setFormatter(log_pattern)
-steam_handler.setLevel(logging.DEBUG)
+steam_handler.setLevel(config.get('debug', logging.DEBUG))
 logger.addHandler(file_handler)
-
-from .cfg import config

@@ -19,8 +19,8 @@ async def is_admin(ctx):
     if await ctx.bot.is_owner(ctx.author):
         return True
 
-    admin_roles = config.get('ADMIN_ROLES', guild_id=ctx.author.guild.id)
-    author_roles = [role.name for role in ctx.author.roles]
+    admin_roles = [role.id for role in await ctx.bot.admin_role_db_driver.list(guild_id=ctx.guild.id)]
+    author_roles = [role.id for role in ctx.author.roles]
 
     # if there is no admin role, returns True
     if admin_roles is None:

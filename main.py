@@ -10,7 +10,7 @@ from gumo import utils
 
 def main():
 
-    config.load(os.environ.get('GUMO_CONFIG_FOLDER'))
+    config.load(os.environ.get('GUMO_CONFIG_FILE'))
 
     sys.path.append(utils.get_project_name())
 

@@ -9,8 +9,8 @@ TWITCH_ICON_URL = "https://www.shareicon.net/download/2015/09/08/98061_twitch_51
 
 class NotificationHandler:
 
-    DEFAULT_RECENT_NOTIFICATION_AGE = 300
-    DEFAULT_OLD_NOTIFICATION_LIFESPAN = 60 * 60 * 24
+    RECENT_NOTIFICATION_AGE = 300
+    OLD_NOTIFICATION_LIFESPAN = 60 * 60 * 24
 
     @staticmethod
     def _get_message(stream, tags=None):
@@ -48,17 +48,13 @@ class NotificationHandler:
     def is_recent(cls, message):
         if cls.is_online(message):
             return False
-        recent_notification_age = config.get('RECENT_NOTIFICATION_AGE', cls.DEFAULT_RECENT_NOTIFICATION_AGE,
-                                             guild_id=message.guild.id)
-        return cls._get_offline_duration(message) < recent_notification_age
+        return cls._get_offline_duration(message) < cls.RECENT_NOTIFICATION_AGE
 
     @classmethod
     def is_deprecated(cls, message):
         if cls.is_online(message):
             return False
-        old_notification_lifespan = config.get('OLD_NOTIFICATION_LIFESPAN', cls.DEFAULT_OLD_NOTIFICATION_LIFESPAN,
-                                               guild_id=message.guild.id)
-        return cls._get_offline_duration(message) > old_notification_lifespan
+        return cls._get_offline_duration(message) > cls.OLD_NOTIFICATION_LIFESPAN
 
 
 class NotificationEmbed(discord.Embed):

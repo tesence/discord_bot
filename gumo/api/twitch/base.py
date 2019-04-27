@@ -14,7 +14,7 @@ class TwitchAPIClient(base.APIClient):
 
     def __init__(self, loop):
         headers = {
-            "Client-ID": config.glob['TWITCH_API_CLIENT_ID'],
+            "Client-ID": config['TWITCH_API_CLIENT_ID'],
         }
         super().__init__(headers=headers, loop=loop)
 
