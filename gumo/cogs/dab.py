@@ -15,7 +15,9 @@ from gumo import emoji
 LOG = logging.getLogger(__name__)
 
 DAB_COOLDOWN = 180
+
 DEFAULT_SWITCH_COOLDOWN = 600
+UNDABBABLE_ROLE = "Undabbable"
 
 SWITCH_COOLDOWN = commands.CooldownMapping.from_cooldown(1, DEFAULT_SWITCH_COOLDOWN, commands.BucketType.member)
 
@@ -34,15 +36,13 @@ async def trigger_switch_cooldown(ctx):
 def check_undabbable_role(ctx):
     if not ctx.guild:
         return False
-    role_name = config.get('UNDABBABLE_ROLE', guild_id=ctx.guild.id)
-    return role_name and discord.utils.get(ctx.guild.roles, name=role_name)
+    return discord.utils.get(ctx.guild.roles, name=UNDABBABLE_ROLE) is not None
 
 
 def _has_undabbable_role(ctx):
     if not ctx.guild:
         return False
-    role_name = config.get('UNDABBABLE_ROLE', guild_id=ctx.guild.id)
-    role = discord.utils.get(ctx.guild.roles, name=role_name)
+    role = discord.utils.get(ctx.guild.roles, name=UNDABBABLE_ROLE)
     return role in ctx.author.roles
 
 
@@ -61,7 +61,6 @@ class DabCommands(commands.Cog, role.RoleCommands):
         self.display_name = "Dab"
         self.bot = bot
         self.driver = db.DabDBDriver(bot)
-        self.role = None
 
         bot.loop.create_task(self.driver.init())
 
@@ -72,7 +71,7 @@ class DabCommands(commands.Cog, role.RoleCommands):
     async def dab(self, ctx, *, dabbed):
         """Disrespect someone"""
 
-        undabbable_role = discord.utils.get(ctx.guild.roles, name=config.get('UNDABBABLE_ROLE', guild_id=ctx.guild.id))
+        undabbable_role = discord.utils.get(ctx.guild.roles, name=UNDABBABLE_ROLE)
         target_members = [m for m in ctx.message.mentions]
         cls = commands.clean_content()
 
@@ -154,8 +153,7 @@ class DabCommands(commands.Cog, role.RoleCommands):
     @commands.check(trigger_switch_cooldown)
     async def dabbable(self, ctx):
         """ALlow people to dab on you (default)"""
-        self.role = config.get('UNDABBABLE_ROLE', guild_id=ctx.guild.id)
-        await self.remove_roles(ctx, self.role)
+        await self.remove_roles(ctx, UNDABBABLE_ROLE)
 
     @commands.command()
     @commands.guild_only()
@@ -164,8 +162,7 @@ class DabCommands(commands.Cog, role.RoleCommands):
     @commands.check(trigger_switch_cooldown)
     async def undabbable(self, ctx):
         """Prevent people from dabbing on you"""
-        self.role = config.get('UNDABBABLE_ROLE', guild_id=ctx.guild.id)
-        await self.add_roles(ctx, self.role)
+        await self.add_roles(ctx, UNDABBABLE_ROLE)
 
 
 def setup(bot):
