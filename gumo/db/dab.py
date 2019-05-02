@@ -19,17 +19,6 @@ class Dab(base.BaseModel):
     rerolled_amount = base.Column('bigint')
     rerolled_at = base.Column('timestamp')
 
-    def __init(self, **kwargs):
-        self.guild_id = kwargs.pop('guild_id')
-        self.author_id = kwargs.pop('author_id')
-        self.author_name = kwargs.pop('author_name')
-        self.target_id = kwargs.pop('target_id')
-        self.target_name = kwargs.pop('target_name')
-        self.amount = kwargs.pop('amount')
-        self.created_at = kwargs.pop('created_at')
-        self.rerolled_amount = kwargs.pop('rerolled_amount')
-        self.rerolled_at = kwargs.pop('rerolled_at')
-
 
 class DabDBDriver(base.DBDriver):
 

@@ -10,11 +10,6 @@ class Prefix(base.BaseModel):
     guild_id = base.Column('bigint', nullable=False)
     name = base.Column('varchar(255)', nullable=False)
 
-    def __init__(self, **kwargs):
-        self.guild_name = kwargs.pop('guild_name')
-        self.guild_id = kwargs.pop('guild_id')
-        self.name = kwargs.pop('name')
-
 
 class Extension(base.BaseModel):
 
@@ -24,11 +19,6 @@ class Extension(base.BaseModel):
     guild_name = base.Column('varchar(255)', nullable=False)
     guild_id = base.Column('bigint', nullable=False)
     name = base.Column('varchar(255)', nullable=False)
-
-    def __init__(self, **kwargs):
-        self.guild_name = kwargs.pop('guild_name')
-        self.guild_id = kwargs.pop('guild_id')
-        self.name = kwargs.pop('name')
 
 
 class AdminRole(base.BaseModel):
@@ -40,12 +30,6 @@ class AdminRole(base.BaseModel):
     guild_id = base.Column('bigint', nullable=False)
     name = base.Column('varchar(255)', nullable=False)
     id = base.Column('bigint', nullable=False)
-
-    def __init__(self, **kwargs):
-        self.guild_name = kwargs.pop('guild_name')
-        self.guild_id = kwargs.pop('guild_id')
-        self.name = kwargs.pop('name')
-        self.id = kwargs.pop('id')
 
 
 class PrefixDBDriver(base.DBDriver):

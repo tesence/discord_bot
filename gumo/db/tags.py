@@ -17,14 +17,6 @@ class Tag(base.BaseModel):
     created_at = base.Column('timestamp', nullable=False, default="(now() at time zone 'utc')")
     usage = base.Column('bigint', nullable=False, default=0)
 
-    def __init__(self, **kwargs):
-        self.code = kwargs.pop('code')
-        self.content = kwargs.pop('content')
-        self.author_id = kwargs.pop('author_id')
-        self.guild_id = kwargs.pop('guild_id')
-        self.created_at = kwargs.pop('created_at')
-        self.usage = kwargs.pop('usage')
-
 
 class TagDBDriver(base.DBDriver):
 

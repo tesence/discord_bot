@@ -75,6 +75,10 @@ class BaseModel:
         except exceptions.PostgresError:
             LOG.exception(f"Cannot create table {cls.__tablename__}")
 
+    def __init__(self, **kwargs):
+        for column in self.columns():
+            setattr(self, column, kwargs.get(column))
+
 
 class DBDriver:
 

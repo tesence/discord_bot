@@ -20,12 +20,6 @@ class Channel(base.BaseModel):
     guild_id = base.Column('bigint', nullable=False)
     guild_name = base.Column('varchar(255)', nullable=False)
 
-    def __init__(self, **kwargs):
-        self.id = kwargs.pop('id')
-        self.name = kwargs.pop('name')
-        self.guild_id = kwargs.pop('guild_id')
-        self.guild_name = kwargs.pop('guild_name')
-
     def __repr__(self):
         return f"<{type(self).__name__} name={self.name} guild_name={self.guild_name}>"
 
@@ -38,8 +32,7 @@ class Stream(base.BaseModel):
     name = base.Column('varchar(255)', nullable=False)
 
     def __init__(self, **kwargs):
-        self.id = kwargs.pop('id')
-        self.name = kwargs.pop('name')
+        super().__init__(**kwargs)
         self.online = False
         self.last_offline_date = None
         self.notifications_by_channel_id = collections.defaultdict(list)
@@ -78,11 +71,6 @@ class ChannelStream(base.BaseModel):
     channel_id = base.Column('bigint', base.ForeignKey("channels", "id"))
     stream_id = base.Column('varchar(255)', base.ForeignKey("streams", "id"))
     tags = base.Column('varchar(255)', nullable=True)
-
-    def __init__(self, **kwargs):
-        self.channel_id = kwargs.pop('channel_id')
-        self.stream_id = kwargs.pop('stream_id')
-        self.tags = kwargs.pop('tags')
 
     def __repr__(self):
         return f"<{type(self).__name__} stream_id={self.stream_id} channel_id={self.channel_id}>"
