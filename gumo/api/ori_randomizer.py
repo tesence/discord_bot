@@ -21,7 +21,7 @@ LOGIC_PATHS = [
 
 # map of lowercase variation to correctly capitalized one.
 VARIATIONS = {v.lower(): v for v in ["Starved", "Hard", "OHKO", "0XP", "ClosedDungeons", "OpenWorld", "DoubleSkills",
-                                     "StrictMapstones", "BonusPickups", "NonProgressMapStones"]}
+                                     "StrictMapstones", "BonusPickups", "NonProgressMapStones", "TPStarved"]}
 
 FLAGS = ["tracking", "classic_gen", "verbose_paths"]
 HARD_PRESETS = ["master", "glitched"]
