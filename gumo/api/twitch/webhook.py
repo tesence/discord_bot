@@ -9,6 +9,8 @@ import socket
 from urllib import parse
 
 import sanic
+from sanic import exceptions as sanic_exc
+from sanic import handlers
 from sanic import response
 
 from gumo.api import base
@@ -100,6 +102,15 @@ def remove_duplicates(route):
     return inner
 
 
+class CustomErrorHandler(handlers.ErrorHandler):
+
+    def default(self, request, exception):
+        if isinstance(exception, sanic_exc.NotFound):
+            LOG.warning(f"An exception has been ignored ({''.join(exception.args)})")
+            return response.text("Error: Requested URL / not found", status=404)
+        return super().default(request, exception)
+
+
 class TwitchWebhookServer(base.APIClient):
 
     def __init__(self, loop, callback):
@@ -108,9 +119,9 @@ class TwitchWebhookServer(base.APIClient):
 
         super().__init__(headers=headers, loop=loop, bucket=base.RateBucket(800, 60))
         self._token_session = TokenSession(loop)
-        self._app = sanic.Sanic(configure_logging=False)
-        self._app.add_route(self._handle_get, "<endpoint:[a-z/]*>", methods=['GET'])
-        self._app.add_route(self._handle_post, "<endpoint:[a-z/]*>", methods=['POST'])
+        self._app = sanic.Sanic(error_handler=CustomErrorHandler(), configure_logging=False)
+        self._app.add_route(self._handle_get, "<endpoint:[a-z/]+>", methods=['GET'])
+        self._app.add_route(self._handle_post, "<endpoint:[a-z/]+>", methods=['POST'])
         self._host = socket.gethostbyname(socket.gethostname())
         self._port = config['TWITCH_WEBHOOK_PORT']
         self._callback = callback
