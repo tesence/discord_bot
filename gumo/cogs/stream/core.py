@@ -127,7 +127,7 @@ class StreamCommands(commands.Cog):
         for channel_stream in channel_streams:
             channel = self.bot.get_channel(channel_stream.channel_id)
             if 'stream' not in {ext.name for ext in await self.bot.extension_db_driver.list(guild_id=channel.guild.id)}:
-                LOG.debug(f"The stream extensions is not enable on the server '{channel.guild}', the notifications "
+                LOG.debug(f"The stream extension is not enabled on the server '{channel.guild}', the notifications "
                           f"are not sent")
                 continue
             tags = channel_stream.tags
@@ -135,11 +135,12 @@ class StreamCommands(commands.Cog):
             recent_notification = stream.get_recent_notification(channel.id)
             if recent_notification:
                 await recent_notification.edit(content=message, embed=embed)
-                LOG.debug(f"'{stream.name}' was live recently, recent notification edited")
+                LOG.debug(f"'{stream.name}' was live recently, recent notification in channel "
+                          f"'{channel.guild.name}#{channel.name}' edited")
             else:
                 notification = await channel.send(message, embed=embed)
                 stream.notifications_by_channel_id[channel.id].append(notification)
-                LOG.debug(f"Notification for '{stream.name}' sent")
+                LOG.debug(f"Notification for '{stream.name}' sent in channel '{channel.guild.name}#{channel.name}'")
 
     async def _on_stream_offline(self, stream, channel_streams):
         """Method called if the twitch stream is going offline.
@@ -156,10 +157,10 @@ class StreamCommands(commands.Cog):
             message, embed = NotificationHandler.get_info(stream)
             try:
                 await notification.edit(content=message, embed=embed)
-                LOG.debug(f"Notification for '{stream.name}' edited")
+                LOG.debug(f"Notifications for '{stream.name}' in channel '{channel.guild.name}#{channel.name}' edited")
             except errors.NotFound:
-                LOG.warning(f"The notification for '{stream.name}' sent at "
-                            f"'{notification.created_at}' does not exist or has been deleted")
+                LOG.warning(f"The notification for '{stream.name}' sent at '{notification.created_at}' in the channel "
+                            f"'{channel.guild.name}#{channel.name}' does not exist or has been deleted")
                 stream.notifications_by_channel_id[channel.id].remove(notification)
 
     async def _on_stream_update(self, stream):
@@ -177,11 +178,11 @@ class StreamCommands(commands.Cog):
             embed.set_field_at(index=1, name=fields[1].name, value=stream.game, inline=fields[1].inline)
             try:
                 await notification.edit(embed=embed)
-                LOG.info(f"Notifications for '{stream.name}' updated (title='{stream.title}', "
-                         f"game='{stream.game}')")
+                LOG.info(f"Notifications for '{stream.name}' in the channel '{channel.guild.name}#{channel.name}' "
+                         f"updated (title='{stream.title}', game='{stream.game}')")
             except errors.NotFound:
-                LOG.warning(f"The notification for '{stream.name}' sent at "
-                            f"'{notification.created_at}' does not exist or has been deleted")
+                LOG.warning(f"The notification for '{stream.name}' sent at '{notification.created_at}' in the channel "
+                            f"'{channel.guild.name}#{channel.name}' does not exist or has been deleted")
                 stream.notifications_by_channel_id[channel.id].remove(notification)
 
     async def update_subscriptions(self):
