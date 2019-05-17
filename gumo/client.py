@@ -1,4 +1,5 @@
 import asyncio
+import collections
 from concurrent import futures
 import logging
 
@@ -36,7 +37,7 @@ async def get_prefix(bot, message):
     if isinstance(message.channel, discord.DMChannel):
         prefixes = [DEFAULT_COMMAND_PREFIX]
     else:
-        prefixes = [prefix.name for prefix in await bot.prefix_db_driver.list(guild_id=message.guild.id)]
+        prefixes = bot.prefixes[message.guild.id]
     return commands.when_mentioned_or(*prefixes)(bot, message)
 
 
@@ -45,6 +46,8 @@ class Bot(commands.Bot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, command_prefix=get_prefix, **kwargs)
         self.pool = None
+        self.prefixes = collections.defaultdict(set)
+        self.admin_roles = collections.defaultdict(set)
         self.remove_command('help')
         self.add_check(self.check_extension_access)
         self.load_extensions()
@@ -62,6 +65,12 @@ class Bot(commands.Bot):
         await self.prefix_db_driver.init()
         await self.extension_db_driver.init()
         await self.admin_role_db_driver.init()
+
+        for prefix in await self.prefix_db_driver.list():
+            self.prefixes[prefix.guild_id].add(prefix.name)
+
+        for admin_role in await self.admin_role_db_driver.list():
+            self.admin_roles[admin_role.guild_id].add(admin_role.id)
 
         self.ready.set()
 

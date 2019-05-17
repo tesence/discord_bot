@@ -79,12 +79,17 @@ class AdminCommands(commands.Cog):
         guild = self.bot.get_guild(int(guild_id)) if guild_id else ctx.guild
         columns = ['guild_name', 'guild_id', 'name']
         await self.bot.prefix_db_driver.create(columns, (guild.name, guild.id, new_prefix))
+        self.bot.prefixes[ctx.guild.id].add(new_prefix)
         await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
 
     @prefix.command(name="rm", hidden=True)
     async def prefix_rm(self, ctx, new_prefix, guild_id=None):
         guild = self.bot.get_guild(int(guild_id)) if guild_id else ctx.guild
         await self.bot.prefix_db_driver.delete(guild_id=guild.id, name=new_prefix)
+        try:
+            self.bot.prefixes[ctx.guild.id].remove(new_prefix)
+        except ValueError:
+            pass
         await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
 
     @commands.group(hidden=True)
@@ -121,6 +126,7 @@ class AdminCommands(commands.Cog):
         columns = ['guild_name', 'guild_id', 'name', 'id']
         values = (guild.name, guild.id, admin_role.name, admin_role.id)
         await self.bot.admin_role_db_driver.create(columns, values)
+        self.bot.admin_roles[ctx.guild.id].add(admin_role.id)
         await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
 
     @role.command(name="rm", hidden=True)
@@ -130,6 +136,10 @@ class AdminCommands(commands.Cog):
             raise errors.BadArgument("Guild '{}' not found.".format(guild_id))
         admin_role = await GlobalRoleConverter().convert(argument, guild)
         await self.bot.admin_role_db_driver.delete(guild_id=guild.id, id=admin_role.id)
+        try:
+            self.bot.admin_roles[ctx.guild.id].remove(admin_role.id)
+        except ValueError:
+            pass
         await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
 
 
