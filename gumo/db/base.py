@@ -114,7 +114,8 @@ class DBDriver:
         records = await self.bot.pool.fetch(q, *filters.values())
         return [self._get_obj(r) for r in records]
 
-    async def create(self, columns, *values, ensure=False):
+    async def create(self, *values, columns=None, ensure=False):
+        columns = columns or self.model.columns()
         joined_constraint_columns = ", ".join(self.model.constraint())
         joined_columns = ", ".join(columns)
         joined_markers = ", ".join(f'${index}' for index in range(1, len(columns) + 1))

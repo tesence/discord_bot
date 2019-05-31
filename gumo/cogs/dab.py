@@ -88,22 +88,25 @@ class DabCommands(commands.Cog, role.RoleCommands):
         LOG.debug(f"{answer}")
         message = await ctx.send(f"{cleaned_author_name} dabs on {dabbed} **{amount}** times!")
         await message.add_reaction(emoji.RECYCLING)
-        await self.driver.insert_dabs(ctx.guild.id, ctx.author, amount, ctx.message.created_at, *target_members)
 
         def check(reaction, user):
             return user == ctx.author and str(reaction.emoji) == emoji.RECYCLING
 
+        new_amount = None
+        rerolled_at = None
         try:
             reaction, _ = await self.bot.wait_for('reaction_add', check=check, timeout=30.0)
+            rerolled_at = reaction.message.created_at
         except futures.TimeoutError:
             LOG.debug(f"{ctx.author} did not reroll his last dab")
-            return
         else:
             new_amount = random.randint(0, 100)
             LOG.debug(f"{ctx.author} has rerolled his/her last dab {amount} -> {new_amount}")
             await message.edit(content=f"{cleaned_author_name} dabs on {dabbed} ~~{amount}~~ **{new_amount}** times!")
-            await self.driver.reroll_dabs(ctx.guild.id, ctx.author, new_amount, ctx.message.created_at,
-                                          reaction.message.created_at)
+
+        values = [(ctx.guild.id, ctx.author.id, ctx.author.name, m.id, m.name, amount, ctx.message.created_at,
+                   new_amount, rerolled_at) for m in target_members]
+        await self.driver.create(*values)
 
     @dab.command()
     @commands.cooldown(1, DAB_COOLDOWN, BucketType.member)

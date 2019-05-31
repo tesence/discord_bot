@@ -288,19 +288,19 @@ class StreamCommands(commands.Cog):
 
         # Create missing channel
         values = [(ctx.channel.id, ctx.channel.name, ctx.guild.id, ctx.guild.name)]
-        out = await self.channel_db_driver.create(['id', 'name', 'guild_id', 'guild_name'], *values, ensure=True)
+        out = await self.channel_db_driver.create(*values, ensure=True)
         LOG.info(f"Created channels: {out}")
 
         # Create missing streams
         values = [(user['id'], name) for name, user in users_by_login.items()]
-        out = await self.stream_db_driver.create(['id', 'name'], *values, ensure=True)
+        out = await self.stream_db_driver.create(*values, ensure=True)
         LOG.info(f"Created streams: {out}")
         await self.webhook_server.subscribe(*[twitch.StreamChanged(user_id=stream.id) for stream in out])
         self.bot.streams.update({stream.id: stream for stream in out})
 
         # Create missing channel_streams
         values = [(ctx.channel.id, user['id'], tags) for user in users_by_login.values()]
-        out = await self.channel_stream_db_driver.create(['channel_id', 'stream_id', 'tags'], *values, ensure=True)
+        out = await self.channel_stream_db_driver.create(*values, ensure=True)
         LOG.info(f"Created channel_streams: {out}")
 
     @stream.command()
