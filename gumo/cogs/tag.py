@@ -11,7 +11,6 @@ from gumo import emoji
 LOG = logging.getLogger(__name__)
 
 REGEX = re.compile('^([^"]+)[^"]*(".*")$', re.MULTILINE | re.DOTALL)
-EMOJI_REGEX = re.compile("^<:\w+:\d+>$")
 
 
 class TagCommands(commands.Cog):
@@ -70,7 +69,7 @@ class TagCommands(commands.Cog):
     @commands.guild_only()
     async def list_tag(self, ctx):
         """Return the list of available tags"""
-        tags = [f'`{tag.code}`' if not re.match(EMOJI_REGEX, tag.code) else tag.code
+        tags = [f'`{tag.code}`' if not re.match(emoji.EMOJI_REGEX, tag.code) else tag.code
                 for tag in await self.driver.list(guild_id=ctx.guild.id)]
         result = "**Available tags**: " + ', '.join(sorted(tags))
         await ctx.send(result)

@@ -9,12 +9,12 @@ import discord
 from discord.ext import commands
 
 from gumo.cogs.utils import role
+from gumo import emoji
 
 LOG = logging.getLogger(__name__)
 
 GUILD_ID = 116250700685508615
 ROLES = ["He/Him", "She/Her", "They/Them"]
-EMOJI_REGEX = r'^<a?:[a-zA-Z0-9_]+:([0-9]+)>$'
 
 
 class EmojiChain:
@@ -60,8 +60,8 @@ class OriGuildCommands(commands.Cog, role.RoleCommands):
 
         # Check if the message is a single emoji and retrieve the related guild emoji, None otherwise
         emoji = None
-        if re.match(EMOJI_REGEX, message.content):
-            emoji = self.bot.get_emoji(int(re.match(EMOJI_REGEX, message.content).group(1)))
+        if re.match(emoji.EMOJI_REGEX, message.content):
+            emoji = self.bot.get_emoji(int(re.match(emoji.EMOJI_REGEX, message.content).group(1)))
 
         current_chain = self.emojis_by_channel[ctx.channel]
 

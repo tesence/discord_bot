@@ -14,12 +14,12 @@ from sanic import handlers
 from sanic import response
 
 from gumo.api import base
+from gumo.api.twitch import TWITCH_API_URL
 from gumo import config
 
 
 LOG = logging.getLogger(__name__)
 
-TWITCH_API_URL = "https://api.twitch.tv/helix"
 WEBHOOK_URL = f"{TWITCH_API_URL}/webhooks"
 
 

@@ -2,12 +2,11 @@ import logging
 from urllib import parse
 
 from gumo.api import base
+from gumo.api.twitch import TWITCH_API_URL
 from gumo import config
 
 
 LOG = logging.getLogger(__name__)
-
-TWITCH_API_URL = "https://api.twitch.tv/helix"
 
 
 class TwitchAPIClient(base.APIClient):
