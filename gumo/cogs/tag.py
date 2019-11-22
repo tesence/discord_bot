@@ -47,8 +47,8 @@ class TagCommands(commands.Cog):
             LOG.warning("You cannot create a tag with the same name as a subcommand")
             return
         try:
-            await self.driver.create(['code', 'content', 'author_id', 'guild_id'],
-                                     (code, content, ctx.author.id, ctx.guild.id))
+            await self.driver.create((code, content, ctx.author.id, ctx.guild.id),
+                                     columns=['code', 'content', 'author_id', 'guild_id'])
             await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
         except asyncpg.UniqueViolationError:
             LOG.warning(f"A tag with the code '{code}' already exists")
