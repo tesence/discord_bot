@@ -19,7 +19,7 @@ async def is_admin(ctx):
     if await ctx.bot.is_owner(ctx.author):
         return True
 
-    admin_roles = [role.id for role in await ctx.bot.admin_roles[ctx.guild.id]]
+    admin_roles = [role for role in ctx.bot.admin_roles[ctx.guild.id]]
     author_roles = [role.id for role in ctx.author.roles]
 
     # if there is no admin role, returns True
