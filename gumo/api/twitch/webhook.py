@@ -1,7 +1,7 @@
 import abc
 import asyncio
 import collections
-from datetime import datetime, timedelta
+from datetime import datetime
 import hashlib
 import hmac
 import logging
@@ -16,41 +16,12 @@ from sanic import response
 from gumo.api import base
 from gumo.api.twitch import TWITCH_API_URL
 from gumo import config
+from gumo.api.twitch import token
 
 
 LOG = logging.getLogger(__name__)
 
 WEBHOOK_URL = f"{TWITCH_API_URL}/webhooks"
-
-
-class TokenSession(base.APIClient):
-
-    def __init__(self, loop):
-        super().__init__(loop=loop)
-        self._token = None
-        self._expires_at = None
-
-    async def get_token(self):
-        now = datetime.utcnow()
-        need_refresh = True if not self._expires_at else now > self._expires_at
-
-        if need_refresh:
-            params = {
-                'client_id': config['TWITCH_API_CLIENT_ID'],
-                'client_secret': config['TWITCH_API_CLIENT_SECRET'],
-                'grant_type': "client_credentials"
-            }
-            url = f"https://id.twitch.tv/oauth2/token?{parse.urlencode(params)}"
-            token_data = await self.post(url, return_json=True)
-            self._token = token_data['access_token']
-            self._expires_at = now + timedelta(seconds=token_data['expires_in'])
-            LOG.debug(f"New token issued: {token_data['access_token']} (expires on {self._expires_at})")
-
-        return self._token
-
-    async def get_authorization_header(self):
-        token = await self.get_token()
-        return {'Authorization': f"Bearer {token}"}
 
 
 def log_request(route):
@@ -118,7 +89,7 @@ class TwitchWebhookServer(base.APIClient):
         headers = {"Client-ID": config['TWITCH_API_CLIENT_ID']}
 
         super().__init__(headers=headers, loop=loop, bucket=base.RateBucket(800, 60))
-        self._token_session = TokenSession(loop)
+        self._token_session = token.TokenSession(loop)
         self._app = sanic.Sanic(error_handler=CustomErrorHandler(), configure_logging=False)
         self._app.add_route(self._handle_get, "<endpoint:[a-z/]+>", methods=['GET'])
         self._app.add_route(self._handle_post, "<endpoint:[a-z/]+>", methods=['POST'])
