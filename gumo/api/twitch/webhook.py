@@ -250,12 +250,12 @@ class Subscription:
 
 class Topic(abc.ABC):
 
-    __slots__ = ()
+    valid_params = ()
 
     ENDPOINT = None
 
     def __init__(self, **kwargs):
-        self.params = {slot: value for slot, value in kwargs.items() if slot in self.__slots__}
+        self.params = {param: value for param, value in kwargs.items() if param in self.valid_params}
 
     def __repr__(self):
         return f"<{self.__class__.__name__} uri='{self.as_uri}'>"
@@ -280,18 +280,18 @@ class Topic(abc.ABC):
 
     @property
     def id(self):
-        return next((self.params.get(slot) for slot in self.__slots__ if self.params.get(slot) is not None), None)
+        return next((self.params.get(param) for param in self.valid_params if self.params.get(param) is not None), None)
 
 
 class StreamChanged(Topic):
 
-    __slots__ = ('user_id',)
+    valid_params = ('user_id',)
 
     ENDPOINT = "/streams"
 
 
 class UserFollows(Topic):
 
-    __slots__ = ('from_id', 'to_id')
+    valid_params = ('from_id', 'to_id')
 
     ENDPOINT = "/users/follows"
