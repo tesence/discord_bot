@@ -93,10 +93,10 @@ class TwitchWebhookServer(base.APIClient):
         self._app = sanic.Sanic(error_handler=CustomErrorHandler(), configure_logging=False)
         self._app.add_route(self._handle_get, "<endpoint:[a-z/]+>", methods=['GET'])
         self._app.add_route(self._handle_post, "<endpoint:[a-z/]+>", methods=['POST'])
-        self._host = socket.gethostbyname(socket.gethostname())
+        self._host = config.get('TWITCH_WEBHOOK_HOST') or socket.gethostbyname(socket.gethostname())
         self._port = config['TWITCH_WEBHOOK_PORT']
         self._callback = callback
-        self._external_host = None
+        self._external_host = config.get('TWITCH_WEBHOOK_EXTERNAL_HOST')
         self._server = None
 
         self._topic_by_endpoint = {topic.ENDPOINT: topic for topic in Topic.__subclasses__()}
@@ -107,13 +107,13 @@ class TwitchWebhookServer(base.APIClient):
         self._pending_subscriptions = {}
         self._pending_cancellation = {}
 
-        loop.create_task(self._set_external_host())
+        if not self._external_host:
+            loop.create_task(self._set_external_host())
 
     async def _set_external_host(self):
-        if not self._external_host:
-            external_ip = await self.get('https://api.ipify.org/')
-            self._external_host = f"http://{external_ip}:{self._port}"
-            LOG.debug(f"External host: {self._external_host}")
+        external_ip = await self.get('https://api.ipify.org/')
+        self._external_host = f"http://{external_ip}:{self._port}"
+        LOG.debug(f"External host: {self._external_host}")
 
     async def _get_webhook_action_params(self, mode, topic, duration=86400):
         data = {
