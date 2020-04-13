@@ -73,7 +73,7 @@ class StreamCommands(commands.Cog):
         user_id = topic.id
         LOG.debug(f"Webhook data received for '{topic}': {body}")
 
-        user_data = (await self.client.get_users_by_id(user_id))[user_id]
+        user_data = (await self.client.get_users(user_ids=[user_id]))[0]
         LOG.debug(f"Related user data found for '{user_id}': {user_data}")
 
         stream = self.bot.streams[user_id]
@@ -90,11 +90,11 @@ class StreamCommands(commands.Cog):
                 LOG.info(f"'{stream.name}' has changed his name to '{current_name}', the database has been updated")
 
             game_id = stream_data['game_id']
-            game_data = (await self.client.get_games_by_id(game_id)).get(game_id)
-            game = game_data['name'].strip() if game_data else None
+            game_data = await self.client.get_games(game_id)
+            game_name = game_data[0]['name'].strip() if game_data else None
 
             # Treat it as a test stream if there is no game set and if there is word "test" in the title
-            if "test" in stream_data['title'].strip().lower() and not game:
+            if "test" in stream_data['title'].strip().lower() and not game_name:
                 LOG.info(f"'{stream.name}' is doing a test stream, the notification is not sent")
                 return
 
@@ -102,7 +102,7 @@ class StreamCommands(commands.Cog):
             stream.name = current_name
             stream.display_name = user_data['display_name']
             stream.logo = user_data['profile_image_url']
-            stream.game = game or "No Game"
+            stream.game = game_name or "No Game"
             stream.title = stream_data['title'].strip() or "No Title"
             stream.type = stream_data['type']
 
@@ -284,7 +284,7 @@ class StreamCommands(commands.Cog):
         LOG.debug(f"Database: {streams_by_channel}")
 
     async def _add_streams(self, ctx, *user_logins, tags=None):
-        users_by_login = await self.client.get_users_by_login(*user_logins)
+        users = await self.client.get_users(user_logins=user_logins)
 
         # Create missing channel
         values = [(ctx.channel.id, ctx.channel.name, ctx.guild.id, ctx.guild.name)]
@@ -292,14 +292,14 @@ class StreamCommands(commands.Cog):
         LOG.info(f"Created channels: {out}")
 
         # Create missing streams
-        values = [(user['id'], name) for name, user in users_by_login.items()]
+        values = [(user['id'], user['login']) for user in users]
         out = await self.stream_db_driver.create(*values, ensure=True)
         LOG.info(f"Created streams: {out}")
         await self.webhook_server.subscribe(*[twitch.StreamChanged(user_id=stream.id) for stream in out])
         self.bot.streams.update({stream.id: stream for stream in out})
 
         # Create missing channel_streams
-        values = [(ctx.channel.id, user['id'], tags) for user in users_by_login.values()]
+        values = [(ctx.channel.id, user['id'], tags) for user in users]
         out = await self.channel_stream_db_driver.create(*values, ensure=True)
         LOG.info(f"Created channel_streams: {out}")
 
@@ -334,9 +334,9 @@ class StreamCommands(commands.Cog):
         await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
 
     async def _remove_streams(self, ctx, *user_logins):
-        users_by_login = await self.client.get_users_by_login(*user_logins)
+        users = await self.client.get_users(user_logins=user_logins)
 
-        user_ids = [user['id'] for user in users_by_login.values()]
+        user_ids = [user['id'] for user in users]
         await self.channel_stream_db_driver.bulk_delete(ctx.channel.id, *user_ids)
         await self.channel_db_driver.delete_old_channels()
         out = await self.stream_db_driver.delete_old_streams()
