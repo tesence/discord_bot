@@ -348,37 +348,3 @@ class StreamCommands(commands.Cog):
             raise MissingStreamName
         await self._remove_streams(ctx, *user_logins)
         await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
-
-    @stream.group()
-    @commands.check(is_owner)
-    async def notification(self, ctx):
-        """Manage notifications"""
-
-    @notification.command(name='list', hidden=True)
-    @commands.check(is_owner)
-    async def notification_list(self, ctx):
-        """List all the current notifications across all servers"""
-        output = collections.defaultdict(functools.partial(collections.defaultdict, list))
-        for stream in self.bot.streams.values():
-            for channel_id, notifications in stream.notifications_by_channel_id.items():
-                channel = self.bot.get_channel(channel_id)
-                guild = channel.guild
-                output[guild][channel] += [(stream.name, notification) for notification in notifications]
-
-        if not output:
-            return
-
-        message = ""
-        for guild, notifications_by_channel in output.items():
-            message += f"**{guild.name}**\n"
-            for channel, notifications in sorted(notifications_by_channel.items(), key=lambda x: x[0].position):
-                notifications.sort(key=lambda x: x[1].created_at)
-                labels = []
-                for notification_tuple in notifications:
-                    stream_name, notification = notification_tuple
-                    icon = emoji.RED_CIRCLE if NotificationHandler.is_online(notification) else emoji.WHITE_CIRCLE
-                    label = f"`{icon}{stream_name}`"
-                    labels.append(label)
-                message += f"- #{channel.name}: {', '.join(labels)}\n"
-            message += "\n"
-        await ctx.send(message)
