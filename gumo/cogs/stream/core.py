@@ -1,7 +1,6 @@
 import asyncio
 import collections
 from datetime import datetime
-import functools
 import logging
 
 from discord import errors
@@ -9,13 +8,15 @@ from discord.ext import commands
 
 from gumo import api
 from gumo.api import twitch
-from gumo.check import is_owner, is_admin
-from gumo import config
-from gumo.cogs.stream.models import NotificationHandler
+from gumo.check import is_admin
+from gumo.cogs.stream import models
 from gumo import db
 from gumo import emoji
 
 LOG = logging.getLogger(__name__)
+
+RECENT_NOTIFICATION_AGE = 300
+OLD_NOTIFICATION_LIFESPAN = 60 * 60 * 24
 
 
 class MissingStreamName(commands.MissingRequiredArgument):
@@ -31,9 +32,11 @@ class StreamCommands(commands.Cog):
         self.bot = bot
         self.client = twitch.TwitchAPIClient(self.bot.loop)
         self.webhook_server = twitch.TwitchWebhookServer(self.bot.loop, self.on_webhook_event)
-        self.stream_db_driver = db.StreamDBDriver(self.bot)
+        self.user_db_driver = db.UserDBDriver(self.bot)
         self.channel_db_driver = db.ChannelDBDriver(self.bot)
-        self.channel_stream_db_driver = db.ChannelStreamDBDriver(self.bot)
+        self.user_channel_db_driver = db.UserChannelDBDriver(self.bot)
+        self.stream_db_driver = db.StreamDBDriver(self.bot)
+        self.notification_db_driver = db.NotificationDBDriver(self.bot)
         self.tasks = []
 
         self.bot.loop.create_task(self.init())
@@ -45,12 +48,11 @@ class StreamCommands(commands.Cog):
 
     async def init(self):
         """Initialize all the manager attributes and load the database data."""
-        await self.stream_db_driver.init()
+        await self.user_db_driver.init()
         await self.channel_db_driver.init()
-        await self.channel_stream_db_driver.init()
-
-        previous_streams = getattr(self.bot, 'streams', None)
-        self.bot.streams = previous_streams or {stream.id: stream for stream in await self.stream_db_driver.list()}
+        await self.user_channel_db_driver.init()
+        await self.stream_db_driver.init()
+        await self.notification_db_driver.init()
 
         await self.webhook_server.start()
         await self.bot.wait_until_ready()
@@ -69,118 +71,165 @@ class StreamCommands(commands.Cog):
         for task in self.tasks:
             task.add_done_callback(task_done_callback)
 
-    async def on_webhook_event(self, topic, body):
-        user_id = topic.id
-        LOG.debug(f"Webhook data received for '{topic}': {body}")
+    async def on_webhook_event(self, topic, timestamp, body):
+        """Method called when a webhook event is received"""
 
+        stream_data = body.get('data')
+        user_id = topic.params['user_id']
+
+        # Enrich user data
         user_data = (await self.client.get_users(user_ids=[user_id]))[0]
-        LOG.debug(f"Related user data found for '{user_id}': {user_data}")
 
-        stream = self.bot.streams[user_id]
-        channel_streams = await self.channel_stream_db_driver.list(stream_id=user_id)
+        if stream_data:
 
-        data = body.get('data')
+            stream_data = stream_data[0]
 
-        if data:
-            stream_data = data[0]
-            current_name = user_data['login']
+            await self._on_stream_update(timestamp, user_data, stream_data)
 
-            if not current_name == stream.name:
-                await self.stream_db_driver.update('name', current_name, id=user_id)
-                LOG.info(f"'{stream.name}' has changed his name to '{current_name}', the database has been updated")
+            # Make sure that any previous stream entry is has an end date
+            await self.stream_db_driver.update('ended_at', timestamp, user_id=user_id, ended_at=None)
 
-            game_id = stream_data['game_id']
-            game_data = await self.client.get_games(game_id)
-            game_name = game_data[0]['name'].strip() if game_data else None
+            data = {
+                'id': stream_data['id'],
+                'type': stream_data['type'],
+                'user_id': stream_data['user_id'],
+                'game_id': stream_data['game_id'],
+                'started_at': timestamp
+            }
+            await self.stream_db_driver.create(data.values(), columns=data.keys())
 
-            # Update old values
-            stream.name = current_name
-            stream.display_name = user_data['display_name']
-            stream.logo = user_data['profile_image_url']
-            stream.game = game_name or "No Game"
-            stream.title = stream_data['title'].strip() or "No Title"
-            stream.type = stream_data['type']
-
-            if not stream.online:
-                LOG.info(f"{stream.name} is online")
-                await self._on_stream_online(stream, channel_streams)
-            else:
-                LOG.debug(f"{stream.name}'s stream has been updated")
-                await self._on_stream_update(stream)
         else:
-            LOG.info(f"{stream.name} is offline")
-            await self._on_stream_offline(stream, channel_streams)
+            await self._on_stream_offline(timestamp, user_data)
 
-    async def _on_stream_online(self, stream, channel_streams):
-        """Method called if twitch stream goes online.
+    async def _on_stream_update(self, timestamp, user_data, stream_data):
 
-        :param stream: The data of the stream going online
-        :param channel_streams: The discord channels in which the stream is tracked
-        """
-        stream.online = True
-        stream.last_offline_date = None
-        for channel_stream in channel_streams:
-            channel = self.bot.get_channel(channel_stream.channel_id)
-            if 'stream' not in {ext.name for ext in await self.bot.extension_db_driver.list(guild_id=channel.guild.id)}:
-                LOG.debug(f"The stream extension is not enabled on the server '{channel.guild}', the notifications "
-                          f"are not sent")
-                continue
-            tags = channel_stream.tags
-            message, embed = NotificationHandler.get_info(stream, tags)
-            recent_notification = stream.get_recent_notification(channel.id)
-            if recent_notification:
-                await recent_notification.edit(content=message, embed=embed)
-                LOG.debug(f"'{stream.name}' was live recently, recent notification in channel "
-                          f"'{channel.guild.name}#{channel.name}' edited")
+        # Enrich game data
+        game_data = (await self.client.get_games(stream_data['game_id']))[0]
+
+        # New message
+        if stream_data['type'] == "live":
+            message_content = f"{user_data['display_name']} is live!"
+        else:
+            message_content = f"{user_data['display_name']} started a vodcast!"
+
+        # New embed
+        new_embed = models.NotificationEmbed(broadcast_type=stream_data['type'], login=user_data['login'],
+                                             display_name=user_data['display_name'], title=stream_data['title'],
+                                             game=game_data['name'], logo=user_data['profile_image_url'])
+
+        last_stream = await self.stream_db_driver.get(user_id=user_data['id'], order_by='started_at', desc=True)
+
+        # Get the last stream to distinguish 3 cases:
+        # - If the stream id didn't change, then the broadcaster is already live and has updated their stream
+        # - If the stream id changed but the last stream was recent then we re use the same notifications
+        # - Else, the broadcaster went online after some time offline
+        if last_stream and last_stream.id == stream_data['id']:
+            stream_id = last_stream.id
+        elif last_stream and last_stream.ended_at and \
+                (datetime.utcnow() - last_stream.ended_at).total_seconds() < RECENT_NOTIFICATION_AGE:
+            stream_id = last_stream.id
+        else:
+            stream_id = stream_data['id']
+
+            if last_stream:
+                # Edit old notifications in case a "stream offline" notification has been missed
+                old_notifications = await self.notification_db_driver.list(stream_id=last_stream.id, edited_at=None,
+                                                                           deleted_at=None)
+                await self._edit_notifications(timestamp, user_data, old_notifications)
+
+        user_channels = await self.user_channel_db_driver.list(user_id=user_data['id'])
+        notifications = await self.notification_db_driver.list(stream_id=stream_id, deleted_at=None)
+
+        tags_by_channel_id = {user_channel.channel_id: user_channel.tags for user_channel in user_channels}
+        channels_by_id = {user_channel.channel_id: self.bot.get_channel(user_channel.channel_id)
+                          for user_channel in user_channels}
+        notifications_by_channel_id = {notification.channel_id: notification for notification in notifications}
+
+        channels_edit = [channels_by_id[notification.channel_id] for notification in notifications]
+        channels_send = [channel for channel in channels_by_id.values() if channel not in channels_edit]
+
+        # use a copy of the list because it might be edited as we iterate through it
+        for channel in channels_edit[:]:
+
+            notification = notifications_by_channel_id[channel.id]
+
+            try:
+                message = await self.bot.get_channel(notification.channel_id).fetch_message(notification.message_id)
+            except errors.NotFound:
+                LOG.warning(f"Notification for {user_data['display_name']} in channel "
+                            f"{channel.guild.name}#{channel.name} has most likely been manually deleted, updating the "
+                            f"database")
+                await self.notification_db_driver.update('deleted_at', timestamp, message_id=notification.message_id)
+                channels_edit.remove(channel)
             else:
-                notification = await channel.send(message, embed=embed)
-                stream.notifications_by_channel_id[channel.id].append(notification)
-                LOG.debug(f"Notification for '{stream.name}' sent in channel '{channel.guild.name}#{channel.name}'")
+                # Edit the notification and the related stream_id
+                await message.edit(content=f"{tags_by_channel_id[channel.id] or ''} {message_content}", embed=new_embed)
+                await self.notification_db_driver.update('stream_id', stream_data['id'],
+                                                         message_id=notification.message_id)
+            await self.notification_db_driver.update('edited_at', None, message_id=notification.message_id)
 
-    async def _on_stream_offline(self, stream, channel_streams):
-        """Method called if the twitch stream is going offline.
+        if channels_edit:
+            channel_str = [f"{channel.guild.name}#{channel.name}" for channel in channels_edit]
+            LOG.debug(f"{user_data['display_name']} is already online or was live recently (less than "
+                      f"{RECENT_NOTIFICATION_AGE}s), recent notification have been edited: {', '.join(channel_str)}")
 
-        :param stream: The data of the stream going offline
-        :param channel_streams: The discord channels in which the stream is tracked
-        """
-        stream.online = False
-        stream.last_offline_date = datetime.utcnow()
-        online_notifications = [notification for notification in stream.notifications
-                                if NotificationHandler.is_online(notification)]
-        for notification in online_notifications:
-            channel = notification.channel
-            message, embed = NotificationHandler.get_info(stream)
+        notifications_to_create = []
+        for channel in channels_send[:]:
+
+            # Discard notifications if the extension is not enabled in this guild
+            enabled_extensions = await self.bot.extension_db_driver.list(guild_id=channel.guild.id)
+            enabled_extension_names = {ext.name for ext in enabled_extensions}
+            if 'stream' not in enabled_extension_names:
+                LOG.debug(f"The stream extension is not enabled on the server '{channel.guild.name}', "
+                          f"the notifications are not sent")
+                continue
+
+            message = await channel.send(content=f"{tags_by_channel_id[channel.id] or ''} {message_content}",
+                                         embed=new_embed)
+
+            values = (user_data['id'], channel.id, stream_data['id'], message.id, timestamp)
+            notifications_to_create.append(values)
+
+        if channels_send:
+            columns = ['user_id', 'channel_id', 'stream_id', 'message_id', 'created_at']
+            await self.notification_db_driver.create(*notifications_to_create, columns=columns)
+            channel_str = [f"{channel.guild.name}#{channel.name}" for channel in channels_send]
+            LOG.debug(f"Notifications for {user_data['display_name']} sent: {', '.join(channel_str)}")
+
+    async def _on_stream_offline(self, timestamp, user_data):
+        """Method called if the twitch stream is going offline"""
+
+        active_streams = await self.stream_db_driver.list(user_id=user_data['id'], ended_at=None)
+
+        for active_stream in active_streams:
+            await self.stream_db_driver.update('ended_at', timestamp, id=active_stream.id, ended_at=None)
+
+        active_notifications = await self.notification_db_driver.list(user_id=user_data['id'], edited_at=None,
+                                                                      deleted_at=None)
+        await self._edit_notifications(timestamp, user_data, active_notifications)
+
+    async def _edit_notifications(self, timestamp, user_data, notifications):
+
+        for notification in notifications:
+
+            channel = self.bot.get_channel(notification.channel_id)
             try:
-                await notification.edit(content=message, embed=embed)
-                LOG.debug(f"Notifications for '{stream.name}' in channel '{channel.guild.name}#{channel.name}' edited")
+                message = await channel.fetch_message(notification.message_id)
             except errors.NotFound:
-                LOG.warning(f"The notification for '{stream.name}' sent at '{notification.created_at}' in the channel "
-                            f"'{channel.guild.name}#{channel.name}' does not exist or has been deleted")
-                stream.notifications_by_channel_id[channel.id].remove(notification)
+                LOG.warning(f"Notification for {user_data['display_name']} in channel "
+                            f"{channel.guild.name}#{channel.name} has most likely been manually deleted, updating the "
+                            f"database)")
+                await self.notification_db_driver.update('deleted_at', timestamp, message_id=notification.message_id)
+            else:
+                new_embed = message.embeds[0]
+                new_embed.color = models.OFFLINE_COLOR
 
-    async def _on_stream_update(self, stream):
-        """Method called if the twitch stream is update.
+                await message.edit(content="", embed=new_embed)
 
-        :param stream: The data of the stream being update
-        """
-        online_notifications = [notification for notification in stream.notifications
-                                if NotificationHandler.is_online(notification)]
-        for notification in online_notifications:
-            channel = notification.channel
-            _, embed = NotificationHandler.extract_info(notification)
-            fields = embed.fields
-            embed.set_field_at(index=0, name=fields[0].name, value=stream.title, inline=fields[0].inline)
-            embed.set_field_at(index=1, name=fields[1].name, value=stream.game, inline=fields[1].inline)
-            try:
-                await notification.edit(embed=embed)
-                LOG.info(f"Notifications for '{stream.name}' in the channel '{channel.guild.name}#{channel.name}' "
-                         f"updated (title='{stream.title}', game='{stream.game}')")
-            except errors.NotFound:
-                LOG.warning(f"The notification for '{stream.name}' sent at '{notification.created_at}' in the channel "
-                            f"'{channel.guild.name}#{channel.name}' does not exist or has been deleted")
-                stream.notifications_by_channel_id[channel.id].remove(notification)
+                await self.notification_db_driver.update('edited_at', timestamp, message_id=message.id)
 
     async def update_subscriptions(self):
+        """Renew subscriptions"""
         LOG.debug("Subscriptions refresh task running...")
         while True:
             try:
@@ -190,7 +239,7 @@ class StreamCommands(commands.Cog):
                 missing_subscriptions = set()
                 outdated_subscriptions = set()
 
-                for user_id in [user_id for user_id in self.bot.streams]:
+                for user_id in [user.id for user in await self.user_db_driver.list()]:
 
                     # If the subscription is missing
                     if user_id not in subscribed_users_by_id:
@@ -206,103 +255,108 @@ class StreamCommands(commands.Cog):
                 if outdated_subscriptions:
                     LOG.info(f"Outdated subscriptions for topics: {outdated_subscriptions}")
 
-                await self.webhook_server.cancel(*outdated_subscriptions)
+                await self.webhook_server.unsubscribe(*outdated_subscriptions)
                 await self.webhook_server.subscribe(*missing_subscriptions | outdated_subscriptions)
                 await asyncio.sleep(600)
             except api.APIError:
                 await asyncio.sleep(10)
 
     async def delete_old_notifications(self):
-        """Delete the old offline stream notifications."""
+        """Delete the old offline stream notifications"""
         LOG.debug("Old notifications deletion task running...")
         while True:
-            for stream in self.bot.streams.values():
-                old_notifications = [notification for notification in stream.notifications
-                                     if NotificationHandler.is_deprecated(notification)]
-                for notification in old_notifications:
-                    channel = notification.channel
+
+            timestamp = datetime.utcnow()
+            notifications = await self.notification_db_driver.list(deleted_at=None)
+
+            for notification in notifications:
+
+                if not notification.edited_at:
+                    continue
+
+                if (datetime.utcnow() - notification.edited_at).total_seconds() > OLD_NOTIFICATION_LIFESPAN:
                     try:
-                        await notification.delete()
-                        stream.notifications_by_channel_id[channel.id].remove(notification)
-                        LOG.debug(f"Offline notification for '{stream.name}', sent the "
-                                  f"'{notification.created_at}', offline since '{stream.last_offline_date}' has "
-                                  f"been deleted")
-                        if not stream.notifications_by_channel_id[channel.id]:
-                            del stream.notifications_by_channel_id[channel.id]
+                        channel = self.bot.get_channel(notification.channel_id)
+                        message = await channel.fetch_message(notification.message_id)
+                        await message.delete()
                     except errors.NotFound:
-                        LOG.warning(f"The notification for '{stream.name}' sent at "
-                                    f"'{notification.created_at}' does not exist or has been deleted")
-                        stream.notifications_by_channel_id[channel.id].remove(notification)
-            await asyncio.sleep(60)
+                        LOG.warning(f"Notification for user '{notification.user_id}' in channel "
+                                    f"{notification.channel_id} has most likely been manually deleted")
+                    await self.notification_db_driver.update('deleted_at', timestamp,
+                                                             message_id=notification.message_id)
+            await asyncio.sleep(600)
 
     @commands.group()
     @commands.guild_only()
     async def stream(self, ctx):
-        """Manage tracked streams."""
+        """Manage tracked streams"""
         if ctx.invoked_subcommand is None:
             await ctx.invoke(self.bot.get_command('help'), command_name=ctx.command.name)
 
     @stream.command()
     @commands.guild_only()
     async def list(self, ctx):
-        """Show the list of the current tracked streams."""
-        records = await self.channel_stream_db_driver.get_user_logins(ctx.guild.id)
+        """Show the list of the current tracked streams"""
 
-        if not records:
-            return
+        user_channels = await self.user_channel_db_driver.list()
 
-        # Build the output data by storing every stream names notified for each discord channel
-        # {
-        #   <discord_channel_1>: ["stream_name_1", "stream_name_2", ...]
-        #   <discord_channel_2>: ["stream_name_2", "stream_name_3", ...]
-        #   <discord_channel_3>: ["stream_name_1", "stream_name_3", ...]
-        # }
-        streams_by_channel = collections.defaultdict(list)
-        for record in records:
-            channel_id, stream_name = record.values()
-            channel = self.bot.get_channel(channel_id)
-            streams_by_channel[channel].append(stream_name)
+        users = await self.user_db_driver.list()
+        users_by_id = {user.id: user for user in users}
+
+        channels = [self.bot.get_channel(channel.id) for channel in await self.channel_db_driver.list()]
+        channels_by_id = {channel.id: channel for channel in channels}
+
+        users_by_channel = collections.defaultdict(list)
+        for user_channel in user_channels:
+
+            user = users_by_id[user_channel.user_id]
+            channel = channels_by_id[user_channel.channel_id]
+
+            if not channel.guild.id == ctx.guild.id:
+                continue
+
+            users_by_channel[channel].append(user)
 
         # Build an embed displaying the output data.
         # - The discord channels are sorted in the same order as on the server
-        # - The stream names are sorted in alphabetical order
+        # - The user logins are sorted in alphabetical order
         message = ""
 
-        for channel, user_logins in sorted(streams_by_channel.items(), key=lambda x: x[0].position):
+        for channel, users in sorted(users_by_channel.items(), key=lambda x: x[0].position):
             channel_name = f"**#{channel.name}**"
-            user_logins = [f"`{user_login}`" for user_login in sorted(user_logins)]
+            user_logins = sorted([f"`{user.login}`" for user in users])
 
             message += channel_name + "\n"
             message += ", ".join(user_logins) + "\n\n"
 
         await ctx.send(message)
-        LOG.debug(f"Database: {streams_by_channel}")
 
     async def _add_streams(self, ctx, *user_logins, tags=None):
+        """Track stream """
+
         users = await self.client.get_users(user_logins=user_logins)
 
         # Create missing channel
         values = [(ctx.channel.id, ctx.channel.name, ctx.guild.id, ctx.guild.name)]
-        out = await self.channel_db_driver.create(*values, ensure=True)
-        LOG.info(f"Created channels: {out}")
+        created_channels = await self.channel_db_driver.create(*values, ensure=True)
+        LOG.info(f"Created channels: {created_channels}")
 
-        # Create missing streams
+        # Create missing users
         values = [(user['id'], user['login']) for user in users]
-        out = await self.stream_db_driver.create(*values, ensure=True)
-        LOG.info(f"Created streams: {out}")
-        await self.webhook_server.subscribe(*[twitch.StreamChanged(user_id=stream.id) for stream in out])
-        self.bot.streams.update({stream.id: stream for stream in out})
+        created_users = await self.user_db_driver.create(*values, ensure=True)
+        LOG.info(f"Created users: {created_users}")
+        await self.webhook_server.subscribe(*[twitch.StreamChanged(user_id=user.id) for user in created_users])
 
         # Create missing channel_streams
         values = [(ctx.channel.id, user['id'], tags) for user in users]
-        out = await self.channel_stream_db_driver.create(*values, ensure=True)
-        LOG.info(f"Created channel_streams: {out}")
+        created_user_channels = await self.user_channel_db_driver.create(*values, ensure=True)
+        LOG.info(f"Created user_channels: {created_user_channels}")
 
     @stream.command()
     @commands.guild_only()
     @commands.check(is_admin)
     async def add(self, ctx, *user_logins):
-        """Track a list of streams in a channel."""
+        """Track a list of streams in a channel"""
         if not user_logins:
             raise MissingStreamName
         await self._add_streams(ctx, *user_logins)
@@ -329,21 +383,26 @@ class StreamCommands(commands.Cog):
         await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
 
     async def _remove_streams(self, ctx, *user_logins):
-        users = await self.client.get_users(user_logins=user_logins)
+        """Stop tracking a list of streams in a channel"""
 
+        users = await self.client.get_users(user_logins=user_logins)
         user_ids = [user['id'] for user in users]
-        await self.channel_stream_db_driver.bulk_delete(ctx.channel.id, *user_ids)
-        await self.channel_db_driver.delete_old_channels()
-        out = await self.stream_db_driver.delete_old_streams()
-        await self.webhook_server.cancel(*[twitch.StreamChanged(user_id=stream.id) for stream in out])
-        for stream in out:
-            self.bot.streams.pop(stream.id, None)
+
+        deleted_user_channels = await self.user_channel_db_driver.bulk_delete(ctx.channel.id, *user_ids)
+        LOG.info(f"Deleted user_channels: {deleted_user_channels}")
+
+        deleted_channels = await self.channel_db_driver.delete_old_channels()
+        LOG.info(f"Deleted channels: {deleted_channels}")
+
+        deleted_users = await self.user_db_driver.delete_old_users()
+        LOG.info(f"Deleted users: {deleted_users}")
+        await self.webhook_server.unsubscribe(*[twitch.StreamChanged(user_id=user.id) for user in deleted_users])
 
     @stream.command(aliases=['rm', 'delete', 'del'])
     @commands.guild_only()
     @commands.check(is_admin)
     async def remove(self, ctx, *user_logins):
-        """Stop tracking a list of streams in a channel."""
+        """Stop tracking a list of streams in a channel"""
         if not user_logins:
             raise MissingStreamName
         await self._remove_streams(ctx, *user_logins)

@@ -138,7 +138,7 @@ class Bot(commands.Bot):
     async def start(self, *args, **kwargs):
         try:
             token = config['DISCORD_BOT_TOKEN']
-            await self.ready.wait()
+            # await self.ready.wait()
             await super().start(token, *args, **kwargs)
         except ConnectionError:
             LOG.exception("Cannot connect to the websocket")

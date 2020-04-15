@@ -1,83 +1,27 @@
-from datetime import datetime
 
 import discord
 
-from gumo import config
 
-TWITCH_ICON_URL = "https://www.shareicon.net/download/2015/09/08/98061_twitch_512x512.png"
+TWITCH_ICON_URL = "https://static.twitchcdn.net/assets/favicon-32-d6025c14e900565d6177.png"
 
-
-class NotificationHandler:
-
-    RECENT_NOTIFICATION_AGE = 300
-    OLD_NOTIFICATION_LIFESPAN = 60 * 60 * 24
-
-    @staticmethod
-    def _get_message(stream, tags=None):
-        if stream.type == "live":
-            message = f"{stream.display_name} is live!"
-        else:
-            message = f"{stream.display_name} started a vodcast!"
-        if tags:
-            message = f"{tags} {message}"
-        return message
-
-    @staticmethod
-    def extract_info(message):
-        return message.content, message.embeds[0]
-
-    @classmethod
-    def _get_offline_duration(cls, message):
-        if cls.is_online(message):
-            return -1
-        return (datetime.utcnow() - message.edited_at).total_seconds()
-
-    @classmethod
-    def is_online(cls, message):
-        message, embed = cls.extract_info(message)
-        return bool(message) and embed.color == NotificationEmbed.ONLINE_COLOR
-
-    @classmethod
-    def get_info(cls, stream, tags=None):
-        message = cls._get_message(stream, tags) if stream.online else ""
-        embed = NotificationEmbed(stream)
-
-        return message, embed
-
-    @classmethod
-    def is_recent(cls, message):
-        if cls.is_online(message):
-            return False
-        return cls._get_offline_duration(message) < cls.RECENT_NOTIFICATION_AGE
-
-    @classmethod
-    def is_deprecated(cls, message):
-        if cls.is_online(message):
-            return False
-        return cls._get_offline_duration(message) > cls.OLD_NOTIFICATION_LIFESPAN
+ONLINE_COLOR = discord.Color.dark_purple()
+VODCAST_COLOR = discord.Color.red()
+OFFLINE_COLOR = discord.Color.lighter_grey()
 
 
 class NotificationEmbed(discord.Embed):
 
-    ONLINE_COLOR = discord.Color.dark_purple()
-    VODCAST_COLOR = discord.Color.red()
-    OFFLINE_COLOR = discord.Color.lighter_grey()
-
-    def __init__(self, stream):
+    def __init__(self, broadcast_type, login, display_name, title, game, logo=None):
         super().__init__()
-        self.stream = stream
 
-        channel_url = f"https://www.twitch.tv/{stream.name}"
-        self.set_author(name=stream.display_name, url=channel_url, icon_url=TWITCH_ICON_URL)
+        channel_url = f"https://www.twitch.tv/{login}"
+        self.set_author(name=display_name, url=channel_url, icon_url=TWITCH_ICON_URL)
         self.description = channel_url
 
-        self.add_field(name="Title", value=stream.title, inline=False)
-        self.add_field(name="Game", value=stream.game, inline=False)
+        self.add_field(name="Title", value=title, inline=False)
+        self.add_field(name="Game", value=game, inline=False)
 
-        if stream.logo:
-            self.set_thumbnail(url=stream.logo)
+        if logo:
+            self.set_thumbnail(url=logo)
 
-        if stream.online:
-            self.color = self.ONLINE_COLOR if self.stream.type == "live" else self.VODCAST_COLOR
-        else:
-            self.color = self.OFFLINE_COLOR
+        self.color = ONLINE_COLOR if broadcast_type == "live" else VODCAST_COLOR

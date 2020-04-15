@@ -2,9 +2,11 @@ import abc
 import asyncio
 import collections
 from datetime import datetime
+import enum
 import hashlib
 import hmac
 import logging
+import re
 import socket
 from urllib import parse
 
@@ -28,8 +30,8 @@ def log_request(route):
 
     async def inner(server, request, *args, **kwargs):
         LOG.debug(f"Incoming request from '{request.ip}:{request.port}': "
-                  f"'{request.method} http://{request.host}{request.path}' "
-                  f"headers={request.headers}, args={request.args}, body={request.body}")
+                  f"'{request.method} {request.scheme}://{request.host}{request.path}' "
+                  f"headers={dict(request.headers)}, args={request.args}, body={request.body}")
         return await route(server, request, *args, **kwargs)
 
     return inner
@@ -87,6 +89,7 @@ class TwitchWebhookServer(base.APIClient):
     def __init__(self, loop, callback):
 
         super().__init__(loop=loop, bucket=base.RateBucket(800, 60))
+        self._loop = loop
         self._token_session = token.TokenSession(loop)
         self._app = sanic.Sanic(error_handler=CustomErrorHandler(), configure_logging=False)
         self._app.add_route(self._handle_get, "<endpoint:[a-z/]+>", methods=['GET'])
@@ -97,13 +100,10 @@ class TwitchWebhookServer(base.APIClient):
         self._external_host = config.get('TWITCH_WEBHOOK_EXTERNAL_HOST')
         self._server = None
 
-        self._topic_by_endpoint = {topic.ENDPOINT: topic for topic in Topic.__subclasses__()}
-
         # Store the 50 last notification ids to prevent duplicates
         self._notification_ids = collections.deque(maxlen=50)
 
-        self._pending_subscriptions = {}
-        self._pending_cancellation = {}
+        self._pending_actions = {}
 
         if not self._external_host:
             loop.create_task(self._set_external_host())
@@ -115,12 +115,12 @@ class TwitchWebhookServer(base.APIClient):
 
     async def _get_webhook_action_params(self, mode, topic, duration=86400):
         data = {
-            'hub.mode': mode,
+            'hub.mode': mode.name,
             'hub.topic': topic.as_uri,
-            'hub.callback': f"{self._external_host}{topic.ENDPOINT}?{parse.urlencode(topic.params)}",
+            'hub.callback': f"{self._external_host}/{topic.endpoint}?{parse.urlencode(topic.params)}",
             'hub.secret': config['TWITCH_WEBHOOK_SECRET']
         }
-        if mode == 'subscribe':
+        if mode == WebhookMode.subscribe:
             data['hub.lease_seconds'] = duration
 
         return data
@@ -131,84 +131,73 @@ class TwitchWebhookServer(base.APIClient):
         return [Subscription.get_subscription(sub) for sub in body['data']]
 
     async def subscribe(self, *topics, duration=86400):
-        headers = await self._token_session.get_authorization_headers()
+        return await self._update_webhooks(WebhookMode.subscribe, *topics, duration=duration)
 
-        tasks = {topic: self._subscribe(topic, duration, headers) for topic in topics}
+    async def unsubscribe(self, *topics):
+        return await self._update_webhooks(WebhookMode.unsubscribe, *topics)
+
+    async def _update_webhooks(self, mode, *topics, duration=None):
+
+        tasks = {topic: self._update_webhook(mode, topic, duration=duration) for topic in topics}
+
         await asyncio.gather(*tasks.values())
 
         if not len(tasks) == len([task for task in tasks.values() if task]):
             LOG.warning(f"Subscriptions failed: {[topic for topic, task in tasks.items() if not task]}")
 
-    async def _subscribe(self, topic, duration, headers):
+    async def _update_webhook(self, mode, topic, duration=None):
+
         success = False
 
-        data = await self._get_webhook_action_params('subscribe', topic, duration)
-        self._pending_subscriptions[topic.as_uri] = asyncio.Event()
-        await self.post(f"{WEBHOOK_URL}/hub", data, headers=headers)
-
-        try:
-            await asyncio.wait_for(self._pending_subscriptions[topic.as_uri].wait(), timeout=10.0)
-        except asyncio.TimeoutError:
-            pass
-        else:
-            success = True
-        self._pending_subscriptions.pop(topic.as_uri)
-        return success
-
-    async def cancel(self, *topics):
         headers = await self._token_session.get_authorization_headers()
+        data = await self._get_webhook_action_params(mode, topic, duration)
 
-        tasks = {topic: self._cancel(topic, headers) for topic in topics}
-        await asyncio.gather(*tasks.values())
-
-        if not len(tasks) == len([task for task in tasks.values() if task]):
-            LOG.warning(f"Cancellations failed: {[topic for topic, task in tasks.items() if not task]}")
-
-    async def _cancel(self, topic, headers):
-        success = False
-
-        data = await self._get_webhook_action_params('unsubscribe', topic)
+        self._pending_actions[mode.name, topic.as_uri] = asyncio.Event()
         await self.post(f"{WEBHOOK_URL}/hub", data, headers=headers)
-        self._pending_cancellation[topic.as_uri] = asyncio.Event()
 
         try:
-            await asyncio.wait_for(self._pending_cancellation[topic.as_uri].wait(), timeout=10.0)
+            await asyncio.wait_for(self._pending_actions[mode.name, topic.as_uri].wait(), timeout=10.0)
         except asyncio.TimeoutError:
             pass
         else:
             success = True
-        self._pending_cancellation.pop(topic.as_uri)
+        del self._pending_actions[mode.name, topic.as_uri]
         return success
 
     @log_request
     async def _handle_get(self, request, endpoint):
-        topic = self._topic_by_endpoint[f"/{endpoint}"](**{k: request.args.get(k) for k in request.args})
+        args = {arg: value[0] if isinstance(value, list) else value for arg, value in request.args.items()}
+        topic = Topic.get_topic(endpoint, args)
         mode = request.args['hub.mode'][0]
 
         if mode == 'denied':
             LOG.warning(f"A subscription has been denied for topic: {topic}")
-            return response.HTTPResponse(body='200: OK', status=200)
+            return response.HTTPResponse(status=202)
 
         if 'hub.challenge' in request.args:
             challenge = request.args['hub.challenge'][0]
             LOG.info(f"Challenge received: {challenge}")
             try:
-                if mode == 'subscribe':
-                    self._pending_subscriptions[topic.as_uri].set()
-                elif mode == 'unsubscribe':
-                    self._pending_cancellation[topic.as_uri].set()
+                self._pending_actions[mode, topic.as_uri].set()
+                LOG.info(f"A challenge has been received in the context of the action '{mode}' for topic {topic}")
             except KeyError:
                 LOG.warning(f"A challenge has been received, {topic} but there is no pending action, "
                             f"the subscription might have been made externally")
-            return response.HTTPResponse(body=challenge, headers={'Content-Type': 'application/json'})
+            return response.HTTPResponse(status=202, body=challenge, headers={'Content-Type': 'application/json'})
 
     @log_request
     @verify_payload
     @remove_duplicates
     async def _handle_post(self, request, endpoint):
-        topic = self._topic_by_endpoint[f"/{endpoint}"](**{k: request.args.get(k) for k in request.args})
-        await self._callback(topic, request.json)
-        return response.HTTPResponse(body='202: OK', status=202)
+        args = {arg: value[0] if isinstance(value, list) else value for arg, value in request.args.items()}
+        topic = Topic.get_topic(endpoint, args)
+
+        # Because Twitch sucks
+        # timestamp = iso8601.parse_date(request.headers['twitch-notification-timestamp']).replace(tzinfo=None)
+        timestamp = datetime.utcnow()
+
+        self._loop.create_task(self._callback(topic, timestamp, request.json))
+        return response.HTTPResponse(status=202)
 
     async def start(self):
         try:
@@ -231,7 +220,7 @@ class Subscription:
         self.callback = callback
 
     def __repr__(self):
-        return f"<{self.__class__.__name__} topic='{self.topic.as_uri}' expires_at='{self.expires_at}'' " \
+        return f"<{self.__class__.__name__} topic='{self.topic.as_uri}' expires_at='{self.expires_at}' " \
             f"callback='{self.callback}'> "
 
     @property
@@ -240,56 +229,56 @@ class Subscription:
 
     @classmethod
     def get_subscription(cls, sub):
-        topic = Topic.get_topic(sub['topic'])
+        topic = Topic.get_topic_from_url(sub['topic'])
         expires_at = datetime.strptime(sub['expires_at'], "%Y-%m-%dT%H:%M:%SZ")
         callback = sub['callback']
         return cls(topic, expires_at, callback)
 
 
+class WebhookMode(enum.Enum):
+
+    subscribe = enum.auto()
+    unsubscribe = enum.auto()
+
+
 class Topic(abc.ABC):
 
     valid_params = ()
-
-    ENDPOINT = None
+    endpoint = None
 
     def __init__(self, **kwargs):
         self.params = {param: value for param, value in kwargs.items() if param in self.valid_params}
 
     def __repr__(self):
-        return f"<{self.__class__.__name__} uri='{self.as_uri}'>"
+        formatted_params = [f'{param}={self.params[param]}' for param in self.params]
+        return f"<{self.__class__.__name__} {' '.join(formatted_params)}>"
 
     def __str__(self):
         return self.__repr__()
 
     def __hash__(self):
-        return hash(str(self))
+        return hash(self.as_uri)
 
     @property
     def as_uri(self):
-        return f"{TWITCH_API_URL}{self.ENDPOINT}?{parse.urlencode(self.params)}"
+        return f"{TWITCH_API_URL}/{self.endpoint}?{parse.urlencode(self.params)}"
 
     @classmethod
-    def get_topic(cls, url):
+    def get_topic_from_url(cls, url):
         parsed_url = parse.urlparse(url)
-        topic_class = next((subclass for subclass in cls.__subclasses__()
-                            if f"/helix{subclass.ENDPOINT}" == parsed_url.path), None)
+        endpoint = re.search("^/helix/([/a-z]+)$", parsed_url.path).group(1)
         params = dict(parse.parse_qsl(parsed_url.query))
-        return topic_class(**params)
+        return cls.get_topic(endpoint, params)
 
-    @property
-    def id(self):
-        return next((self.params.get(param) for param in self.valid_params if self.params.get(param) is not None), None)
+    @classmethod
+    def get_topic(cls, endpoint, params):
+        topic_by_endpoint = {topic_class.endpoint: topic_class for topic_class in cls.__subclasses__()}
+        topic_class = topic_by_endpoint[endpoint]
+        return topic_class(**params)
 
 
 class StreamChanged(Topic):
 
     valid_params = ('user_id',)
 
-    ENDPOINT = "/streams"
-
-
-class UserFollows(Topic):
-
-    valid_params = ('from_id', 'to_id')
-
-    ENDPOINT = "/users/follows"
+    endpoint = "streams"

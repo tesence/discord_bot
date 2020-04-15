@@ -1,14 +1,9 @@
-import collections
-from datetime import datetime
 import logging
 
-from gumo.cogs.stream.models import NotificationHandler
 from gumo.db import base
 
 
 LOG = logging.getLogger(__name__)
-
-DEFAULT_RECENT_NOTIFICATION_AGE = 300
 
 
 class Channel(base.BaseModel):
@@ -20,60 +15,50 @@ class Channel(base.BaseModel):
     guild_id = base.Column('bigint', nullable=False)
     guild_name = base.Column('varchar(255)', nullable=False)
 
-    def __repr__(self):
-        return f"<{type(self).__name__} name={self.name} guild_name={self.guild_name}>"
+
+class User(base.BaseModel):
+
+    __tablename__ = "users"
+
+    id = base.Column('varchar(255)', primary_key=True)
+    login = base.Column('varchar(255)', nullable=False)
+
+
+class UserChannel(base.BaseModel):
+
+    __tablename__ = "user_channels"
+    __table_args__ = base.UniqueConstraint("user_id", "channel_id"),
+
+    channel_id = base.Column('bigint', base.ForeignKey("channels", "id"), nullable=False)
+    user_id = base.Column('varchar(255)', base.ForeignKey("users", "id"), nullable=False)
+    tags = base.Column('varchar(255)')
 
 
 class Stream(base.BaseModel):
 
     __tablename__ = "streams"
+    __table_args__ = base.UniqueConstraint("id", "started_at"),
 
-    id = base.Column('varchar(255)', primary_key=True)
-    name = base.Column('varchar(255)', nullable=False)
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.online = False
-        self.last_offline_date = None
-        self.notifications_by_channel_id = collections.defaultdict(list)
-        self.display_name = None
-        self.title = None
-        self.game = None
-        self.logo = None
-        self.type = None
-
-    def __repr__(self):
-        return f"<{type(self).__name__} name={self.name}>"
-
-    @property
-    def notifications(self):
-        notifications = []
-        for channel_notifications in self.notifications_by_channel_id.values():
-            notifications += list(channel_notifications)
-        return notifications
-
-    @property
-    def offline_duration(self):
-        if not self.last_offline_date:
-            return -1
-        return (datetime.utcnow() - self.last_offline_date).total_seconds()
-
-    def get_recent_notification(self, channel_id):
-        return next((notification for notification in self.notifications_by_channel_id[channel_id]
-                     if NotificationHandler.is_recent(notification)), None)
+    id = base.Column('varchar(255)', nullable=False)
+    type = base.Column('varchar(255)', nullable=False)  # 'live' or 'vodcast'
+    user_id = base.Column('varchar(255)', nullable=False)
+    game_id = base.Column('varchar(255)')
+    started_at = base.Column('timestamp')
+    ended_at = base.Column('timestamp')
 
 
-class ChannelStream(base.BaseModel):
+class Notification(base.BaseModel):
 
-    __tablename__ = "channel_streams"
-    __table_args__ = base.UniqueConstraint("stream_id", "channel_id"),
+    __tablename__ = "notifications"
+    __table_args__ = base.UniqueConstraint("stream_id", "message_id"),
 
-    channel_id = base.Column('bigint', base.ForeignKey("channels", "id"))
-    stream_id = base.Column('varchar(255)', base.ForeignKey("streams", "id"))
-    tags = base.Column('varchar(255)', nullable=True)
-
-    def __repr__(self):
-        return f"<{type(self).__name__} stream_id={self.stream_id} channel_id={self.channel_id}>"
+    message_id = base.Column('bigint', primary_key=True)
+    user_id = base.Column('varchar(255)', nullable=False)
+    channel_id = base.Column('bigint', nullable=False)
+    stream_id = base.Column('varchar(255)', nullable=False)
+    created_at = base.Column('timestamp', nullable=False)
+    edited_at = base.Column('timestamp')
+    deleted_at = base.Column('timestamp')
 
 
 class ChannelDBDriver(base.DBDriver):
@@ -82,8 +67,35 @@ class ChannelDBDriver(base.DBDriver):
         super().__init__(bot, Channel)
 
     async def delete_old_channels(self):
-        query = f"DELETE FROM {self.table_name} WHERE id NOT IN (SELECT channel_id FROM {ChannelStream.__tablename__})"
-        await self.bot.pool.execute(query)
+        query = f"DELETE FROM {self.table_name} WHERE id NOT IN (SELECT channel_id FROM {UserChannel.__tablename__})"
+        query += " RETURNING *"
+        records = await self.bot.pool.fetch(query)
+        return [self._get_obj(r) for r in records]
+
+
+class UserDBDriver(base.DBDriver):
+
+    def __init__(self, bot):
+        super().__init__(bot, User)
+
+    async def delete_old_users(self):
+        query = f"DELETE FROM {self.table_name} WHERE id NOT IN (SELECT user_id FROM {UserChannel.__tablename__})"
+        query += " RETURNING *"
+        records = await self.bot.pool.fetch(query)
+        return [self._get_obj(r) for r in records]
+
+
+class UserChannelDBDriver(base.DBDriver):
+
+    def __init__(self, bot):
+        super().__init__(bot, UserChannel)
+
+    async def bulk_delete(self, channel_id, *user_ids):
+        query = f"DELETE FROM {self.table_name} WHERE channel_id = $1 AND "
+        query += f"({' OR '.join([f'user_id = ${index}' for index in range(2, len(user_ids) + 2)])})"
+        query += " RETURNING *"
+        records = await self.bot.pool.fetch(query, channel_id, *user_ids)
+        return [self._get_obj(r) for r in records]
 
 
 class StreamDBDriver(base.DBDriver):
@@ -91,33 +103,8 @@ class StreamDBDriver(base.DBDriver):
     def __init__(self, bot):
         super().__init__(bot, Stream)
 
-    async def delete_old_streams(self):
-        query = f"DELETE FROM {self.table_name} " \
-                f"WHERE id NOT IN (SELECT stream_id FROM {ChannelStream.__tablename__}) RETURNING *"
-        return [self._get_obj(r) for r in await self.bot.pool.fetch(query)]
 
-
-class ChannelStreamDBDriver(base.DBDriver):
+class NotificationDBDriver(base.DBDriver):
 
     def __init__(self, bot):
-        super().__init__(bot, ChannelStream)
-
-    async def bulk_delete(self, channel_id, *user_ids):
-        query = f"DELETE FROM {self.table_name} WHERE channel_id = $1 AND "
-        query += f"({' OR '.join([f'stream_id = ${index}' for index in range(2, len(user_ids) + 2)])})"
-        await self.bot.pool.execute(query, channel_id, *user_ids)
-
-    async def get_user_logins(self, guild_id, guild_only=True):
-        c_table = Channel.__tablename__
-        s_table = Stream.__tablename__
-        cs_table = ChannelStream.__tablename__
-
-        query = f"SELECT {c_table}.channel_id, {s_table}.stream_name FROM {cs_table} " \
-                f"JOIN (SELECT id as channel_id, name as channel_name, guild_id FROM {c_table}) {c_table} " \
-                f"ON {cs_table}.channel_id = {c_table}.channel_id " \
-                f"JOIN (SELECT id, name as stream_name FROM {s_table}) {s_table} " \
-                f"ON {cs_table}.stream_id = {s_table}.id "
-
-        if guild_only:
-            query += f"WHERE {c_table}.guild_id = {guild_id}"
-        return await self.bot.pool.fetch(query)
+        super().__init__(bot, Notification)
