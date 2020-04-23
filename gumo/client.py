@@ -16,7 +16,6 @@ EXTENSIONS = {
     'admin',
     'help',
     'dab',
-    'misc',
     'ori.guild',
     'ori.rando.logic_helper',
     'ori.rando.role',
