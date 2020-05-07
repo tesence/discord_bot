@@ -86,9 +86,7 @@ class TwitchWebhookServer(base.APIClient):
 
     def __init__(self, loop, callback):
 
-        headers = {"Client-ID": config['TWITCH_API_CLIENT_ID']}
-
-        super().__init__(headers=headers, loop=loop, bucket=base.RateBucket(800, 60))
+        super().__init__(loop=loop, bucket=base.RateBucket(800, 60))
         self._token_session = token.TokenSession(loop)
         self._app = sanic.Sanic(error_handler=CustomErrorHandler(), configure_logging=False)
         self._app.add_route(self._handle_get, "<endpoint:[a-z/]+>", methods=['GET'])
@@ -128,12 +126,12 @@ class TwitchWebhookServer(base.APIClient):
         return data
 
     async def list_subscriptions(self):
-        headers = await self._token_session.get_authorization_header()
+        headers = await self._token_session.get_authorization_headers()
         body = await self.get(f"{WEBHOOK_URL}/subscriptions?first=100", return_json=True, headers=headers)
         return [Subscription.get_subscription(sub) for sub in body['data']]
 
     async def subscribe(self, *topics, duration=86400):
-        headers = await self._token_session.get_authorization_header()
+        headers = await self._token_session.get_authorization_headers()
 
         tasks = {topic: self._subscribe(topic, duration, headers) for topic in topics}
         await asyncio.gather(*tasks.values())
@@ -158,7 +156,7 @@ class TwitchWebhookServer(base.APIClient):
         return success
 
     async def cancel(self, *topics):
-        headers = await self._token_session.get_authorization_header()
+        headers = await self._token_session.get_authorization_headers()
 
         tasks = {topic: self._cancel(topic, headers) for topic in topics}
         await asyncio.gather(*tasks.values())

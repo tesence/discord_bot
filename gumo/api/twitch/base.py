@@ -13,8 +13,7 @@ class TwitchAPIClient(base.APIClient):
 
     def __init__(self, loop):
         self._token_session = token.TokenSession(loop)
-        headers = {"Client-ID": config['TWITCH_API_CLIENT_ID']}
-        super().__init__(headers=headers, loop=loop)
+        super().__init__(loop=loop)
 
     async def get_users(self, user_ids=(), user_logins=()):
         """Retrieve all users.
@@ -24,7 +23,7 @@ class TwitchAPIClient(base.APIClient):
         """
         params = [('id', x) for x in user_ids] + [('login', x) for x in user_logins]
         url = f"{TWITCH_API_URL}/users?{parse.urlencode(params)}"
-        headers = await self._token_session.get_authorization_header()
+        headers = await self._token_session.get_authorization_headers()
         body = await self.get(url, return_json=True, headers=headers)
         return body['data']
 
@@ -34,6 +33,6 @@ class TwitchAPIClient(base.APIClient):
         :param game_ids: ids whose we want the name
         """
         url = f"{TWITCH_API_URL}/games?{parse.urlencode([('id', game_id) for game_id in game_ids])}"
-        headers = await self._token_session.get_authorization_header()
+        headers = await self._token_session.get_authorization_headers()
         body = await self.get(url, return_json=True, headers=headers)
         return body['data']

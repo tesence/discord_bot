@@ -34,6 +34,9 @@ class TokenSession(base.APIClient):
 
         return self._token
 
-    async def get_authorization_header(self):
+    async def get_authorization_headers(self):
         token = await self.get_token()
-        return {'Authorization': f"Bearer {token}"}
+        return {
+            'Client-ID': config['TWITCH_API_CLIENT_ID'],
+            'Authorization': f"Bearer {token}"
+        }
