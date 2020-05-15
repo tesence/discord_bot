@@ -103,8 +103,14 @@ class StreamCommands(commands.Cog):
 
     async def _on_stream_update(self, timestamp, user_data, stream_data):
 
-        # Enrich game data
-        game_data = (await self.client.get_games(stream_data['game_id']))[0]
+        game_id = stream_data['game_id']
+
+        broadcast_type = stream_data['type']
+        login = user_data['login']
+        display_name = user_data['display_name']
+        title = stream_data['title']
+        game = (await self.client.get_games(game_id))[0]['name'] if game_id else game_id
+        logo = user_data['profile_image_url']
 
         # New message
         if stream_data['type'] == "live":
@@ -113,9 +119,8 @@ class StreamCommands(commands.Cog):
             message_content = f"{user_data['display_name']} started a vodcast!"
 
         # New embed
-        new_embed = models.NotificationEmbed(broadcast_type=stream_data['type'], login=user_data['login'],
-                                             display_name=user_data['display_name'], title=stream_data['title'],
-                                             game=game_data['name'], logo=user_data['profile_image_url'])
+        new_embed = models.NotificationEmbed(broadcast_type=broadcast_type, login=login, display_name=display_name,
+                                             title=title, game=game, logo=logo)
 
         last_stream = await self.stream_db_driver.get(user_id=user_data['id'], order_by='started_at', desc=True)
 
@@ -156,7 +161,7 @@ class StreamCommands(commands.Cog):
             try:
                 message = await self.bot.get_channel(notification.channel_id).fetch_message(notification.message_id)
             except errors.NotFound:
-                LOG.warning(f"Notification for {user_data['display_name']} in channel "
+                LOG.warning(f"Notification for {display_name} in channel "
                             f"{channel.guild.name}#{channel.name} has most likely been manually deleted, updating the "
                             f"database")
                 await self.notification_db_driver.update('deleted_at', timestamp, message_id=notification.message_id)
@@ -170,7 +175,7 @@ class StreamCommands(commands.Cog):
 
         if channels_edit:
             channel_str = [f"{channel.guild.name}#{channel.name}" for channel in channels_edit]
-            LOG.debug(f"{user_data['display_name']} is already online or was live recently (less than "
+            LOG.debug(f"{display_name} is already online or was live recently (less than "
                       f"{RECENT_NOTIFICATION_AGE}s), recent notification have been edited: {', '.join(channel_str)}")
 
         notifications_to_create = []
@@ -194,7 +199,7 @@ class StreamCommands(commands.Cog):
             columns = ['user_id', 'channel_id', 'stream_id', 'message_id', 'created_at']
             await self.notification_db_driver.create(*notifications_to_create, columns=columns)
             channel_str = [f"{channel.guild.name}#{channel.name}" for channel in channels_send]
-            LOG.debug(f"Notifications for {user_data['display_name']} sent: {', '.join(channel_str)}")
+            LOG.debug(f"Notifications for {display_name} sent: {', '.join(channel_str)}")
 
     async def _on_stream_offline(self, timestamp, user_data):
         """Method called if the twitch stream is going offline"""

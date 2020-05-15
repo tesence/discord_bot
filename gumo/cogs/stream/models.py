@@ -18,8 +18,8 @@ class NotificationEmbed(discord.Embed):
         self.set_author(name=display_name, url=channel_url, icon_url=TWITCH_ICON_URL)
         self.description = channel_url
 
-        self.add_field(name="Title", value=title, inline=False)
-        self.add_field(name="Game", value=game, inline=False)
+        self.add_field(name="Title", value=title or "No Title", inline=False)
+        self.add_field(name="Game", value=game or "No Game", inline=False)
 
         if logo:
             self.set_thumbnail(url=logo)
