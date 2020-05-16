@@ -101,7 +101,8 @@ class DBDriver:
     def _get_obj(self, record):
         return self.model(**dict(record.items())) if record else None
 
-    def _get_formatted_data(self, **filters):
+    @staticmethod
+    def _get_formatted_data(**filters):
         formatted_filters = [f'{column} = ${index}' if filters[column] is not None else f'{column} IS NULL'
                              for index, column in enumerate(filters, 1)]
         filtered_values = [value for value in filters.values() if value is not None]

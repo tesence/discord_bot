@@ -3,7 +3,6 @@ import logging
 import discord
 from discord.ext import commands
 
-from gumo import config
 from gumo.cogs.utils import role
 
 LOG = logging.getLogger(__name__)

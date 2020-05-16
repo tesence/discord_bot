@@ -3,7 +3,6 @@ from urllib import parse
 
 from gumo.api import base
 from gumo.api.twitch import TWITCH_API_URL
-from gumo import config
 from gumo.api.twitch import token
 
 LOG = logging.getLogger(__name__)

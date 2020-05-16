@@ -8,7 +8,6 @@ from discord.ext import commands
 from discord.ext.commands.cooldowns import BucketType
 
 from gumo.cogs.utils import role
-from gumo import config
 from gumo import db
 from gumo import emoji
 

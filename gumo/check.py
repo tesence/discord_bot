@@ -1,7 +1,5 @@
 from discord.ext import commands
 
-from gumo import config
-
 
 class NotAdmin(commands.CheckFailure):
     """Exception when someone uses an admin command without being admin"""
