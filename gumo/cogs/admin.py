@@ -77,7 +77,7 @@ class AdminCommands(commands.Cog):
     @prefix.command(name="add", hidden=True)
     async def prefix_add(self, ctx, new_prefix, guild_id=None):
         guild = self.bot.get_guild(int(guild_id)) if guild_id else ctx.guild
-        await self.bot.prefix_db_driver.create((guild.name, guild.id, new_prefix))
+        await self.bot.prefix_db_driver.create((guild.id, new_prefix))
         self.bot.prefixes[ctx.guild.id].add(new_prefix)
         await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
 
@@ -100,7 +100,7 @@ class AdminCommands(commands.Cog):
         if extension not in client.EXTENSIONS:
             return
         guild = self.bot.get_guild(int(guild_id)) if guild_id else ctx.guild
-        await self.bot.extension_db_driver.create((guild.name, guild.id, extension))
+        await self.bot.extension_db_driver.create((guild.id, extension))
         await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
 
     @ext.command(name="disable", hidden=True)
@@ -121,7 +121,7 @@ class AdminCommands(commands.Cog):
         if not guild:
             raise errors.BadArgument("Guild '{}' not found.".format(guild_id))
         admin_role = await GlobalRoleConverter().convert(argument, guild)
-        await self.bot.admin_role_db_driver.create((guild.name, guild.id, admin_role.name, admin_role.id))
+        await self.bot.admin_role_db_driver.create((guild.id, admin_role.id))
         self.bot.admin_roles[ctx.guild.id].add(admin_role.id)
         await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
 
