@@ -1,4 +1,3 @@
-import asyncio
 import collections
 from concurrent import futures
 import logging
@@ -55,9 +54,6 @@ class Bot(commands.Bot):
         self.extension_db_driver = db.ExtensionDBDriver(self)
         self.admin_role_db_driver = db.AdminRoleDBDriver(self)
 
-        self.ready = asyncio.Event()
-        self.loop.create_task(self.prepare())
-
     async def prepare(self):
 
         # Initialize database drivers
@@ -70,8 +66,6 @@ class Bot(commands.Bot):
 
         for admin_role in await self.admin_role_db_driver.list():
             self.admin_roles[admin_role.guild_id].add(admin_role.id)
-
-        self.ready.set()
 
     async def on_ready(self):
         LOG.debug(f"Bot is connected | username: {self.user} | user id: {self.user.id}")
@@ -138,7 +132,7 @@ class Bot(commands.Bot):
     async def start(self, *args, **kwargs):
         try:
             token = config['DISCORD_BOT_TOKEN']
-            # await self.ready.wait()
+            await self.prepare()
             await super().start(token, *args, **kwargs)
         except ConnectionError:
             LOG.exception("Cannot connect to the websocket")
