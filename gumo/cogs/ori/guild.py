@@ -20,18 +20,9 @@ ROLES = ["He/Him", "She/Her", "They/Them"]
 class EmojiChain:
 
     def __init__(self):
-        self.contributors = set()
+        self.contributors = []
         self.emoji = None
         self.answered = False
-        self.limit = random.randint(3, 6)
-        self.timeout = random.randint(0, 20)
-
-    def __bool__(self):
-        return bool(self.contributors) and bool(self.emoji)
-
-    def __repr__(self):
-        return f"<emoji={self.emoji} contributors={len(self.contributors)} answered={self.answered} " \
-               f"limit={self.limit} timeout={self.timeout}>"
 
 
 class OriGuildCommands(commands.Cog, role.RoleCommands):
@@ -42,6 +33,8 @@ class OriGuildCommands(commands.Cog, role.RoleCommands):
         self.bot = bot
         self.roles = multidict.CIMultiDict(**{role_name: role_name for role_name in ROLES})
         self.emoji_chain_by_channel = collections.defaultdict(EmojiChain)
+        self.emoji_chain_threshold = random.randint(3, 7)
+        self.emoji_chain_timeout = random.randint(0, 20)
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -70,23 +63,44 @@ class OriGuildCommands(commands.Cog, role.RoleCommands):
             del self.emoji_chain_by_channel[ctx.channel]
             current_chain = self.emoji_chain_by_channel[ctx.channel]
 
-        if emoji:
+        if not emoji:
+            # Then, this is not a guild emoji
+            return
 
-            # If someone starts a chain, use the guild emoji in the message
-            if not current_chain:
-                current_chain.emoji = emoji
+        # If someone starts a chain, use the guild emoji in the message
+        if not current_chain:
+            current_chain.emoji = emoji
 
-            # Add the author as a contributor of the emoji chain
-            current_chain.contributors.add(message.author)
+        # Add the author as a contributor of the emoji chain
+        if message.author not in current_chain.contributors:
+            current_chain.contributors.append(message.author)
 
-            # If enough people contributed to consider it a emoji chain
-            if len(current_chain.contributors) >= current_chain.limit and not current_chain.answered:
-                current_chain.answered = True
-                await asyncio.sleep(current_chain.timeout)
-                await message.channel.send(current_chain.emoji)
+        # If enough people contributed to consider it a emoji chain
+        if len(current_chain.contributors) >= self.emoji_chain_threshold and not current_chain.answered:
+            current_chain.answered = True
+            await asyncio.sleep(self.emoji_chain_timeout)
+            await message.channel.send(current_chain.emoji)
+            LOG.debug(f"Contributing to '{emoji.name}' chain of size {len(current_chain.contributors)} in channel "
+                      f"'{ctx.channel.guild.name}#{ctx.channel.name}' started by "
+                      f"'{current_chain.contributors[0].display_name}' (timeout: {self.emoji_chain_timeout}s)")
+            self.emoji_chain_threshold = random.randint(3, 7)
+            self.emoji_chain_timeout = random.randint(0, 20)
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
+
+        channel = self.bot.get_channel(payload.channel_id)
+        message = await channel.fetch_message(payload.message_id)
+        user = self.bot.get_user(payload.user_id)
+        ctx = await self.bot.get_context(message)
+
+        # Ignore if:
+        # - The listener is triggered by one of the bot's reactions
+        # - The bot does not have reaction permission in the channel
+        # - The message has been send in another guild
+        if user == self.bot.user or not ctx.me.permissions_in(channel).add_reactions or \
+                not message.guild.id == GUILD_ID:
+            return
 
         emoji = self.bot.get_emoji(payload.emoji.id)
 
@@ -94,13 +108,20 @@ class OriGuildCommands(commands.Cog, role.RoleCommands):
             # Then, this is not a guild emoji
             return
 
-        channel = self.bot.get_channel(payload.channel_id)
-        message = await channel.fetch_message(payload.message_id)
-
         for reaction in message.reactions:
-            if reaction.emoji.id == emoji.id and reaction.count >= 4:
-                await asyncio.sleep(random.randint(10, 120))
+
+            if reaction.emoji == emoji and reaction.count >= self.emoji_chain_threshold:
+
+                if self.bot.user in await reaction.users().flatten():
+                    continue
+
+                await asyncio.sleep(self.emoji_chain_timeout)
                 await message.add_reaction(emoji)
+                LOG.debug(f"Contributing to '{emoji.name}' reaction chain of size {reaction.count} on "
+                          f"message sent by '{message.author.display_name}' at '{message.created_at}' in channel "
+                          f"'{ctx.channel.guild.name}#{ctx.channel.name}' (timeout: {self.emoji_chain_timeout}s)")
+                self.emoji_chain_threshold = random.randint(3, 7)
+                self.emoji_chain_timeout = random.randint(0, 20)
 
     @commands.group(invoke_without_command=True)
     async def pronoun(self, ctx, *pronouns):
