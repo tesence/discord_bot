@@ -85,6 +85,23 @@ class OriGuildCommands(commands.Cog, role.RoleCommands):
                 await asyncio.sleep(current_chain.timeout)
                 await message.channel.send(current_chain.emoji)
 
+    @commands.Cog.listener()
+    async def on_raw_reaction_add(self, payload):
+
+        emoji = self.bot.get_emoji(payload.emoji.id)
+
+        if not emoji:
+            # Then, this is not a guild emoji
+            return
+
+        channel = self.bot.get_channel(payload.channel_id)
+        message = await channel.fetch_message(payload.message_id)
+
+        for reaction in message.reactions:
+            if reaction.emoji.id == emoji.id and reaction.count >= 4:
+                await asyncio.sleep(random.randint(10, 120))
+                await message.add_reaction(emoji)
+
     @commands.group(invoke_without_command=True)
     async def pronoun(self, ctx, *pronouns):
         """Add/remove pronoun roles
