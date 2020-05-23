@@ -41,7 +41,7 @@ class OriGuildCommands(commands.Cog, role.RoleCommands):
         self.display_name = "Ori guild commands"
         self.bot = bot
         self.roles = multidict.CIMultiDict(**{role_name: role_name for role_name in ROLES})
-        self.emojis_by_channel = collections.defaultdict(EmojiChain)
+        self.emoji_chain_by_channel = collections.defaultdict(EmojiChain)
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -63,14 +63,12 @@ class OriGuildCommands(commands.Cog, role.RoleCommands):
         if re.match(EMOJI_REGEX, message.content):
             emoji = self.bot.get_emoji(int(re.match(EMOJI_REGEX, message.content).group(1)))
 
-        current_chain = self.emojis_by_channel[ctx.channel]
+        current_chain = self.emoji_chain_by_channel[ctx.channel]
 
         # If someone sends a message that is not a single guild emoji, or the wrong one, reset the chain
         if current_chain and (not emoji or not current_chain.emoji == emoji):
-            LOG.debug(f"{str(message.author)} has reseted the chain {current_chain} with the message "
-                      f"'{message.content}'")
-            del self.emojis_by_channel[ctx.channel]
-            current_chain = self.emojis_by_channel[ctx.channel]
+            del self.emoji_chain_by_channel[ctx.channel]
+            current_chain = self.emoji_chain_by_channel[ctx.channel]
 
         if emoji:
 
@@ -80,7 +78,6 @@ class OriGuildCommands(commands.Cog, role.RoleCommands):
 
             # Add the author as a contributor of the emoji chain
             current_chain.contributors.add(message.author)
-            LOG.debug(f"{message.author} has contributed to an emoji chain: {current_chain}")
 
             # If enough people contributed to consider it a emoji chain
             if len(current_chain.contributors) >= current_chain.limit and not current_chain.answered:
