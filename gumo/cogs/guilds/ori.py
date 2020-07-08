@@ -24,6 +24,9 @@ class EmojiChain:
         self.emoji = None
         self.answered = False
 
+    def __bool__(self):
+        return bool(self.contributors) and bool(self.emoji)
+
 
 class OriGuildCommands(commands.Cog, role.RoleCommands):
 
