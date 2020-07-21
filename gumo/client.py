@@ -15,7 +15,7 @@ EXTENSIONS = {
     'admin',
     'help',
     'dab',
-    'guilds.julgane'
+    'guilds.julgane',
     'guilds.ori',
     'ori.logic_helper',
     'ori.role',
