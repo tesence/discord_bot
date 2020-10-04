@@ -9,6 +9,7 @@ import discord
 from discord.ext import commands
 
 from gumo.cogs.utils import role
+from gumo import emoji
 from gumo.emoji import EMOJI_REGEX
 
 LOG = logging.getLogger(__name__)
@@ -16,6 +17,8 @@ LOG = logging.getLogger(__name__)
 GUILD_ID = 116250700685508615
 ROLES = ["He/Him", "She/Her", "They/Them"]
 
+WOTW_RANDO_ROLE_ID = 470331619400482816
+BF_RANDO_ROLE_ID = 762350650071449611
 
 class EmojiChain:
 
@@ -149,5 +152,64 @@ class OriGuildCommands(commands.Cog, role.RoleCommands):
         await self.remove_roles(ctx, *ROLES, guild=self.bot.get_guild(GUILD_ID))
 
 
+class OriRandoRoleCommands(commands.Cog):
+
+    def __init__(self, bot):
+        self.display_name = "Ori rando"
+        self.bot = bot
+        self.bf_rando_role = None
+        self.wotw_rando_role = None
+        self.guild = None
+
+    @commands.group(aliases=['lfr'])
+    @commands.guild_only()
+    async def looking_for_rando(self, ctx):
+        """Add/remove the rando role"""
+        if ctx.invoked_subcommand is None:
+            await ctx.invoke(self.bot.get_command('help'), command_name=ctx.command.name)
+
+    def _get_valid_roles(self, roles):
+        self.guild = self.bot.get_guild(GUILD_ID)
+        self.bf_rando_role = self.bf_rando_role or self.guild.get_role(BF_RANDO_ROLE_ID)
+        self.wotw_rando_role = self.wotw_rando_role or self.guild.get_role(WOTW_RANDO_ROLE_ID)
+
+        valid_roles = []
+        if "both" in roles:
+            valid_roles = [self.bf_rando_role, self.wotw_rando_role]
+        else:
+            if "bf" in roles:
+                valid_roles.append(self.bf_rando_role)
+            if "wotw" in roles:
+                valid_roles.append(self.wotw_rando_role)
+
+        return valid_roles
+
+    @looking_for_rando.command()
+    @commands.guild_only()
+    async def add(self, ctx, *roles):
+
+        if not roles:
+            return
+
+        else:
+            valid_roles = self._get_valid_roles(roles)
+            await ctx.author.add_roles(*valid_roles)
+            await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
+
+    @looking_for_rando.command(aliases=['rm'])
+    @commands.guild_only()
+    async def remove(self, ctx, *roles):
+        """Remove the rando role"""
+
+        if not roles:
+            return
+
+        else:
+            valid_roles = self._get_valid_roles(roles)
+            await ctx.author.remove_roles(*valid_roles)
+            await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
+
+
 def setup(bot):
+    bot.add_cog(OriRandoRoleCommands(bot))
     bot.add_cog(OriGuildCommands(bot))

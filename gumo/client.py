@@ -18,7 +18,6 @@ EXTENSIONS = {
     'guilds.julgane',
     'guilds.ori',
     'ori.logic_helper',
-    'ori.role',
     'ori.seedgen',
     'stream',
     'tag'
