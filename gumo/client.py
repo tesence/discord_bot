@@ -42,7 +42,11 @@ async def get_prefix(bot, message):
 class Bot(commands.Bot):
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, command_prefix=get_prefix, **kwargs)
+
+        intents = discord.Intents.default()
+        intents.members = True
+
+        super().__init__(*args, command_prefix=get_prefix, intents=intents, **kwargs)
         self.pool = None
         self.prefixes = collections.defaultdict(set)
         self.admin_roles = collections.defaultdict(set)
