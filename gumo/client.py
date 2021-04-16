@@ -106,8 +106,8 @@ class Bot(commands.Bot):
         if not isinstance(error, (commands.CommandOnCooldown, futures.TimeoutError)):
             ctx.command.reset_cooldown(ctx)
 
-        if isinstance(error, commands.MissingRequiredArgument):
-            LOG.warning(f"Missing argument in command {ctx.command}: {error.args}")
+        if isinstance(error, commands.UserInputError):
+            LOG.warning(f"Argument error in command {ctx.command}: {error.args}")
             await ctx.invoke(self.get_command('help'), command_name=ctx.command.qualified_name)
         elif isinstance(error, commands.CommandOnCooldown):
             LOG.warning(f"'{ctx.author.name}' tried to use the command '{ctx.command.name}' while it "

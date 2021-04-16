@@ -161,10 +161,11 @@ class OriRandoRoleCommands(commands.Cog):
         self.wotw_rando_role = None
         self.guild = None
 
-    @commands.group(aliases=['lfr'])
+    @commands.group()
     @commands.guild_only()
-    async def looking_for_rando(self, ctx):
-        """Add/remove the rando role"""
+    async def lfr(self, ctx):
+        """Add/remove rando roles"""
+
         if ctx.invoked_subcommand is None:
             await ctx.invoke(self.bot.get_command('help'), command_name=ctx.command.name)
 
@@ -184,25 +185,37 @@ class OriRandoRoleCommands(commands.Cog):
 
         return valid_roles
 
-    @looking_for_rando.command()
+    @lfr.command()
     @commands.guild_only()
     async def add(self, ctx, *roles):
+        """Add rando roles
+
+        e.g:
+        `!lfr add bf` to get pinged about Blind Forest rando
+        `!lfr add wotw` to get pinged about Will of the Wisps rando
+        `!lfr add both` to get pinged about both (`!lfr add bf wotw` also works)
+        """
 
         if not roles:
-            return
+            raise commands.UserInputError("Missing roles to add")
 
         else:
             valid_roles = self._get_valid_roles(roles)
             await ctx.author.add_roles(*valid_roles)
             await ctx.message.add_reaction(emoji.WHITE_CHECK_MARK)
 
-    @looking_for_rando.command(aliases=['rm'])
+    @lfr.command(aliases=['rm'])
     @commands.guild_only()
     async def remove(self, ctx, *roles):
-        """Remove the rando role"""
+        """Remove rando roles
 
+        e.g:
+        `!lfr remove bf` to not get pinged about Blind Forest rando anymore
+        `!lfr remove wotw` to not get pinged about Will of the Wisps rando anymore
+        `!lfr remove both` to not get pinged about any rando anymore (`!lfr remove bf wotw` also works)
+        """
         if not roles:
-            return
+            raise commands.UserInputError("Missing roles to remove")
 
         else:
             valid_roles = self._get_valid_roles(roles)
