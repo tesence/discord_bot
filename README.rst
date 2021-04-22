@@ -110,9 +110,9 @@ A classic tag command
 .. |Python| image:: https://img.shields.io/badge/Python-3.6%2B-blue.svg
    :target: https://www.python.org/
 .. |Codacy Badge| image:: https://api.codacy.com/project/badge/Grade/902886185fd2476dadab0cb1a4c4f3a9
-   :target: https://app.codacy.com/app/tesence/discord_bot?utm_source=github.com&utm_medium=referral&utm_content=tesence/discord_bot&utm_campaign=Badge_Grade_Dashboard
-.. |Maintainability| image:: https://api.codeclimate.com/v1/badges/e5874485dd3795f5e940/maintainability
-   :target: https://codeclimate.com/github/tesence/discord_bot/maintainability
+   :target: https://app.codacy.com/app/tesence/GumoBot?utm_source=github.com&utm_medium=referral&utm_content=tesence/GumoBot&utm_campaign=Badge_Grade_Dashboard
+.. |Maintainability| image:: https://api.codeclimate.com/v1/badges/879b28b7e0aa2fefc510/maintainability
+   :target: https://codeclimate.com/github/tesence/GumoBot/maintainability
 .. |seedgen| image:: img/seedgen.png?raw=True
    :class: align-center
 .. |logic helper| image:: img/logic_helper.png?raw=True
